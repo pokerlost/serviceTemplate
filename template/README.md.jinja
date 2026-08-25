@@ -1,0 +1,147 @@
+# {{ service_name }}
+
+`{{ service_name }}` (`{{ service_slug }}`) is a generated PokerLost FastAPI service foundation.
+It contains reusable infrastructure and no business functionality.
+
+Before development, read `AGENTS.md` and `SERVICE.md`. Fill the `SERVICE.md` `TODO` sections only
+with concrete requirements known for this service; do not invent responsibilities.
+
+## Install
+
+The initial scaffold documents a locked-generation workflow rather than shipping a lock file.
+Create the local environment with:
+
+```bash
+cp .env.example .env
+uv lock
+uv sync --locked
+```
+
+Replace the local placeholders in `.env`. Never commit credentials or put them in Copier answers,
+Helm values, or a ConfigMap.
+
+## Configuration
+
+Settings are typed and nested under application, HTTP, database, and Logfire groups. Environment
+variables use the `{{ service_env_prefix }}_` prefix and `__` between nested groups, for example:
+
+```text
+{{ service_env_prefix }}_DATABASE__URL
+```
+
+A complete `postgresql+asyncpg` URL is mandatory. PostgreSQL is not started by the application,
+and migrations do not run automatically during startup.
+
+## Run
+
+Start the local Typer/Uvicorn factory server:
+
+```bash
+make run
+```
+
+Start the production Gunicorn/Uvicorn worker process locally:
+
+```bash
+make serve
+```
+
+The canonical ASGI factory is `api.application:create_app`. There is no module-level FastAPI
+instance.
+
+## API
+
+The pristine service exposes exactly two methods:
+
+| method | path | operation_id | response_model |
+| --- | --- | --- | --- |
+| `GET` | `/` | `{{ service_name }}.root` | `RootResponse` |
+| `GET` | `/openapi.get` | `{{ service_name }}.openapi.get` | `OpenApiResponse` |
+
+Built-in `/openapi.json`, `/docs`, and `/redoc` are disabled. `/openapi.get` returns FastAPI's JSON
+OpenAPI document inside the application response result; standard OpenAPI keys retain their
+specification-defined spelling.
+
+Every application-owned success uses the same snake_case envelope:
+
+```json
+{
+  "ok": true,
+  "result": null,
+  "error": null,
+  "error_message": null
+}
+```
+
+Failures use the same envelope:
+
+```json
+{
+  "ok": false,
+  "result": null,
+  "error": "SERVICE_ERROR_CODE",
+  "error_message": "Safe public message"
+}
+```
+
+Request and correlation identifiers are response headers and observability fields, not response
+body fields. Future service endpoints use `/{namespace}.{method}` and return only
+`ApplicationResponse`.
+
+## Database migrations
+
+The scaffold includes Alembic configuration and common SQLAlchemy metadata, but no fake baseline
+revision or business table.
+
+```bash
+make db-upgrade
+make db-downgrade
+make db-revision message=add_feature_table
+```
+
+Request dependencies own transaction commit, rollback, and session close. Routes, handlers, and
+repositories do not manage that transaction manually.
+
+## Quality checks
+
+```bash
+uv lock --check
+make format
+make lint
+make typecheck
+make pre-commit
+python -m compileall -q app alembic/env.py
+git diff --check
+```
+
+## Docker and Helm
+
+The multi-stage Docker build installs locked dependencies and runs the service as a non-root user
+through the application factory. Build it after creating `uv.lock`:
+
+```bash
+docker build -t {{ service_slug }} .
+```
+
+The Helm chart is under `deploy/helm/{{ service_slug }}/`. Its probes call `GET /`; database
+credentials must come from the configured Kubernetes Secret reference.
+
+## Copier updates
+
+Commit `.copier-answers.yml`; it is Copier-owned update metadata and must not contain secrets or be
+edited manually. From a clean service checkout:
+
+```bash
+uvx --from 'copier==9.17.2' copier check-update
+uvx --from 'copier==9.17.2' copier update
+```
+
+Review the complete diff and rerun the checks above. `SERVICE.md` is service-owned and must remain
+unchanged during a template update.
+
+## Intentionally absent
+
+This pristine scaffold has no users, accounts, roles, authorization server, JWT/JWKS, sessions,
+credentials, wallets, ledger, poker or blockchain domain, OpenAPI registry, durable audit,
+business rate-limiting policy, generated tests, or CI/CD. Add service behavior only after its known
+purpose and responsibilities are recorded in `SERVICE.md`.

@@ -1,0 +1,40 @@
+_min_copier_version: "9.17.2"
+_subdirectory: template
+_answers_file: .copier-answers.yml
+_templates_suffix: .jinja
+_envops:
+  undefined: jinja2.StrictUndefined
+
+# SERVICE.md belongs to the generated service after the initial copy.
+# Template updates must not overwrite service-specific architecture/rules.
+_skip_if_exists:
+  - SERVICE.md
+
+service_name:
+  type: str
+  help: "Canonical PokerLost service name, e.g. authService or virtualMoney."
+  validator: >-
+    {%- if not service_name -%}
+    service_name must not be empty.
+    {%- elif not service_name.isascii() -%}
+    service_name must contain ASCII characters only.
+    {%- elif not service_name[0].isalpha() -%}
+    service_name must start with an ASCII letter.
+    {%- elif not service_name.isalnum() -%}
+    service_name must contain letters and digits only; spaces and _, -, ., / are not allowed.
+    {%- endif -%}
+
+service_slug:
+  type: str
+  default: "{{ service_name | lower }}"
+  when: false
+
+service_env_prefix:
+  type: str
+  default: "{{ service_name | upper }}"
+  when: false
+
+database_name:
+  type: str
+  default: "{{ service_name | lower }}"
+  when: false

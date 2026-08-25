@@ -1,0 +1,152 @@
+# {{ service_name }}
+
+Before every task:
+
+1. Read `AGENTS.md`.
+2. Read `SERVICE.md`.
+3. Inspect the current repository and relevant implementation.
+4. Treat the latest direct user requirement as highest priority.
+5. Treat `SERVICE.md` as the source of truth for service-specific purpose and rules.
+6. Treat this file as the source of truth for shared PokerLost engineering conventions.
+
+Priority:
+
+```text
+latest direct user requirement
+→ SERVICE.md
+→ AGENTS.md
+→ older decisions
+```
+
+## General architecture
+
+- Keep transport, application, domain, configuration, observability, and persistence responsibilities separated.
+- Do not introduce abstractions without a concrete use.
+- Do not copy business logic from other services.
+- PostgreSQL is the unconditional primary persistence layer.
+- Validate critical settings at startup and fail fast.
+- Do not commit or log secrets.
+
+## API
+
+- FastAPI is the HTTP framework.
+- `/` is the only allowed non-RPC application path.
+- Every other application endpoint uses `/{namespace}.{method}`.
+- `operation_id` is explicit and stable.
+- Application-owned JSON fields use `snake_case`.
+- Every API endpoint returns data through `ApplicationResponse`.
+- Validation, application, database, framework, and unexpected errors use the same envelope.
+- Do not create a second response envelope for special endpoints.
+- Use FastAPI's OpenAPI support; keep platform augmentation small and explicit.
+- Do not build a custom OpenAPI engine when FastAPI already provides the required primitive.
+
+## Dependencies
+
+Public FastAPI dependencies are consumed through PEP 695 aliases:
+
+```python
+type DatabaseSession = Annotated[
+    AsyncSession,
+    Depends(_open_database_session, scope="function"),
+]
+```
+
+Resolver functions are private implementation details and are not exported as public `get_*`
+dependencies.
+
+Route signatures use aliases, not repeated inline `Annotated[..., Depends(...)]`.
+
+Do not use FastAPI `Header` dependencies for request/correlation context when middleware owns that transport concern.
+
+## Schemas
+
+Use `RequestModel` for API requests and `ResponseModel` for API responses. Keep
+application-owned JSON alias-free and in `snake_case`.
+
+Request:
+
+```text
+SomethingRequest
+something_request.py
+```
+
+Response:
+
+```text
+SomethingResponse
+something_response.py
+```
+
+ORM-backed API schemas are responses and still end with `Response`.
+
+Use strict Pydantic v2 models and reject unknown request fields where appropriate.
+
+## Application
+
+Provide and reuse base primitives:
+
+```text
+Command
+Query
+Result
+Handler
+```
+
+Keep them abstract/general.
+
+These primitives are typed Python application contracts, not Pydantic transport models.
+
+Application handlers orchestrate use cases and do not depend on FastAPI.
+
+Handlers do not own transaction commits/rollbacks.
+
+## Persistence
+
+Concrete ORM classes:
+
+```text
+SomethingModel
+something_model.py
+```
+
+Use SQLAlchemy 2 typed mappings.
+
+Use request-owned transactions.
+
+Prefer explicit statements and `RETURNING`.
+
+Do not call `commit()` or `rollback()` in repositories or handlers.
+
+Keep repositories focused.
+
+Use projections/query adapters for read models when appropriate.
+
+## Observability
+
+Provide one process-wide `configure_observability()` and focused FastAPI/SQLAlchemy instrumentation modules.
+
+Never capture or log:
+
+```text
+passwords
+Authorization headers
+access/refresh tokens
+client secrets
+private keys
+database credentials
+other secrets
+```
+
+## Imports
+
+Prefer explicit imports.
+
+If a package intentionally exposes a public interface through `__init__.py`, import from that facade.
+
+Do not turn `__init__.py` into an export dump.
+
+## Tooling
+
+Use the repository's `Makefile`, `uv`, Ruff, mypy, Alembic, Docker and Helm conventions.
+
+Do not modify CI/CD or add tests unless the task explicitly requests them.

@@ -1,0 +1,72 @@
+[project]
+name = "pokerlost-{{ service_slug }}"
+version = "0.1.0"
+description = "PokerLost FastAPI service foundation."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.16.4,<2",
+    "asyncpg>=0.30.0,<1",
+    "fastapi>=0.121.0,<1",
+    "gunicorn>=23.0.0,<24",
+    "logfire[fastapi,sqlalchemy]>=4.3.3,<5",
+    "pydantic>=2.11.7,<3",
+    "pydantic-settings>=2.10.1,<3",
+    "sqlalchemy[asyncio]>=2.0.41,<3",
+    "typer>=0.16.0,<1",
+    "uvicorn>=0.35.0,<1",
+    "uvicorn-worker>=0.3.0,<1",
+]
+
+[project.scripts]
+"{{ service_slug }}" = "cli:cli"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.0,<2",
+    "pre-commit>=4.2.0,<5",
+    "ruff>=0.12.5,<1",
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["app"]
+sources = ["app"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 99
+src = ["app"]
+exclude = ["AGENTS.md"]
+
+[tool.ruff.lint]
+select = ["ANN", "ASYNC", "B", "D", "E", "F", "I", "RUF", "UP"]
+ignore = ["D107", "D203", "D213", "D417"]
+
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+known-first-party = [
+    "api",
+    "application",
+    "cli",
+    "configuration",
+    "domain",
+    "observability",
+    "persistence",
+    "service",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/versions/*.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "app"
+files = ["app"]
+plugins = ["pydantic.mypy"]
+strict = true
+explicit_package_bases = true
+warn_unused_configs = true
