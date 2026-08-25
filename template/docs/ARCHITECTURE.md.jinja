@@ -1,0 +1,58 @@
+#   {{ service_name }} Architecture
+
+This document explains the generated service structure and runtime flow. Normative engineering
+rules live in [`../AGENTS.md`](../AGENTS.md); concrete service purpose and constraints live in
+[`../SERVICE.md`](../SERVICE.md).
+
+## Runtime flow
+
+The application factory is the composition root. For a service endpoint that uses persistence, the
+intended flow is:
+
+```text
+create_app
+→ lifespan
+→ ApplicationResources
+→ request middleware
+→ dependency aliases
+→ route
+→ application handler
+→ repository or query adapter
+→ PostgreSQL transaction
+```
+
+`create_app` resolves settings, configures observability, registers middleware, exception handlers,
+and routes, and returns a FastAPI application. Its lifespan creates the SQLAlchemy engine and
+session factory, stores them in `ApplicationResources`, and disposes the engine on shutdown.
+
+Request middleware establishes request and correlation identifiers. Private dependency resolvers
+expose settings and lifespan-owned resources through public PEP 695 aliases. A database-consuming
+route receives one request-owned `AsyncSession`; SQLAlchemy's transaction context commits after a
+normal dependency exit, rolls back after an exception, and then closes the session.
+
+At engine connection time, the observed exact asyncpg connection-refusal exception is normalized
+to SQLAlchemy's `OperationalError` category so the centralized API handler can return a safe 503.
+
+Routes translate HTTP input into application values and delegate behavior to an application
+handler. A handler coordinates the use case through repository or read-query adapters. Those
+adapters execute SQLAlchemy statements using the request session rather than opening or completing
+their own transaction. The two pristine endpoints do not require a database or a business handler.
+
+## Layer boundaries
+
+| Layer | Responsibility |
+| --- | --- |
+| `api` | FastAPI composition, middleware, dependencies, routes, public schemas, OpenAPI, and safe error responses. |
+| `application` | Transport-independent command/query inputs, results, handler contracts, and use-case orchestration. |
+| `domain` | Framework-independent internal values and closed domain or platform categories. |
+| `configuration` | Settings declaration, environment loading, and startup validation. |
+| `observability` | Privacy-safe Logfire configuration and framework/database instrumentation. |
+| `persistence` | SQLAlchemy metadata, sessions, repositories, result readers, projections, and future concrete adapters. |
+| `cli` | Operator entry points such as local server startup. |
+
+## Deliberately unfinished
+
+The generated repository is a service foundation, not a generic business service. It intentionally
+contains no concrete business entities, operations, service-specific API contracts, repositories,
+tables, or migrations. Those are added only when the service's authoritative responsibilities are
+known and recorded in `SERVICE.md`.

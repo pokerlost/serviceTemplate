@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from domain.value_model import ValueModel
 
 
-class Result(ABC):
+class Result(ValueModel):
     """Marker base for typed application output."""

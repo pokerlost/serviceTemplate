@@ -1,78 +1,30 @@
-# Create a PokerLost Service with Copier
+# Create and Update a PokerLost Service
 
-This workflow is for Codex or another agent creating a service from this template. Use Copier
-directly; do not manually copy the tree or create a second generator.
+This document is the Copier copy, update, and verification workflow. The generated-content
+contract is defined in [`TEMPLATE.md`](TEMPLATE.md).
 
-## 1. Read the template contract
+## Fresh copy
 
-Read, in order:
-
-1. `AGENTS.md`;
-2. `TEMPLATE.md`;
-3. `copier.yml`;
-4. this file.
-
-Inspect the source checkout before choosing a destination.
-
-## 2. Resolve the only answer
-
-The only required answer is the canonical service identity:
-
-```text
-service_name
-```
-
-It must be a non-empty ASCII camelCase or PascalCase name that starts with a letter and contains
-letters and digits only, for example `authService`, `virtualMoney`, or `PokerServer`.
-
-Do not ask architecture questionnaires during mechanical generation. In particular, the template
-does not ask:
-
-```text
-service_role
-service_purpose
-out_of_scope
-data_ownership
-secondary_storage
-external_dependencies
-special_invariants
-auth_policy
-realtime_policy
-first_production_scope
-primary_storage
-use_postgresql
-```
-
-Copier derives the slug, environment prefix, and database name. PostgreSQL is always included.
-
-## 3. Choose the destination
-
-Use the destination explicitly named by the user. If it is implicit, derive the intended service
-directory from the current workspace and `service_name`, then confirm that it does not overwrite
-an unrelated project.
-
-The destination must not be a nested copy such as `target/serviceTemplate` or
-`serviceTemplate/serviceTemplate`. Do not create a nested `.git` or a repository beside the
-requested destination.
-
-## 4. Generate with Copier 9.17.2
-
-Run the pinned tool without `--trust`:
+1. Read `AGENTS.md`, `TEMPLATE.md`, `copier.yml`, and this file.
+2. Inspect the source checkout and resolve the destination requested by the user. Do not overwrite
+   an unrelated project or create a nested `serviceTemplate/serviceTemplate` layout.
+3. Resolve the only answer, `service_name`. It must be a non-empty ASCII camelCase or PascalCase
+   name beginning with a letter and containing only letters and digits.
+4. Run pinned Copier without `--trust`:
 
 ```bash
 uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
   -d service_name=<SERVICE_NAME>
 ```
 
-The template has no tasks or hooks requiring trusted execution.
+5. Inspect Copier-owned `.copier-answers.yml`; do not write or edit it manually.
+6. Read the generated `AGENTS.md`, `SERVICE.md`, and `README.md`. Replace `SERVICE.md` `TODO`
+   sections only with authoritative service facts.
 
-## 5. Verify the generated repository
+## Fresh-copy verification
 
 Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`,
-`.copier-answers.yml`, the Python project files, `app/`, `alembic/`, and `deploy/helm/`. Inspect
-`.copier-answers.yml` as Copier output; never hand-write or manually edit it.
-
-Initialize and verify the locked environment using the generated repository's documented flow:
+`docs/ARCHITECTURE.md`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Then run:
 
 ```bash
 cd <destination>
@@ -86,28 +38,33 @@ python -m compileall -q app alembic/env.py
 git diff --check
 ```
 
-Also verify that `GET /` and `GET /openapi.get` return `ApplicationResponse`, built-in FastAPI
-OpenAPI/docs URLs are disabled, PostgreSQL/Alembic files exist, and no business implementation was
-generated.
+Verify the generated imports and artifact naming structurally. Exercise `GET /` and
+`GET /openapi.get`, confirm both return `ApplicationResponse`, confirm
+`x-pokerlost-service.id`, and confirm `/openapi.json`, `/docs`, and `/redoc` are disabled.
 
-## 6. Read the generated contract
+When the environment permits, use an ephemeral route or dependency probe against an unavailable
+PostgreSQL address to confirm `OperationalError` becomes a safe HTTP 503 response. Use a temporary
+PostgreSQL instance to probe commit on normal dependency exit and rollback on exceptional exit.
+Never retain probe routes, tables, schemas, or migrations in the generated service.
 
-Before adding service code, read the generated `AGENTS.md` and `SERVICE.md`. They now govern work
-inside that service.
+## Template update
 
-Replace `TODO` sections in `SERVICE.md` only with concrete facts known from the user's request or
-authoritative project context. Never invent responsibilities, data ownership, boundaries, or
-invariants merely to make the document look complete. Leave unknown facts as `TODO`.
-
-## 7. Check and apply template updates
-
-Run update commands from a clean generated service checkout that contains its Copier answers file:
+Run updates from a clean generated service checkout with valid Copier answers metadata:
 
 ```bash
 uvx --from 'copier==9.17.2' copier check-update
 uvx --from 'copier==9.17.2' copier update
 ```
 
-Then review the complete diff and repeat the generated-service verification. Confirm specifically
-that template-owned files changed as expected, `.copier-answers.yml` remains valid Copier metadata,
-and the service-owned `SERVICE.md` was not overwritten.
+Review the complete diff and repeat the fresh-copy checks. For a template change that manages
+generated files, the update regression must also:
+
+1. create a fresh service from the prior template revision;
+2. modify its service-owned `SERVICE.md`;
+3. update from a revision containing a safe template-owned change;
+4. confirm the template-owned file and any new files update;
+5. confirm `SERVICE.md` remains byte-for-byte unchanged;
+6. confirm `.copier-answers.yml` remains valid Copier metadata.
+
+Report every unavailable tool, failed command, and external-service limitation. Do not claim a
+check that was not executed.

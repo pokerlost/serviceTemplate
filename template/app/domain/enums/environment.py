@@ -1,4 +1,4 @@
-"""Deployment environment configuration."""
+"""Deployment environment category."""
 
 from __future__ import annotations
 

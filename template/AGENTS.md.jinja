@@ -20,9 +20,9 @@ latest direct user requirement
 
 ## General architecture
 
-- Keep transport, application, domain, configuration, observability, and persistence responsibilities separated.
-- Do not introduce abstractions without a concrete use.
-- Do not copy business logic from other services.
+- Keep transport, application, domain, configuration, observability, persistence, and CLI
+  responsibilities separated.
+- Do not introduce abstractions without a concrete use or copy business logic from other services.
 - PostgreSQL is the unconditional primary persistence layer.
 - Validate critical settings at startup and fail fast.
 - Do not commit or log secrets.
@@ -30,19 +30,20 @@ latest direct user requirement
 ## API
 
 - FastAPI is the HTTP framework.
-- `/` is the only allowed non-RPC application path.
-- Every other application endpoint uses `/{namespace}.{method}`.
-- `operation_id` is explicit and stable.
-- Application-owned JSON fields use `snake_case`.
-- Every API endpoint returns data through `ApplicationResponse`.
-- Validation, application, database, framework, and unexpected errors use the same envelope.
-- Do not create a second response envelope for special endpoints.
-- Use FastAPI's OpenAPI support; keep platform augmentation small and explicit.
-- Do not build a custom OpenAPI engine when FastAPI already provides the required primitive.
+- `/` is the only allowed non-RPC application path; every other application endpoint uses
+  `/{namespace}.{method}`.
+- Keep explicit, stable `operation_id` values.
+- Application-owned JSON uses alias-free `snake_case` fields.
+- Every endpoint and handled error uses `ApplicationResponse`; do not create a second envelope.
+- Use `RequestModel` for public requests, `ResponseModel` for public responses, and `ORMResponse`
+  only for responses populated from ORM attributes.
+- Use strict Pydantic v2 request models and reject unknown fields where appropriate.
+- Use FastAPI's OpenAPI support with small explicit platform metadata; do not build a parallel
+  OpenAPI engine.
 
 ## Dependencies
 
-Public FastAPI dependencies are consumed through PEP 695 aliases:
+Consume public FastAPI dependencies through PEP 695 aliases:
 
 ```python
 type DatabaseSession = Annotated[
@@ -51,102 +52,105 @@ type DatabaseSession = Annotated[
 ]
 ```
 
-Resolver functions are private implementation details and are not exported as public `get_*`
-dependencies.
+Resolver functions are private implementation details. Route signatures use aliases instead of
+repeating inline `Annotated[..., Depends(...)]` declarations. Request middleware, rather than a
+FastAPI `Header` dependency, owns request and correlation context.
 
-Route signatures use aliases, not repeated inline `Annotated[..., Depends(...)]`.
+The request database dependency owns one SQLAlchemy transaction through its async context manager.
+Do not call context-manager protocol methods directly or translate persistence exceptions inside
+the dependency. Central API handlers map `OperationalError` to availability failure and sanitize
+other `SQLAlchemyError` instances.
 
-Do not use FastAPI `Header` dependencies for request/correlation context when middleware owns that transport concern.
+## Domain
 
-## Schemas
-
-Use `RequestModel` for API requests and `ResponseModel` for API responses. Keep
-application-owned JSON alias-free and in `snake_case`.
-
-Request:
-
-```text
-SomethingRequest
-something_request.py
-```
-
-Response:
-
-```text
-SomethingResponse
-something_response.py
-```
-
-ORM-backed API schemas are responses and still end with `Response`.
-
-Use strict Pydantic v2 models and reject unknown request fields where appropriate.
+- Framework-independent value primitives and closed domain or platform categories live in
+  `domain`.
+- `Environment` belongs to `domain.enums`; configuration imports domain categories rather than
+  owning them.
+- `ValueModel` is the strict immutable base for structured internal application and domain values.
+- Public API request and response schemas do not inherit `ValueModel`.
+- SQLAlchemy persistence models do not inherit `ValueModel`.
+- Keep `domain/__init__.py` focused; import `Environment` from `domain.enums` and `ValueModel` from
+  `domain.value_model`.
 
 ## Application
 
-Provide and reuse base primitives:
+- Reuse immutable `Command`, `Query`, and `Result` value bases and the abstract asynchronous
+  `Handler` execution contract.
+- Application contracts are internal typed values, not transport schemas.
+- Handlers orchestrate use cases without depending on FastAPI or owning transaction commit and
+  rollback.
+- Do not add a command bus, mediator, registry, or dependency-injection framework without a
+  concrete requirement.
+
+## Artifact naming
+
+For every concrete artifact, express its category in both the class suffix and the matching
+`snake_case` Python module suffix. The directory identifies the layer or feature; the matching
+suffix identifies the artifact kind.
+
+| Artifact | Concrete class | File |
+| --- | --- | --- |
+| API request | `<SemanticName>Request` | `<semantic_name>_request.py` |
+| API response | `<SemanticName>Response` | `<semantic_name>_response.py` |
+| ORM-backed API response | `<SemanticName>Response` | `<semantic_name>_response.py` |
+| SQLAlchemy ORM entity | `<EntityName>Model` | `<entity_name>_model.py` |
+| Persistence read projection | `<SemanticName>Projection` | `<semantic_name>_projection.py` |
+
+Examples:
 
 ```text
-Command
-Query
-Result
-Handler
+CreateAccountRequest
+create_account_request.py
+
+AccountResponse
+account_response.py
+
+AccountDetailsResponse
+account_details_response.py
+
+AccountModel
+account_model.py
+
+AccountSummaryProjection
+account_summary_projection.py
 ```
 
-Keep them abstract/general.
+The exceptions are narrow:
 
-These primitives are typed Python application contracts, not Pydantic transport models.
-
-Application handlers orchestrate use cases and do not depend on FastAPI.
-
-Handlers do not own transaction commits/rollbacks.
+- Shared and abstract bases retain their established names: `RequestModel`, `ResponseModel`,
+  `ORMResponse`, `Base`, `UUIDModel`, `Projection`, `Command`, `Query`, `Result`, and `Handler`.
+- An operation-oriented package carries its semantic name. For example,
+  `application/accounts/create_account/` may contain `command.py`, `handler.py`, and `result.py`
+  defining `CreateAccountCommand`, `CreateAccountHandler`, and `CreateAccountResult`. Files inside
+  operation packages may remain `command.py`, `query.py`, `handler.py`, and `result.py`; do not add
+  a redundant semantic module prefix such as `create_account_command.py` there.
+- Domain enums live under `domain/enums/` and do not need a redundant `Enum` class suffix, for
+  example `Environment` in `environment.py`.
 
 ## Persistence
 
-Concrete ORM classes:
-
-```text
-SomethingModel
-something_model.py
-```
-
-Use SQLAlchemy 2 typed mappings.
-
-Use request-owned transactions.
-
-Prefer explicit statements and `RETURNING`.
-
-Do not call `commit()` or `rollback()` in repositories or handlers.
-
-Keep repositories focused.
-
-Use projections/query adapters for read models when appropriate.
+- Use SQLAlchemy 2 typed declarative mappings and explicit statements, including `RETURNING` when
+  appropriate.
+- A request owns its session and transaction; routes, handlers, repositories, and query adapters do
+  not call `begin()`, `commit()`, or `rollback()`.
+- Keep repositories focused and keep read projections separate from ORM entities and API
+  responses.
+- Keep driver-level connection availability normalization at the database engine boundary. Target
+  only an observed concrete exception; never classify every `OSError` as a PostgreSQL failure.
+- Import every concrete ORM entity through `persistence.database.models` so Alembic sees common
+  metadata. Do not add a fake model or migration to an otherwise pristine service.
 
 ## Observability
 
-Provide one process-wide `configure_observability()` and focused FastAPI/SQLAlchemy instrumentation modules.
+- Configure Logfire once through `configure_observability()` and keep FastAPI and SQLAlchemy
+  instrumentation in focused modules.
+- Never capture or log passwords, authorization headers, access or refresh tokens, client secrets,
+  private keys, database credentials, or other secrets.
 
-Never capture or log:
+## Imports and tooling
 
-```text
-passwords
-Authorization headers
-access/refresh tokens
-client secrets
-private keys
-database credentials
-other secrets
-```
-
-## Imports
-
-Prefer explicit imports.
-
-If a package intentionally exposes a public interface through `__init__.py`, import from that facade.
-
-Do not turn `__init__.py` into an export dump.
-
-## Tooling
-
-Use the repository's `Makefile`, `uv`, Ruff, mypy, Alembic, Docker and Helm conventions.
-
-Do not modify CI/CD or add tests unless the task explicitly requests them.
+- Prefer explicit imports and use a package facade only when it intentionally defines a focused
+  public interface. Do not turn `__init__.py` into an export dump.
+- Use the repository's `Makefile`, `uv`, Ruff, mypy, Alembic, Docker, and Helm conventions.
+- Do not modify CI/CD or add tests unless the task explicitly requests them.

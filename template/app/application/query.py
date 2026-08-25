@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from domain.value_model import ValueModel
 
 
-class Query(ABC):
+class Query(ValueModel):
     """Marker base for typed application read input."""

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from pydantic import Field
 
+from domain.enums import Environment
+
 from .base import SettingsModel
-from .environment import Environment
 
 
 class ApplicationSettings(SettingsModel):

@@ -7,11 +7,11 @@ from typing import Self
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from domain.enums import Environment
 from service import SERVICE_ENV_PREFIX
 
 from .application import ApplicationSettings
 from .database import DatabaseSettings
-from .environment import Environment
 from .http import HTTPSettings
 from .logfire import LogfireSettings
 
