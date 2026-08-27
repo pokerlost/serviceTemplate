@@ -6,9 +6,10 @@ from pydantic import BaseModel, ConfigDict
 
 
 class RequestModel(BaseModel):
-    """Strict base for application-owned API request bodies."""
+    """Closed base for application-owned API request bodies."""
 
     model_config = ConfigDict(
+        allow_inf_nan=False,
         extra="forbid",
         hide_input_in_errors=True,
         validate_default=True,

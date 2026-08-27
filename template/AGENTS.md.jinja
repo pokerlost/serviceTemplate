@@ -30,16 +30,41 @@ latest direct user requirement
 ## API
 
 - FastAPI is the HTTP framework.
-- `/` is the only allowed non-RPC application path; every other application endpoint uses
-  `/{namespace}.{method}`.
-- Keep explicit, stable `operation_id` values.
+- `/` and `/openapi.get` are the two system paths. Every business endpoint is a PokerLost RPC whose
+  lowercase `operation_id` matches `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` and whose path is
+  exactly `"/" + operation_id`.
+- In each business route module, define one module-level `OPERATION` constant and derive both
+  `path=f"/{OPERATION}"` and `operation_id=OPERATION` from it. Use only `GET`, `POST`, `PUT`,
+  `PATCH`, or `DELETE`; prefer the SDK-default `POST` unless semantics require another method.
 - Application-owned JSON uses alias-free `snake_case` fields.
-- Every endpoint and handled error uses `ApplicationResponse`; do not create a second envelope.
+- Put every business input in one named, typed JSON `*Request` body. Do not use path, query, header,
+  or cookie parameters, `Body(embed=True)`, free-form bodies, or inline anonymous object schemas.
+- Every success response is `ApplicationResponse[*Response]`; every handled error is
+  `ApplicationResponse[None]`. Explicitly publish that error model for request validation `422`
+  and expected 4xx/5xx responses, and keep one compatible success schema across all numeric 2xx
+  responses.
 - Use `RequestModel` for public requests, `ResponseModel` for public responses, and `ORMResponse`
   only for responses populated from ORM attributes.
-- Use strict Pydantic v2 request models and reject unknown fields where appropriate.
+- Public typed object models reject unknown fields; request numbers are finite.
 - Use FastAPI's OpenAPI support with small explicit platform metadata; do not build a parallel
   OpenAPI engine.
+
+## PokerLost SDK compatibility
+
+- The current `pypokerlost` public contracts and method generator are authoritative. Read
+  [`docs/SDK.md`](docs/SDK.md) before changing RPC, request/response, or OpenAPI contracts.
+- Keep the local `ApplicationResponse` and `ResponseModel` exactly aligned with SDK fields,
+  defaults, invariants, and strict configuration. Do not extend or wrap the envelope.
+- When `pypokerlost` is an installed dependency, type `OPERATION` as `Final[RPCOperation]` from
+  `pypokerlost.types` and use `RPCOpenAPIExtra` from `pypokerlost.openapi` for protected-operation
+  metadata. The service still owns its OAuth2 scheme, flow, token URL, and scope strings.
+- Never implement a direct HTTP client for another PokerLost service or redeclare its DTOs. Use the
+  generated methods package and a lifespan-owned `pypokerlost.Client` configured for one explicit
+  `APIServer` target.
+- Import only focused public SDK facades or the generated methods package; do not import private
+  modules, `pypokerlost` scripts, or generator-internal models.
+- After an API contract change, run the authoritative SDK generator compatibility check. It catches
+  invalid field names, reserved-name and generated-name collisions, and unsupported schemas.
 
 ## Dependencies
 

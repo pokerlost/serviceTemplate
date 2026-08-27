@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from typing import Final
+
 from fastapi import APIRouter, status
 
 from api.openapi import OpenAPITag
 from api.schemas.responses import ApplicationResponse, RootResponse
-from service import SERVICE_NAME
+from service import SERVICE_SLUG
 
 router = APIRouter(tags=[OpenAPITag.SERVICE])
+ROOT_OPERATION: Final[str] = f"{SERVICE_SLUG}.root"
 
 
 @router.get(
@@ -17,7 +20,7 @@ router = APIRouter(tags=[OpenAPITag.SERVICE])
     status_code=status.HTTP_200_OK,
     summary="Get service root",
     description="Return the minimal service availability response.",
-    operation_id=f"{SERVICE_NAME}.root",
+    operation_id=ROOT_OPERATION,
     openapi_extra={"security": []},
     responses={
         status.HTTP_500_INTERNAL_SERVER_ERROR: {

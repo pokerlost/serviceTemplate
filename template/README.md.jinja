@@ -4,8 +4,11 @@
 It contains reusable infrastructure and no business implementation.
 
 Before development, read [`AGENTS.md`](AGENTS.md), [`SERVICE.md`](SERVICE.md), and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Fill `SERVICE.md` `TODO` sections only with known
-service facts.
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Read [`docs/SDK.md`](docs/SDK.md) before adding or
+changing an RPC contract or an inter-service call. Fill `SERVICE.md` `TODO` sections only with
+known service facts.
+
+Python 3.13 or newer is required.
 
 ## Install and configure
 
@@ -43,11 +46,12 @@ The ASGI factory is `api.application:create_app`; there is no module-level FastA
 
 | method | path | operation_id | response_model |
 | --- | --- | --- | --- |
-| `GET` | `/` | `{{ service_name }}.root` | `RootResponse` |
-| `GET` | `/openapi.get` | `{{ service_name }}.openapi.get` | `OpenApiResponse` |
+| `GET` | `/` | `{{ service_slug }}.root` | `RootResponse` |
+| `GET` | `/openapi.get` | `openapi.get` | `OpenAPIResponse` |
 
 Both response models use the `ApplicationResponse` envelope. Built-in `/openapi.json`, `/docs`, and
-`/redoc` are disabled.
+`/redoc` are disabled. The wrapped document is OpenAPI 3.1 and publishes
+`x-pokerlost-service.id = {{ service_name }}`.
 
 ## Database migrations
 

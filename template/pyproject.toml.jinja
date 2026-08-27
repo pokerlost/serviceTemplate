@@ -3,7 +3,7 @@ name = "pokerlost-{{ service_slug }}"
 version = "0.1.0"
 description = "PokerLost FastAPI service foundation."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.16.4,<2",
     "asyncpg>=0.30.0,<1",
@@ -37,8 +37,8 @@ only-include = ["app"]
 sources = ["app"]
 
 [tool.ruff]
-target-version = "py312"
-line-length = 99
+target-version = "py313"
+line-length = 100
 src = ["app"]
 exclude = ["AGENTS.md"]
 
@@ -63,7 +63,7 @@ known-first-party = [
 "alembic/versions/*.py" = ["F401"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 mypy_path = "app"
 files = ["app"]
 plugins = ["pydantic.mypy"]

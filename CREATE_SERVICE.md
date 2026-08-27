@@ -24,7 +24,8 @@ uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
 ## Fresh-copy verification
 
 Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`,
-`docs/ARCHITECTURE.md`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Then run:
+`docs/ARCHITECTURE.md`, `docs/SDK.md`, `.copier-answers.yml`, `app/`, `alembic/`, and
+`deploy/helm/`. Then run:
 
 ```bash
 cd <destination>
@@ -39,8 +40,21 @@ git diff --check
 ```
 
 Verify the generated imports and artifact naming structurally. Exercise `GET /` and
-`GET /openapi.get`, confirm both return `ApplicationResponse`, confirm
-`x-pokerlost-service.id`, and confirm `/openapi.json`, `/docs`, and `/redoc` are disabled.
+`GET /openapi.get` through the real application lifespan and confirm:
+
+- both endpoints return the exact four-field `ApplicationResponse` envelope;
+- the wrapped document reports OpenAPI 3.1.x and a SemVer `info.version`;
+- the top level contains exactly `x-pokerlost-service: {id: <service_name>}` for platform metadata;
+- the system paths are `/` and `/openapi.get`, with lowercase `<service_slug>.root` and
+  `openapi.get` operation IDs;
+- `/openapi.json`, `/docs`, and `/redoc` are disabled;
+- local `ResponseModel` and `ApplicationResponse` behavior matches the authoritative SDK contract.
+
+The pristine scaffold deliberately contains no non-system RPC, so fresh-copy verification does not
+run or require SDK method generation. A generator success probe requires a temporary business RPC
+and must not leave that route in the service. After any RPC, envelope, OpenAPI publication,
+Python-version, or SDK integration change, run the end-to-end procedure and negative matrix in
+[`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
 
 When the environment permits, use an ephemeral route or dependency probe against an unavailable
 PostgreSQL address to confirm `OperationalError` becomes a safe HTTP 503 response. Use a temporary

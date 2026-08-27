@@ -3,7 +3,9 @@
 ## Purpose
 
 `serviceTemplate` is the reusable Copier baseline for PokerLost backend services. It generates
-infrastructure and general architectural primitives, never a concrete service domain.
+infrastructure and general architectural primitives, never a concrete service domain. Its HTTP
+wire contract and OpenAPI 3.1 publication are compatible with the authoritative `pypokerlost` SDK
+described in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
 
 ## Generation contract
 
@@ -16,6 +18,9 @@ service_name
 It derives `service_slug`, `service_env_prefix`, and `database_name`. PostgreSQL is an
 unconditional part of every generated service; there are no architecture questionnaires or
 optional primary-storage branches.
+
+Generated services require Python 3.13 or newer. The Python, Ruff, mypy, builder-image, and
+runtime-image versions move together; generated source uses a 100-character line length.
 
 ## Generated foundation
 
@@ -49,11 +54,15 @@ not translate exceptions.
 
 ## Public API contract
 
-- `GET /` is the only non-RPC application path.
-- Other service endpoints use `/{namespace}.{method}`.
-- Every endpoint and handled error uses `ApplicationResponse`.
+- `GET /` and `GET /openapi.get` are the two SDK system paths.
+- A business RPC operation is a lowercase `namespace.method`, and its path is exactly the same
+  value prefixed with `/`.
+- Business inputs use one named, closed, typed JSON request body; RPC transport does not use OpenAPI
+  path, query, header, or cookie parameters.
+- Every success uses `ApplicationResponse[ResponseType]`; handled errors use
+  `ApplicationResponse[None]`.
 - Application-owned JSON uses `snake_case`.
-- FastAPI generates OpenAPI with minimal PokerLost metadata.
+- FastAPI generates OpenAPI 3.1 with only the required `x-pokerlost-service.id` platform metadata.
 - Built-in `/openapi.json`, `/docs`, and `/redoc` are disabled; `GET /openapi.get` publishes the
   wrapped document.
 - Public dependencies use PEP 695 aliases with private resolver functions.
@@ -68,6 +77,7 @@ package, and enum conventions, lives only in the generated `AGENTS.md`.
   Copier preserves it during updates.
 - `README.md` is the operator and developer quickstart.
 - `docs/ARCHITECTURE.md` explains the generated layers and request flow.
+- `docs/SDK.md` owns practical RPC, OpenAPI, generator, and inter-service SDK rules.
 
 ## Intentionally absent
 

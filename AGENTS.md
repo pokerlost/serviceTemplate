@@ -12,6 +12,9 @@ Before changing the template:
 6. Do not add Copier questions unless generation genuinely depends on the answer.
 7. Keep `service_name` as the only user-supplied service identity input unless explicitly changed by the user.
 8. Verify both a fresh `copier copy` and, when template-managed files change, `copier update`.
+9. Before changing RPC, `ApplicationResponse`, OpenAPI publication, Python version, or SDK
+   integration rules, inspect the authoritative `pypokerlost` repository and run the compatibility
+   probe documented in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
 
 The generated service has its own `AGENTS.md` and `SERVICE.md`.
 Do not put service-specific rules in this repository's `AGENTS.md`.

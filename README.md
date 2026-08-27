@@ -2,7 +2,8 @@
 
 `serviceTemplate` is the shared Copier template for PokerLost backend services. It generates a
 business-free FastAPI foundation with PostgreSQL, SQLAlchemy, Alembic, Logfire, Docker, Helm, and
-the standard Python tooling used by the platform.
+the standard Python tooling used by the platform. Generated services publish the strict PokerLost
+RPC/OpenAPI wire contract consumed by the current `pypokerlost` SDK.
 
 The template supports Copier 9.17.2 and asks only for `service_name`.
 
@@ -21,3 +22,5 @@ Trusted execution is not required. After generation, follow the generated `READM
 - [`TEMPLATE.md`](TEMPLATE.md) is the canonical contract for generated content and omissions.
 - [`CREATE_SERVICE.md`](CREATE_SERVICE.md) contains the Copier copy, update, and verification
   workflow.
+- [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md) is the authoritative template-maintainer contract
+  and end-to-end SDK compatibility procedure.

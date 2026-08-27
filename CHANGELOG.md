@@ -4,6 +4,10 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
+- Align generated services with Python 3.13 and the current `pypokerlost` RPC contract: exact
+  operation/path identity, strict `ApplicationResponse` parity, SDK-compatible wrapped OpenAPI
+  publication, generator/runtime compatibility verification, corrected SDK acronym casing, and
+  generated SDK integration documentation.
 - Use `service_name` as the only user-supplied service identity input.
 - Make PostgreSQL, SQLAlchemy, and Alembic unconditional parts of the generated foundation.
 - Separate shared generated conventions in `AGENTS.md` from the service-owned `SERVICE.md`.
