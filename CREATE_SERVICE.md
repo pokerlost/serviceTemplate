@@ -12,7 +12,7 @@ contract is defined in [`TEMPLATE.md`](TEMPLATE.md).
    name beginning with a letter and containing only letters and digits.
 4. Run pinned Copier without `--trust`:
 
-```bash
+```console
 uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
   -d service_name=<SERVICE_NAME>
 ```
@@ -20,22 +20,30 @@ uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
 5. Inspect Copier-owned `.copier-answers.yml`; do not write or edit it manually.
 6. Read the generated `AGENTS.md`, `SERVICE.md`, and `README.md`. Replace `SERVICE.md` `TODO`
    sections only with authoritative service facts.
+7. Confirm the developer's normal GitHub SSH identity can read the private `pypokerlost`
+   repository. Do not place a private key in the generated repository or `.env`.
 
 ## Fresh-copy verification
 
-Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`,
-`docs/ARCHITECTURE.md`, `docs/SDK.md`, `.copier-answers.yml`, `app/`, `alembic/`, and
-`deploy/helm/`. Then run:
+Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`, `docs/index.md`,
+the complete API-service documentation tree, `scripts/check_documentation.py`, `Makefile`,
+`.pre-commit-config.yaml`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Confirm
+that every page under `docs/` is reachable from `docs/index.md`. Then run:
 
-```bash
+```console
 cd <destination>
+cp .env.example .env
+ssh-add -l
+ssh -T git@github.com
 uv lock
+uv sync --locked
 uv lock --check
-make format
-make lint
-make typecheck
+uv run --locked python -c "import pypokerlost; print(pypokerlost.__version__)"
+make help
+make check
 make pre-commit
-python -m compileall -q app alembic/env.py
+make check-full
+python -m compileall -q app alembic/env.py scripts
 git diff --check
 ```
 
@@ -49,6 +57,29 @@ Verify the generated imports and artifact naming structurally. Exercise `GET /` 
   `openapi.get` operation IDs;
 - `/openapi.json`, `/docs`, and `/redoc` are disabled;
 - local `ResponseModel` and `ApplicationResponse` behavior matches the authoritative SDK contract.
+
+Inspect `pyproject.toml` and `uv.lock`: `pypokerlost` must resolve from the configured private SSH
+Git source at its immutable revision. Neither file may contain a sibling path, `file://` source,
+embedded credential, password, token, or floating `main` branch.
+
+When a Docker daemon is available, also verify the private dependency build and runtime package:
+
+```console
+ssh-add -l
+ssh-keygen -F github.com
+docker build \
+  --ssh default \
+  --secret id=github_known_hosts,src="$HOME/.ssh/known_hosts" \
+  -t pokerlost-sdk-template-probe:local \
+  .
+docker run --rm pokerlost-sdk-template-probe:local \
+  python -c "import pypokerlost; print(pypokerlost.__version__)"
+```
+
+Inspect the runtime image to confirm it has no `/root/.ssh`, private keys, Git credentials, SSH
+agent socket, `git`, or `openssh-client`, then remove the probe image. If `github.com` is absent
+from `known_hosts`, configure a normal trusted GitHub SSH connection; never disable host
+verification. Helm receives no GitHub build credential.
 
 The pristine scaffold deliberately contains no non-system RPC, so fresh-copy verification does not
 run or require SDK method generation. A generator success probe requires a temporary business RPC
@@ -65,7 +96,7 @@ Never retain probe routes, tables, schemas, or migrations in the generated servi
 
 Run updates from a clean generated service checkout with valid Copier answers metadata:
 
-```bash
+```console
 uvx --from 'copier==9.17.2' copier check-update
 uvx --from 'copier==9.17.2' copier update
 ```
@@ -78,7 +109,14 @@ generated files, the update regression must also:
 3. update from a revision containing a safe template-owned change;
 4. confirm the template-owned file and any new files update;
 5. confirm `SERVICE.md` remains byte-for-byte unchanged;
-6. confirm `.copier-answers.yml` remains valid Copier metadata.
+6. confirm obsolete unchanged template-owned pages are removed;
+7. confirm `.copier-answers.yml` remains valid Copier metadata;
+8. repeat `make docs-check`, `make check`, and `make pre-commit`.
+
+Template maintainers can run `make template-copy` for a disposable render and
+`make template-check` for the private-dependency-backed generated checks. Both commands remove their
+temporary artifacts. `make template-check` requires `uv`, a usable GitHub SSH agent identity, and
+network access to the pinned private SDK source.
 
 Report every unavailable tool, failed command, and external-service limitation. Do not claim a
 check that was not executed.

@@ -12,11 +12,15 @@ dependencies = [
     "logfire[fastapi,sqlalchemy]>=4.3.3,<5",
     "pydantic>=2.11.7,<3",
     "pydantic-settings>=2.10.1,<3",
+    "pypokerlost",
     "sqlalchemy[asyncio]>=2.0.41,<3",
     "typer>=0.16.0,<1",
     "uvicorn>=0.35.0,<1",
     "uvicorn-worker>=0.3.0,<1",
 ]
+
+[tool.uv.sources]
+pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "4d375903c2002bd9f09a59a876b7cf7ea8b7470b" }
 
 [project.scripts]
 "{{ service_slug }}" = "cli:cli"
@@ -39,7 +43,7 @@ sources = ["app"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
-src = ["app"]
+src = ["app", "scripts"]
 exclude = ["AGENTS.md"]
 
 [tool.ruff.lint]

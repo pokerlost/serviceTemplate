@@ -1,0 +1,33 @@
+# Contributing
+
+This page defines the focused change and review workflow for `{{ service_name }}`.
+
+## Before editing
+
+Read the repository [`AGENTS.md`](../../AGENTS.md) and service-owned [`SERVICE.md`](../../SERVICE.md), then inspect the current implementation and the canonical documentation for the area being changed. `SERVICE.md` defines concrete responsibilities; the pristine scaffold must not gain unrelated business behavior.
+
+Use the template and `pypokerlost` primitives that already own a concern. Do not introduce an alternative HTTP transport, transaction manager, configuration framework, dependency-injection system, or deployment workflow when an established primitive satisfies the requirement.
+
+## Scope discipline
+
+- Keep each change focused on the requested responsibility.
+- Do not mix broad formatting or unrelated renaming with a behavior change.
+- Preserve layer boundaries and public contracts unless the task explicitly changes them.
+- Add infrastructure or dependencies only for a concrete service responsibility.
+- Update the one canonical documentation page for every affected concept.
+- Follow the [Python style](python-style.md) and [documentation style](documentation-style.md) guides.
+
+An API change must also update the [public surface manifest](../api/public-surface.md) and the relevant canonical API page. Wire-contract changes require the SDK/OpenAPI compatibility workflow described in [OpenAPI and SDK](../api/openapi-and-sdk.md).
+
+## Verification
+
+Run the regular checks from the repository root:
+
+```console
+make check
+make pre-commit
+```
+
+Run explicit database, Docker, Helm, or SDK/OpenAPI checks when the changed area requires them. Do not report a check as passing unless it was executed successfully in the current environment.
+
+Before handing off a change, inspect `git status --short`, run `git diff --check`, and review the complete tracked and untracked diff. Do not rewrite shared Git history as part of ordinary review.

@@ -1,0 +1,30 @@
+exclude: ^\.idea/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: (^|/).*\.jinja$|^template/deploy/helm/.*/templates/
+      - id: check-toml
+        exclude: (^|/).*\.jinja$
+      - id: check-json
+        exclude: (^|/).*\.jinja$
+      - id: check-merge-conflict
+        args: [--assume-in-merge]
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: root-documentation
+        name: Root documentation contract
+        entry: >-
+          python3 template/scripts/check_documentation.py --documents
+          README.md TEMPLATE.md CREATE_SERVICE.md SDK_COMPATIBILITY.md CHANGELOG.md AGENTS.md
+        language: system
+        pass_filenames: false
+        files: ^(README\.md|TEMPLATE\.md|CREATE_SERVICE\.md|SDK_COMPATIBILITY\.md|CHANGELOG\.md|AGENTS\.md|template/scripts/check_documentation\.py)$

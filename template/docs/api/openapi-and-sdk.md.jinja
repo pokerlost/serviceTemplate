@@ -1,0 +1,51 @@
+# OpenAPI and SDK
+
+This page defines how `{{ service_name }}` publishes its FastAPI contract and how that contract is
+consumed by the authoritative `pypokerlost` tooling.
+
+## Publication endpoint
+
+`GET /openapi.get` has `operation_id="openapi.get"`, accepts no parameters or request body, and
+returns the OpenAPI JSON object as the `result` of `OpenAPIResponse`. `OpenAPIResponse` is an
+`ApplicationResponse` specialization, so publication uses the same success and failure invariants
+as every other operation.
+
+FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` routes are disabled. The application calls
+FastAPI's `get_openapi()` for its registered routes, caches the resulting OpenAPI 3.1 document, and
+adds exactly this required platform extension:
+
+```yaml
+x-pokerlost-service:
+  id: {{ service_name }}
+```
+
+The identifier is the canonical Copier service identity, while RPC namespaces follow the separate
+[RPC operation rules](rpc-contract.md). `info.version` comes from the `application.version` setting
+and remains a semantic version.
+
+Concrete security declarations come from the concrete service's FastAPI dependencies. The wrapper
+preserves FastAPI-generated security metadata without constructing or rewriting it.
+
+## Method generation
+
+The authoritative generator reads the wrapped publication, ignores the two system paths, and
+creates typed `PokerlostMethod` and response classes for compatible service RPC operations. The
+pristine service has no business RPC, so it intentionally produces no callable service method.
+
+Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
+it is not an installed command in the runtime SDK distribution. When the wire contract changes,
+run the compatibility workflow against the current SDK source and verify both service-mode and
+saved-file generation. The exact operation, request, response, and supported-schema requirements
+are part of the [RPC contract](rpc-contract.md) and
+[ApplicationResponse contract](application-response.md).
+
+## Inter-service calls
+
+PokerLost services call one another only through `pypokerlost.Client` and generated methods and
+response types. A concrete service creates a client only for a target declared by its
+`SERVICE.md`, owns that client in application lifespan, reuses it across requests, and closes it on
+shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
+of a remote service DTO.
+
+The current pristine endpoints and their publication models are listed in the
+[public surface manifest](public-surface.md).

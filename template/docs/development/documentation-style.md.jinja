@@ -1,0 +1,75 @@
+# Documentation style
+
+This page defines the technical documentation standard for `{{ service_name }}`.
+
+## Language
+
+- Write all technical documentation in English.
+- Preserve source identifiers, API names, paths, fields, and literal values exactly as they appear in the implementation.
+- Do not mix translated identifiers into code or contract examples.
+
+## Tone
+
+Use concise, professional, direct prose. Prefer short paragraphs and state only verified current behavior. Do not include chat transcripts, profanity, emojis, conversational filler, marketing exaggeration, unsupported guarantees, or invented quality claims.
+
+## Page structure
+
+Every page must contain:
+
+1. exactly one H1 heading;
+2. one short, non-empty opening paragraph explaining the page's purpose;
+3. logically ordered sections;
+4. relative links to canonical pages when they help the reader continue.
+
+Do not create title-only pages, placeholder pages, or pages that require an earlier prompt or conversation to make sense.
+
+## Inline code
+
+Use backticks for classes, functions, operation IDs, HTTP paths, schema fields, filenames, commands, options, and literal values. Examples include `ApplicationResponse`, `create_app()`, `namespace.method`, `/openapi.get`, `error_message`, `pyproject.toml`, `make check`, and `null`.
+
+## Code blocks
+
+Every fenced code block must declare a language. Use the most specific applicable language, including `python`, `console`, `json`, `toml`, `yaml`, or `text`. Use `console` for shell commands.
+
+Examples must use the current public contract, avoid secret values, and be minimal enough to review. Do not document commands that depend on unexplained local state or that have not been verified against the repository.
+
+## Links and navigation
+
+- Use relative repository links.
+- Keep every page reachable from [`docs/index.md`](../index.md).
+- Do not leave orphan pages.
+- Update links and local anchors when a file or heading is renamed.
+- Link to the canonical explanation instead of copying it into another page.
+- Verify relative links and anchors after documentation changes.
+
+## Current state
+
+Product documentation describes what the service does now. Do not place `Codex` task prompts, notes copied from chats, temporary dialogue records, refactoring diaries, temporary implementation plans, obsolete migration narratives, invented checks, or unverified metrics in `README.md` or `docs/`.
+
+Historical decisions belong in Git history, an intentionally maintained architecture decision record, or a release note when one exists.
+
+## Canonical ownership
+
+Maintain one detailed page per concept. Other pages may give a short summary and link to that page, but they must not repeat long explanations that can drift independently. `README.md` remains a landing page, and `docs/index.md` remains the documentation home.
+
+## API documentation
+
+Any API contract change must update:
+
+- [`docs/api/public-surface.md`](../api/public-surface.md);
+- the relevant canonical API page;
+- affected OpenAPI examples;
+- [`docs/api/openapi-and-sdk.md`](../api/openapi-and-sdk.md) when the wire contract changes.
+
+Examples must agree with the generated OpenAPI and the installed `pypokerlost` contract. Do not claim tests, coverage, compatibility, or security verification that does not exist.
+
+## Completion review
+
+Before handing off documentation, run:
+
+```console
+make docs-check
+make pre-commit
+```
+
+Also review headings, opening paragraphs, terminology, links, anchors, examples, commands, and canonical ownership manually. The checker enforces structural rules but does not prove that prose is semantically correct.

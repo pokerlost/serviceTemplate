@@ -1,46 +1,34 @@
 # {{ service_name }}
 
-`{{ service_name }}` (`{{ service_slug }}`) is a generated PokerLost FastAPI service foundation.
-It contains reusable infrastructure and no business implementation.
+`{{ service_name }}` is a generated PokerLost FastAPI service foundation with PostgreSQL,
+SDK-compatible RPC/OpenAPI publication, observability, Docker, and Helm. Business functionality is
+absent until it is defined in [`SERVICE.md`](SERVICE.md).
 
-Before development, read [`AGENTS.md`](AGENTS.md), [`SERVICE.md`](SERVICE.md), and
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Read [`docs/SDK.md`](docs/SDK.md) before adding or
-changing an RPC contract or an inter-service call. Fill `SERVICE.md` `TODO` sections only with
-known service facts.
+Read the [documentation home](docs/index.md) for the complete guide and [`AGENTS.md`](AGENTS.md)
+for normative engineering rules. Python 3.13 or newer is required.
 
-Python 3.13 or newer is required.
+## Install
 
-## Install and configure
+The mandatory private `pypokerlost` dependency requires GitHub SSH read access. Create local
+configuration, verify the SSH identity, and install the locked environment:
 
-```bash
+```console
 cp .env.example .env
+ssh-add -l
+ssh -T git@github.com
 uv lock
 uv sync --locked
 ```
 
-Replace local placeholders in `.env`; never commit credentials. Settings use the
-`{{ service_env_prefix }}_` prefix and `__` between nested groups. A complete
-`postgresql+asyncpg` URL is required, for example through:
-
-```text
-{{ service_env_prefix }}_DATABASE__URL
-```
-
-PostgreSQL is not started by the application, and migrations do not run at startup.
+Replace the local placeholders in `.env`; do not store secrets or private keys in the repository.
+See [installation](docs/getting-started/installation.md) and
+[configuration](docs/getting-started/configuration.md) for details.
 
 ## Run
 
-```bash
+```console
 make run
 ```
-
-For the production Gunicorn/Uvicorn worker process:
-
-```bash
-make serve
-```
-
-The ASGI factory is `api.application:create_app`; there is no module-level FastAPI instance.
 
 ## Base endpoints
 
@@ -49,40 +37,18 @@ The ASGI factory is `api.application:create_app`; there is no module-level FastA
 | `GET` | `/` | `{{ service_slug }}.root` | `RootResponse` |
 | `GET` | `/openapi.get` | `openapi.get` | `OpenAPIResponse` |
 
-Both response models use the `ApplicationResponse` envelope. Built-in `/openapi.json`, `/docs`, and
-`/redoc` are disabled. The wrapped document is OpenAPI 3.1 and publishes
-`x-pokerlost-service.id = {{ service_name }}`.
+Both responses use `ApplicationResponse`. See the [quickstart](docs/getting-started/quickstart.md)
+and the authoritative [public surface](docs/api/public-surface.md).
 
-## Database migrations
+## Development and deployment
 
-The scaffold starts with common SQLAlchemy metadata and no fake baseline revision or business
-table.
+Run `make help` for the thin local tool interface. The regular quality entry points are:
 
-```bash
-make db-upgrade
-make db-downgrade
-make db-revision message=add_feature_table
-```
-
-## Quality checks
-
-```bash
-uv lock --check
-make format
-make lint
-make typecheck
+```console
+make check
 make pre-commit
-python -m compileall -q app alembic/env.py
-git diff --check
 ```
 
-## Docker and Helm
-
-Build after creating `uv.lock`:
-
-```bash
-docker build -t {{ service_slug }} .
-```
-
-The Helm chart is under `deploy/helm/{{ service_slug }}/`. Database credentials must come from the
-configured Kubernetes Secret reference.
+See [development commands](docs/development/commands.md) and
+[containers and Kubernetes](docs/development/containers-and-kubernetes.md) for Docker and Helm
+workflows.

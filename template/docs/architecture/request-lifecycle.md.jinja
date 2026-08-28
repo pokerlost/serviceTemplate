@@ -1,0 +1,63 @@
+# Request lifecycle
+
+This page traces startup, request context, dependency resolution, application execution, and safe
+response handling in the generated service.
+
+## Composition and lifespan
+
+`create_app()` resolves `Settings`, configures observability, constructs the FastAPI application,
+and registers request-context middleware, exception handlers, routes, and instrumentation. It
+disables the built-in OpenAPI and documentation URLs.
+
+Application lifespan creates the async SQLAlchemy engine and session factory, instruments the
+engine when configured, and stores both in immutable `ApplicationResources`. Settings and resources
+are attached to application state for dependencies. Shutdown removes that state and disposes the
+engine.
+
+Creating the engine does not itself prove a PostgreSQL connection. A route opens a request session
+only when it declares the database dependency; the pristine root and OpenAPI routes do not.
+
+## Request flow
+
+The intended flow for a database-backed service operation is:
+
+```text
+create_app
+-> lifespan
+-> ApplicationResources
+-> request middleware
+-> dependency aliases
+-> route
+-> application handler
+-> repository or query adapter
+-> response
+```
+
+1. Middleware generates a new `X-Request-ID` for every request. It accepts a supplied
+   `X-Correlation-ID` only when it matches the bounded safe format; otherwise it generates one.
+   Both identifiers enter Logfire baggage and are returned as response headers.
+2. Private resolver functions expose settings and lifespan-owned resources through public PEP 695
+   dependency aliases. A route that needs PostgreSQL declares `DatabaseSession`, which opens one
+   request-owned session and transaction.
+3. The route validates its typed API request and converts it into a command or query. It invokes an
+   asynchronous application handler rather than placing business orchestration in FastAPI code.
+4. The handler coordinates repositories or read-query adapters. Adapters execute SQLAlchemy
+   statements through the injected request session and let exceptions propagate to the API
+   boundary.
+5. The route converts the application result into a typed API response and returns the
+   [`ApplicationResponse`](../api/application-response.md) envelope. FastAPI validates and
+   serializes the declared response model.
+
+The two pristine endpoints stop at the route: they have no application handler, repository, query
+adapter, or database dependency.
+
+## Safe error path
+
+Registered handlers convert validation, application, HTTP, and SQLAlchemy failures into the
+documented safe envelopes. If another exception escapes, request middleware records it with the
+request and correlation identifiers and returns the generic internal failure. The response still
+receives both context headers, while tracebacks and secrets stay out of the public body. See
+[API errors](../api/errors.md) for the exact mappings.
+
+Transaction completion and database error ownership are defined in
+[persistence and transactions](persistence-and-transactions.md).

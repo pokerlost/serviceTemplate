@@ -1,0 +1,51 @@
+# Configuration
+
+This page documents the generated service settings groups and their environment variable mapping.
+
+`Settings` loads `.env` and process environment values with the `{{ service_env_prefix }}_` prefix. Nested fields use a double underscore, so the general form is:
+
+```text
+{{ service_env_prefix }}_<GROUP>__<FIELD>
+```
+
+For example, `database.url` maps to `{{ service_env_prefix }}_DATABASE__URL`. Names are case-insensitive, but the checked-in [`.env.example`](../../.env.example) uses uppercase names consistently. Process environment values override values from `.env` according to Pydantic Settings behavior.
+
+## `application`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `environment` | `{{ service_env_prefix }}_APPLICATION__ENVIRONMENT` | Deployment category such as `local`, `development`, `staging`, or `production`. |
+| `version` | `{{ service_env_prefix }}_APPLICATION__VERSION` | SemVer service contract version published in OpenAPI and telemetry. |
+
+Production configuration fails at startup unless Logfire and remote delivery are enabled.
+
+## `http`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `host` | `{{ service_env_prefix }}_HTTP__HOST` | Local HTTP bind address. |
+| `port` | `{{ service_env_prefix }}_HTTP__PORT` | Local HTTP port from `1` through `65535`. |
+
+## `database`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `url` | `{{ service_env_prefix }}_DATABASE__URL` | Required complete `postgresql+asyncpg` SQLAlchemy URL. |
+| `pool_size` | `{{ service_env_prefix }}_DATABASE__POOL_SIZE` | Persistent connection-pool size. |
+| `max_overflow` | `{{ service_env_prefix }}_DATABASE__MAX_OVERFLOW` | Additional temporary connections allowed above the pool size. |
+| `pool_timeout_seconds` | `{{ service_env_prefix }}_DATABASE__POOL_TIMEOUT_SECONDS` | Maximum wait for a pooled connection. |
+| `command_timeout_seconds` | `{{ service_env_prefix }}_DATABASE__COMMAND_TIMEOUT_SECONDS` | Asyncpg command timeout. |
+
+The database URL must include a username, password, host, and database. It is treated as a secret and must not appear in logs or committed files.
+
+## `logfire`
+
+| Field | Environment variable | Purpose |
+| --- | --- | --- |
+| `enabled` | `{{ service_env_prefix }}_LOGFIRE__ENABLED` | Enable Logfire configuration and instrumentation. |
+| `send_to_logfire` | `{{ service_env_prefix }}_LOGFIRE__SEND_TO_LOGFIRE` | Send telemetry to the configured remote project. |
+| `console` | `{{ service_env_prefix }}_LOGFIRE__CONSOLE` | Render telemetry to the process console. |
+| `minimum_level` | `{{ service_env_prefix }}_LOGFIRE__MINIMUM_LEVEL` | Minimum recorded level. |
+| `token` | `{{ service_env_prefix }}_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
+
+Keep the token and database URL outside source control. Kubernetes supplies them through Secret references rather than the chart ConfigMap; see [containers and Kubernetes](../development/containers-and-kubernetes.md).

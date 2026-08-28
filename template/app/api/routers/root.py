@@ -6,11 +6,10 @@ from typing import Final
 
 from fastapi import APIRouter, status
 
-from api.openapi import OpenAPITag
 from api.schemas.responses import ApplicationResponse, RootResponse
 from service import SERVICE_SLUG
 
-router = APIRouter(tags=[OpenAPITag.SERVICE])
+router = APIRouter(tags=["service"])
 ROOT_OPERATION: Final[str] = f"{SERVICE_SLUG}.root"
 
 
@@ -21,7 +20,6 @@ ROOT_OPERATION: Final[str] = f"{SERVICE_SLUG}.root"
     summary="Get service root",
     description="Return the minimal service availability response.",
     operation_id=ROOT_OPERATION,
-    openapi_extra={"security": []},
     responses={
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "model": ApplicationResponse[None],

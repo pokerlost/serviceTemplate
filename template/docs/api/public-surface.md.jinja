@@ -1,0 +1,45 @@
+# Public surface
+
+This page is the authoritative manifest of HTTP endpoints present in a pristine generated
+`{{ service_name }}` service.
+
+## Endpoint manifest
+
+| Method and path | `operation_id` | Request | `response_model` | Published status and error responses |
+| --- | --- | --- | --- | --- |
+| `GET /` | `{{ service_slug }}.root` | No parameters or body | `RootResponse` (`ApplicationResponse[None]`) | `200`: `RootResponse`; `500`: `ApplicationResponse[None]` |
+| `GET /openapi.get` | `openapi.get` | No parameters or body | `OpenAPIResponse` (`ApplicationResponse[dict[str, JSONValue]]`) | `200`: `OpenAPIResponse`; `500`: `ApplicationResponse[None]` |
+
+Both success models use the exact four-field
+[`ApplicationResponse`](application-response.md) envelope. The OpenAPI operation returns the
+generated document in `result`; the root operation returns this exact body:
+
+```json
+{
+  "ok": true,
+  "result": null,
+  "error": null,
+  "error_message": null
+}
+```
+
+The base route decorators explicitly publish only the `500` error model shown above. Global API
+handlers also envelope-normalize unmatched paths, unsupported methods, validation failures, and
+runtime exceptions as described in [API errors](errors.md); those are not additional pristine
+route declarations.
+
+## Probe meaning
+
+`GET /` proves that the process can serve the minimal application response. It does not request a
+database dependency, execute a PostgreSQL query, or prove database readiness. Deployment probes use
+this application-availability endpoint with that limited meaning.
+
+`GET /openapi.get` publishes the current FastAPI schema as described in
+[OpenAPI and SDK](openapi-and-sdk.md). Neither pristine endpoint contains business behavior.
+
+## Maintaining the manifest
+
+A concrete service must add every new or changed public method here with its exact path,
+`operation_id`, request model or body omission, response model, and published status/error models.
+The method must also follow the canonical [RPC contract](rpc-contract.md). Remove manifest entries
+when their routes are removed; do not document planned endpoints as current behavior.

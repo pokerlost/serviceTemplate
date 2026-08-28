@@ -6,10 +6,9 @@ from typing import Final
 
 from fastapi import APIRouter, Request, status
 
-from api.openapi import OpenAPITag
 from api.schemas.responses import ApplicationResponse, OpenAPIResponse
 
-router = APIRouter(tags=[OpenAPITag.OPENAPI])
+router = APIRouter(tags=["openapi"])
 OPENAPI_OPERATION: Final[str] = "openapi.get"
 
 
@@ -20,7 +19,6 @@ OPENAPI_OPERATION: Final[str] = "openapi.get"
     summary="Get the OpenAPI JSON document",
     description="Return the generated service contract as a wrapped JSON object.",
     operation_id=OPENAPI_OPERATION,
-    openapi_extra={"security": []},
     responses={
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "model": ApplicationResponse[None],

@@ -1,0 +1,62 @@
+# RPC contract
+
+This page is the canonical wire contract for public PokerLost RPC operations implemented by
+`{{ service_name }}`.
+
+## System boundary
+
+`GET /` is the sole non-RPC path. `GET /openapi.get` is the platform OpenAPI publication operation.
+The `pypokerlost` generator treats both as system paths and does not generate callable methods for
+them.
+
+Every added public service operation has a lowercase namespace and method:
+
+```text
+operation_id = lowercase namespace.method
+path         = "/" + operation_id
+```
+
+The complete accepted operation pattern is:
+
+```text
+^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$
+```
+
+Define one module-level `OPERATION` constant and derive both `path` and `operation_id` from it. The
+SDK-compatible HTTP methods are `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`; use `POST` by default
+unless the operation semantics require another supported method.
+
+## Request body
+
+Application input is one named, closed, typed JSON object based on `RequestModel`. Its component and
+class name ends in `Request`. Application-owned field names are alias-free `snake_case` and remain
+unchanged during serialization.
+
+RPC application input does not use OpenAPI path, query, header, or cookie parameters. Do not use an
+embedded body, an anonymous inline object, or a free-form top-level body. A `GET` operation that has
+input still receives a JSON body. A parameterless operation omits `requestBody` completely instead
+of publishing an empty object.
+
+## Response schemas
+
+A successful operation publishes `ApplicationResponse[<SemanticName>Response]`. Every expected
+handled 4xx or 5xx response publishes `ApplicationResponse[None]`; an operation with a request body
+also publishes that model for validation status `422`. All numeric 2xx responses for one operation
+must use compatible JSON schemas.
+
+The envelope fields and invariants belong to
+[ApplicationResponse](application-response.md), and runtime failure mappings belong to
+[API errors](errors.md).
+
+## Service-specific security
+
+When a concrete service requires authorization, declare it through that service's FastAPI security
+dependencies. It must not alter the operation, path, application-input, or response-envelope rules.
+FastAPI-generated security metadata remains service-specific and is preserved by the
+[OpenAPI publication](openapi-and-sdk.md).
+
+## Contract changes
+
+An API change must update the [public surface manifest](public-surface.md), this page when the RPC
+rules change, and the relevant response or publication page. A wire-contract change also requires
+the authoritative `pypokerlost` compatibility workflow.

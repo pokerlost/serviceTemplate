@@ -27,6 +27,19 @@ latest direct user requirement
 - Validate critical settings at startup and fail fast.
 - Do not commit or log secrets.
 
+## Documentation
+
+- Keep `README.md` as a landing page and `docs/index.md` as the documentation home.
+- Write technical documentation in English, keep one canonical page per concept, use relative
+  links, and leave no page under `docs/` orphaned.
+- Document only the verified current state. Do not record prompts, chat notes, temporary plans,
+  invented checks, metrics, or guarantees in product documentation.
+- Every API change updates `docs/api/public-surface.md` and the relevant canonical API page;
+  wire-contract changes also update `docs/api/openapi-and-sdk.md`.
+- Follow [`docs/development/documentation-style.md`](docs/development/documentation-style.md) and
+  [`docs/development/contributing.md`](docs/development/contributing.md).
+- Before handoff, run `make check` and `make pre-commit`.
+
 ## API
 
 - FastAPI is the HTTP framework.
@@ -46,21 +59,36 @@ latest direct user requirement
 - Use `RequestModel` for public requests, `ResponseModel` for public responses, and `ORMResponse`
   only for responses populated from ORM attributes.
 - Public typed object models reject unknown fields; request numbers are finite.
-- Use FastAPI's OpenAPI support with small explicit platform metadata; do not build a parallel
-  OpenAPI engine.
+- Generate OpenAPI with FastAPI's `get_openapi()`, preserve FastAPI-generated metadata, add only
+  `x-pokerlost-service.id`, and cache the resulting schema.
+- Keep FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` endpoints disabled; publish the
+  wrapped schema through `GET /openapi.get`.
+- The template does not construct OAuth2 or scope metadata manually. Authorization is
+  service-specific: declare it with FastAPI security dependencies in the concrete service and do
+  not manually mutate generated OpenAPI security metadata.
 
 ## PokerLost SDK compatibility
 
 - The current `pypokerlost` public contracts and method generator are authoritative. Read
-  [`docs/SDK.md`](docs/SDK.md) before changing RPC, request/response, or OpenAPI contracts.
+  [`docs/api/rpc-contract.md`](docs/api/rpc-contract.md),
+  [`docs/api/application-response.md`](docs/api/application-response.md), and
+  [`docs/api/openapi-and-sdk.md`](docs/api/openapi-and-sdk.md) before changing RPC,
+  request/response, or OpenAPI contracts.
+- `pypokerlost` is a mandatory dependency from the pinned private Git source in `pyproject.toml`.
+  Do not replace it with a sibling path, editable checkout, `file://` source, floating branch, or
+  credential-bearing URL.
 - Keep the local `ApplicationResponse` and `ResponseModel` exactly aligned with SDK fields,
   defaults, invariants, and strict configuration. Do not extend or wrap the envelope.
-- When `pypokerlost` is an installed dependency, type `OPERATION` as `Final[RPCOperation]` from
-  `pypokerlost.types` and use `RPCOpenAPIExtra` from `pypokerlost.openapi` for protected-operation
-  metadata. The service still owns its OAuth2 scheme, flow, token URL, and scope strings.
-- Never implement a direct HTTP client for another PokerLost service or redeclare its DTOs. Use the
-  generated methods package and a lifespan-owned `pypokerlost.Client` configured for one explicit
-  `APIServer` target.
+- Type each business `OPERATION` as `Final[RPCOperation]` from `pypokerlost.types`.
+- PokerLost services do not implement direct HTTP clients for other PokerLost services.
+  Inter-service RPC calls use `pypokerlost.Client` and generated `PokerlostMethod`/response types.
+- Do not add handwritten `httpx`, `requests`, or `aiohttp` transports to another PokerLost service,
+  manual RPC URL builders or envelope decoders, local copies of remote DTOs, or compatibility
+  wrappers around direct HTTP.
+- If a required generated SDK method is missing, define or fix the target service OpenAPI contract,
+  regenerate the SDK methods, and use that generated API; never bypass the SDK.
+- Create only clients for actual configured targets. Own each target-specific client in FastAPI
+  lifespan, store it in `ApplicationResources`, reuse it across requests, and close it on shutdown.
 - Import only focused public SDK facades or the generated methods package; do not import private
   modules, `pypokerlost` scripts, or generator-internal models.
 - After an API contract change, run the authoritative SDK generator compatibility check. It catches

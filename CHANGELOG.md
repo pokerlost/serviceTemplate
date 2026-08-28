@@ -4,6 +4,17 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
+- Replace the generated two-page manual with canonical API-service documentation, a universal
+  documentation checker, file-hygiene pre-commit hooks, and self-documenting root/generated
+  Makefile quality workflows.
+- Expand generated Git hygiene rules and restrict Docker build contexts to the files consumed by
+  the generated `Dockerfile`.
+- Stop generating `.python-version`; Python 3.13 remains aligned through project, Ruff, mypy, and
+  Docker configuration.
+- Removed generic OAuth2/scope/OpenAPI authorization mechanics from the base template; concrete
+  services own FastAPI security declarations.
+- Install `pypokerlost` in every generated service from its verified private GitHub SSH source at
+  an immutable revision, including BuildKit SSH forwarding for image builds.
 - Align generated services with Python 3.13 and the current `pypokerlost` RPC contract: exact
   operation/path identity, strict `ApplicationResponse` parity, SDK-compatible wrapped OpenAPI
   publication, generator/runtime compatibility verification, corrected SDK acronym casing, and

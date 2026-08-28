@@ -1,0 +1,60 @@
+# Quickstart
+
+This page starts the generated service locally and exercises its two pristine HTTP endpoints.
+
+Complete [installation](installation.md), provide a valid PostgreSQL configuration in `.env`, and start the development server:
+
+```console
+make run
+```
+
+The server listens on the configured `http.host` and `http.port`; the example `.env` uses `127.0.0.1:8000`.
+
+## Service root
+
+Call the sole non-RPC path:
+
+```console
+curl --fail-with-body http://127.0.0.1:8000/
+```
+
+The response is the exact successful `ApplicationResponse[None]` envelope:
+
+```json
+{
+  "ok": true,
+  "result": null,
+  "error": null,
+  "error_message": null
+}
+```
+
+## OpenAPI document
+
+Retrieve the public OpenAPI document through its RPC-style system path:
+
+```console
+curl --fail-with-body http://127.0.0.1:8000/openapi.get
+```
+
+The response uses the same four-field envelope. Its `result` is the complete FastAPI-generated OpenAPI object; the object includes the following stable service metadata:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "openapi": "3.1.0",
+    "info": {
+      "title": "{{ service_name }}",
+      "version": "0.1.0"
+    },
+    "x-pokerlost-service": {
+      "id": "{{ service_name }}"
+    }
+  },
+  "error": null,
+  "error_message": null
+}
+```
+
+The displayed `result` focuses on stable metadata; the actual object also contains the generated `paths` and schemas. See [OpenAPI and SDK](../api/openapi-and-sdk.md) for publication rules and [public surface](../api/public-surface.md) for the exact pristine endpoints.

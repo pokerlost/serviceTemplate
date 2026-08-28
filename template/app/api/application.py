@@ -10,7 +10,7 @@ from service import SERVICE_NAME
 
 from .errors import configure_exception_handlers
 from .lifespan import create_lifespan
-from .openapi import API_DESCRIPTION, OPENAPI_TAGS, PokerlostApplication
+from .openapi import PokerlostApplication
 from .request_context import configure_request_context
 from .routes import configure_routes
 
@@ -22,10 +22,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = PokerlostApplication(
         title=SERVICE_NAME,
         version=resolved_settings.application.version,
-        description=API_DESCRIPTION,
         debug=False,
         lifespan=create_lifespan(resolved_settings),
-        openapi_tags=OPENAPI_TAGS,
         openapi_url=None,
         docs_url=None,
         redoc_url=None,
