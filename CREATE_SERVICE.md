@@ -113,10 +113,10 @@ generated files, the update regression must also:
 7. confirm `.copier-answers.yml` remains valid Copier metadata;
 8. repeat `make docs-check`, `make check`, and `make pre-commit`.
 
-Template maintainers can run `make template-copy` for a disposable render and
-`make template-check` for the private-dependency-backed generated checks. Both commands remove their
-temporary artifacts. `make template-check` requires `uv`, working GitHub SSH credentials, and
-network access to the pinned private SDK source.
+Template maintainers verify a disposable render by following the fresh-copy procedure above in a
+temporary destination, then removing that destination after review. Dependency-backed generated
+checks require `uv`, working GitHub SSH credentials, and network access to the pinned private SDK
+source.
 
 Report every unavailable tool, failed command, and external-service limitation. Do not claim a
 check that was not executed.

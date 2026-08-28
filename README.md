@@ -32,7 +32,7 @@ Trusted execution is not required. After generation, follow the generated `READM
 
 ## Maintain the template
 
-The root Makefile is a thin interface for documentation, pre-commit, and disposable Copier checks:
+The root Makefile is a thin interface for documentation and pre-commit checks:
 
 ```bash
 make help
@@ -44,5 +44,6 @@ The tooling-only `pyproject.toml` records the Python, Ruff, mypy, and pre-commit
 commands resolve those pinned tools with `uvx`; generated services instead use their locked
 project environment.
 
-`make check-full` resolves the pinned private SDK in a temporary generated service and therefore
-requires `uv`, network access, and working GitHub SSH credentials for `pokerlost/pypokerlost`.
+`make check-full` adds the complete pre-commit hook pass to the regular non-mutating checks. Follow
+[`CREATE_SERVICE.md`](CREATE_SERVICE.md) to verify a disposable generated service and its pinned
+private SDK dependency.

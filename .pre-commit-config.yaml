@@ -35,7 +35,7 @@ repos:
         entry: uvx --from 'mypy>=2.3,<2.4' mypy
         language: system
         pass_filenames: false
-        files: ^(scripts/.*\.py|template/scripts/.*\.py)$
+        files: ^template/scripts/.*\.py$
 
       - id: root-documentation
         name: Root documentation contract

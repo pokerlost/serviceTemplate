@@ -69,8 +69,8 @@ or pre-release layouts unless the user explicitly requires them.
 
 - Use the root `Makefile` as the canonical command interface.
 - Run `make format`, then `make check` and `make pre-commit` before handoff.
-- Run `make template-copy` after Copier structure changes and `make template-check` when the
-  generated environment and private SDK are available.
+- After Copier structure changes, render into a disposable destination and run the generated
+  service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and
   confirm service-owned `SERVICE.md` remains unchanged.
 - Run the complete compatibility probe in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md) after

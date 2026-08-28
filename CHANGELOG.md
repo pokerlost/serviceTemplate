@@ -4,6 +4,8 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
+- Remove the repository-local disposable template verifier and its Make targets; maintainers now
+  follow the documented Copier copy/update workflow directly when validating generated services.
 - Replace the generated two-page manual with canonical API-service documentation, a universal
   documentation checker, file-hygiene pre-commit hooks, and self-documenting root/generated
   Makefile quality workflows.
