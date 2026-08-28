@@ -22,13 +22,13 @@ It derives `service_slug`, `service_env_prefix`, and `database_name`. PostgreSQL
 unconditional part of every generated service; there are no architecture questionnaires or
 optional primary-storage branches.
 
-Generated services require Python 3.13 or newer. The Python, Ruff, mypy, builder-image, and
+Generated services require Python 3.14 or newer. The Python, Ruff, mypy, builder-image, and
 runtime-image versions move together; generated source uses a 100-character line length.
 
 Every generated service declares the private `pypokerlost` distribution from the verified
-`pokerlost/pypokerlost` GitHub SSH source, pinned to an immutable release tag or full commit SHA.
-This platform source is constant and does not add a Copier question. Docker builds forward the SSH
-agent and trusted `known_hosts` only while the builder resolves dependencies.
+`pokerlost/pypokerlost` GitHub SSH source, pinned to a full commit SHA already published on
+`origin/main`. This platform source is constant and does not add a Copier question. Docker builds
+forward the SSH agent and trusted `known_hosts` only while the builder resolves dependencies.
 
 ## Generated foundation
 
@@ -36,7 +36,7 @@ Every generated service includes:
 
 ```text
 FastAPI
-RPC/OpenAPI publication foundation and the pinned private pypokerlost SDK
+API/OpenAPI publication foundation and the pinned private pypokerlost SDK
 Pydantic v2 and Pydantic Settings
 PostgreSQL, SQLAlchemy 2, and Alembic
 Logfire instrumentation foundations
@@ -64,10 +64,10 @@ not translate exceptions.
 ## Public API contract
 
 - `GET /` and `GET /openapi.get` are the two SDK system paths.
-- A business RPC operation is a lowercase `namespace.method`, and its path is exactly the same
+- A business API operation is a lowercase `namespace.method`, and its path is exactly the same
   value prefixed with `/`.
-- Business inputs use one named, closed, typed JSON request body; RPC transport does not use OpenAPI
-  path, query, header, or cookie parameters.
+- Business inputs use one named, closed, typed JSON request body; operation transport does not use
+  OpenAPI path, query, header, or cookie parameters.
 - Every success uses `ApplicationResponse[ResponseType]`; handled errors use
   `ApplicationResponse[None]`.
 - Application-owned JSON uses `snake_case`.
@@ -85,8 +85,8 @@ package, and enum conventions, lives only in the generated `AGENTS.md`.
 - `README.md` is the concise service landing page.
 - `docs/index.md` is the documentation home for getting started, API, architecture, development,
   and project-status material.
-- Canonical API pages separate RPC, `ApplicationResponse`, errors, OpenAPI/SDK integration, and the
-  exact pristine public surface.
+- Canonical API pages separate the operation contract, `ApplicationResponse`, errors, OpenAPI/SDK
+  integration, and the exact pristine public surface.
 - Canonical architecture pages separate dependency direction, request lifecycle, and PostgreSQL
   transaction ownership.
 - Development pages own commands, contribution and style rules, migrations, and Docker/Helm use;

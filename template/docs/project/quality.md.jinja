@@ -6,7 +6,8 @@ This page describes the independent checks available in the generated service an
 
 - Ruff formatting checks enforce the configured Python layout without rewriting source in `make check`.
 - Ruff lint checks enforce the selected rules in `pyproject.toml`.
-- Strict mypy checks the project-owned application source with Python 3.13 semantics.
+- Strict mypy checks the project-owned application and documentation-checker source with Python
+  3.14 semantics.
 - `compileall` checks that application modules, the Alembic entry point, and documentation checker compile.
 - Pre-commit applies standard file hygiene and runs project Ruff, mypy, and documentation hooks through the locked environment.
 - The documentation audit checks navigation, relative links, practical local anchors, H1 ownership, opening paragraphs, fenced-block languages, and prohibited local or temporary text.

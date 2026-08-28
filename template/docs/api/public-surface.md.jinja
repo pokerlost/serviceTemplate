@@ -41,5 +41,6 @@ this application-availability endpoint with that limited meaning.
 
 A concrete service must add every new or changed public method here with its exact path,
 `operation_id`, request model or body omission, response model, and published status/error models.
-The method must also follow the canonical [RPC contract](rpc-contract.md). Remove manifest entries
-when their routes are removed; do not document planned endpoints as current behavior.
+The method must also follow the canonical [operation contract](operation-contract.md). Remove
+manifest entries when their routes are removed; do not document planned endpoints as current
+behavior.

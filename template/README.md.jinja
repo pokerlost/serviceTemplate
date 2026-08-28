@@ -1,18 +1,18 @@
 # {{ service_name }}
 
 `{{ service_name }}` is a generated PokerLost FastAPI service foundation with PostgreSQL,
-SDK-compatible RPC/OpenAPI publication, observability, Docker, and Helm. Business functionality is
+SDK-compatible API/OpenAPI publication, observability, Docker, and Helm. Business functionality is
 absent until it is defined in [`SERVICE.md`](SERVICE.md).
 
 Read the [documentation home](docs/index.md) for the complete guide and [`AGENTS.md`](AGENTS.md)
-for normative engineering rules. Python 3.13 or newer is required.
+for normative engineering rules. Python 3.14 or newer is required.
 
 ## Install
 
 The mandatory private `pypokerlost` dependency requires GitHub SSH read access. Create local
 configuration, verify the SSH identity, and install the locked environment:
 
-```console
+```bash
 cp .env.example .env
 ssh-add -l
 ssh -T git@github.com
@@ -26,7 +26,7 @@ See [installation](docs/getting-started/installation.md) and
 
 ## Run
 
-```console
+```bash
 make run
 ```
 
@@ -44,7 +44,7 @@ and the authoritative [public surface](docs/api/public-surface.md).
 
 Run `make help` for the thin local tool interface. The regular quality entry points are:
 
-```console
+```bash
 make check
 make pre-commit
 ```

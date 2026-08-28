@@ -22,7 +22,7 @@ REQUIRED_DOCUMENTS = frozenset(
         "docs/getting-started/quickstart.md",
         "docs/getting-started/configuration.md",
         "docs/api/overview.md",
-        "docs/api/rpc-contract.md",
+        "docs/api/operation-contract.md",
         "docs/api/application-response.md",
         "docs/api/errors.md",
         "docs/api/openapi-and-sdk.md",
@@ -112,53 +112,21 @@ def _require_tool(name: str) -> None:
     print(f"[preflight] {name}: {executable}", flush=True)
 
 
-def _check_ssh_identity() -> None:
-    result = subprocess.run(
-        ["ssh-add", "-l"],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    if result.returncode == 0:
-        identities = [line for line in result.stdout.splitlines() if line.strip()]
-        print(
-            f"[preflight] SSH agent: {len(identities)} identity/identities loaded",
-            flush=True,
-        )
-        return
-
-    detail = (result.stderr or result.stdout).strip()
-    if result.returncode == 1:
-        message = "SSH agent has no loaded identity; load one with ssh-add before full verification"
-    else:
-        message = "cannot query the SSH agent; start it and load a GitHub identity"
-    if detail:
-        message = f"{message} ({detail})"
-    raise VerificationError(message)
-
-
 def _preflight(*, copy_only: bool) -> None:
-    required_tools = ("uvx",) if copy_only else ("uv", "uvx", "make", "ssh-add")
-    available_tools: set[str] = set()
+    required_tools = ("uvx",) if copy_only else ("git", "uv", "uvx", "make")
     errors: list[str] = []
     for name in required_tools:
         try:
             _require_tool(name)
-            available_tools.add(name)
         except VerificationError as exception:
             errors.append(str(exception))
 
     if copy_only:
         if errors:
             raise VerificationError("; ".join(errors))
-        print("[preflight] copy-only mode: dependency and SSH checks are skipped", flush=True)
+        print("[preflight] copy-only mode: dependency checks are skipped", flush=True)
         return
 
-    if "ssh-add" in available_tools:
-        try:
-            _check_ssh_identity()
-        except VerificationError as exception:
-            errors.append(str(exception))
     if errors:
         details = "\n".join(f"- {error}" for error in errors)
         raise VerificationError(f"full verification prerequisites are not satisfied:\n{details}")
@@ -244,9 +212,12 @@ def _run_documentation_checker(generated: Path) -> None:
 
 def _run_full_generated_checks(generated: Path) -> None:
     _run(["uv", "lock"], cwd=generated)
+    _run(["git", "init", "--quiet", "--initial-branch=main"], cwd=generated)
+    _run(["git", "add", "--all"], cwd=generated)
     _run(["uv", "sync", "--locked"], cwd=generated)
     _run(["uv", "lock", "--check"], cwd=generated)
     _run(["make", "check"], cwd=generated)
+    _run(["make", "check-full"], cwd=generated)
 
 
 def main() -> int:

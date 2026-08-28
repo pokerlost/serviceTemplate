@@ -1,14 +1,17 @@
 # Installation
 
-This page prepares a local checkout of `{{ service_name }}` with its locked Python 3.13 environment and required configuration.
+This page prepares a local checkout of `{{ service_name }}` with its locked Python 3.14 environment
+and required configuration.
 
 ## Prerequisites
 
-Install Python 3.13 or newer, `uv`, Git, and access to the PostgreSQL instance used for local development. PostgreSQL is an unconditional part of the service stack, but the application does not start it.
+Install Python 3.14 or newer, `uv`, Git, and access to the PostgreSQL instance used for local
+development. PostgreSQL is an unconditional part of the service stack, but the application does
+not start it.
 
 The project installs `pypokerlost` from a pinned private GitHub SSH source. Confirm that an authorized key is available through the SSH agent and that GitHub recognizes it:
 
-```console
+```bash
 ssh-add -l
 ssh -T git@github.com
 ```
@@ -19,7 +22,7 @@ GitHub can report successful authentication while declining shell access, so `ss
 
 Run the setup from the repository root:
 
-```console
+```bash
 cp .env.example .env
 uv lock
 uv sync --locked

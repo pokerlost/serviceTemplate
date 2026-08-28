@@ -3,7 +3,7 @@ name = "pokerlost-{{ service_slug }}"
 version = "0.1.0"
 description = "PokerLost FastAPI service foundation."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.16.4,<2",
     "asyncpg>=0.30.0,<1",
@@ -20,16 +20,16 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "4d375903c2002bd9f09a59a876b7cf7ea8b7470b" }
+pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "6a3f0451c10895ddef90f8b6e1753949b9ab73b8" }
 
 [project.scripts]
 "{{ service_slug }}" = "cli:cli"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.17.0,<2",
-    "pre-commit>=4.2.0,<5",
-    "ruff>=0.12.5,<1",
+    "mypy>=2.3,<2.4",
+    "pre-commit==4.6.2",
+    "ruff==0.16.4",
 ]
 
 [build-system]
@@ -41,13 +41,13 @@ only-include = ["app"]
 sources = ["app"]
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py314"
 line-length = 100
 src = ["app", "scripts"]
 exclude = ["AGENTS.md"]
 
 [tool.ruff.lint]
-select = ["ANN", "ASYNC", "B", "D", "E", "F", "I", "RUF", "UP"]
+select = ["ANN", "ASYNC", "B", "D", "E", "F", "I", "RUF", "SIM", "UP"]
 ignore = ["D107", "D203", "D213", "D417"]
 
 [tool.ruff.lint.isort]
@@ -67,9 +67,9 @@ known-first-party = [
 "alembic/versions/*.py" = ["F401"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 mypy_path = "app"
-files = ["app"]
+files = ["app", "scripts"]
 plugins = ["pydantic.mypy"]
 strict = true
 explicit_package_bases = true

@@ -29,7 +29,9 @@ Use backticks for classes, functions, operation IDs, HTTP paths, schema fields, 
 
 ## Code blocks
 
-Every fenced code block must declare a language. Use the most specific applicable language, including `python`, `console`, `json`, `toml`, `yaml`, or `text`. Use `console` for shell commands.
+Every fenced code block must declare a language. Use the most specific applicable language,
+including `python`, `bash`, `toml`, `yaml`, `json`, `text`, `cpp`, or `cmake`. Use `bash` for shell
+commands.
 
 Examples must use the current public contract, avoid secret values, and be minimal enough to review. Do not document commands that depend on unexplained local state or that have not been verified against the repository.
 
@@ -67,7 +69,7 @@ Examples must agree with the generated OpenAPI and the installed `pypokerlost` c
 
 Before handing off documentation, run:
 
-```console
+```bash
 make docs-check
 make pre-commit
 ```

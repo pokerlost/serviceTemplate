@@ -1,66 +1,67 @@
 # serviceTemplate ↔ pypokerlost compatibility
 
 This is the canonical maintainer contract and verification procedure for the generated server
-template. Service-author guidance belongs in generated `docs/api/rpc-contract.md`,
+template. Service-author guidance belongs in generated `docs/api/operation-contract.md`,
 `docs/api/application-response.md`, and `docs/api/openapi-and-sdk.md`; short normative constraints
 belong in generated `AGENTS.md`.
 
-## Authoritative checkout inspected
+## Authoritative SDK revision
 
-The compatibility work on 2026-08-28 inspected the following `main` revision of the private
-[`pokerlost/pypokerlost`](https://github.com/pokerlost/pypokerlost):
+The compatibility work on 2026-08-28 verified the private
+[`pokerlost/pypokerlost`](https://github.com/pokerlost/pypokerlost) `origin/main` revision:
 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
-distribution version: 0.1.0
-commit:               4d375903c2002bd9f09a59a876b7cf7ea8b7470b
-remote main verified: 43d457ec088371211af1c94b32b747adce57005e
-matching release tag: none
-generator version:    0.2.1
-Python:               >=3.13
+distribution version: 0.2.0
+commit:               6a3f0451c10895ddef90f8b6e1753949b9ab73b8
+pin status:            verified on origin/main
+generator version:    1.0.0
+Python:               >=3.14
 ```
 
-The SDK working tree is a read-only authoritative source. Its implementation wins over SDK prose
-when they differ. Re-inspect the current working tree rather than assuming this recorded commit is
-still current.
-
-The SDK and template remotes have the same GitHub owner, `pokerlost`. At final verification, remote
-`main` was one commit ahead of the inspected revision. That descendant changes only SDK
-`.gitignore` and `.dockerignore`; the runtime package, generator, project metadata, and version are
-unchanged. Neither local nor remote tags contain a release tag for version `0.1.0`. Generated
-services remain pinned to the inspected, verified full commit SHA at
-`ssh://git@github.com/pokerlost/pypokerlost.git`. Never substitute a sibling path, absolute path,
-`file://` source, embedded credential, unverified index, or floating branch.
+The generated-service dependency pins that exact full commit SHA. Local and remote SDK SHAs were
+confirmed identical before the template pin was updated. The SDK implementation wins over stale
+prose. Never substitute a sibling path, absolute path, `file://` source, embedded credential,
+unverified index, or floating branch.
 
 ## Compatibility boundary
 
-| Contract                 | SDK implementation                                    | Generated-service requirement                                                                       |
-|--------------------------|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| Python and style         | `pyproject.toml`                                      | Python >=3.13, Ruff `py313`, mypy 3.13, line length 100, Python 3.13 images                         |
-| SDK installation         | distribution `pypokerlost`                           | verified private SSH source pinned to one immutable release tag or full commit SHA                  |
-| RPC operation            | `pypokerlost/types/rpc.py`                            | `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$`                                                           |
-| HTTP method              | `pypokerlost/types/rpc.py`                            | only GET, POST, PUT, PATCH, DELETE; POST default                                                    |
-| Runtime URL              | `environment/api_server.py`                           | one API base plus `/<operation>`                                                                    |
-| Generator path           | `scripts/generate_methods.py`                         | path is exactly `"/" + operationId`                                                                 |
-| Request serialization    | `request/rpc_request_builder.py`                      | alias-free snake_case fields matching `model_dump(mode="json", by_alias=False, exclude_unset=True)` |
-| Request body             | `scripts/generate_methods.py`                         | one named typed JSON object, or no body for a parameterless OpenAPI operation; no parameters        |
-| Response base            | `contracts/response_model.py`                         | exact strict immutable local `ResponseModel` config                                                 |
-| Wire envelope            | `contracts/application_response.py`                   | exact four fields/defaults/invariants; no extensions                                                |
-| Response decoding        | `response/application_response_handler.py`            | failed envelope/API error, success+non-2xx/protocol error, invalid JSON/decode error                |
-| Publication endpoint     | `scripts/generate_methods.py`                         | wrapped `GET /openapi.get`, operation ID `openapi.get`                                              |
-| System paths             | `scripts/generate_methods.py`                         | exactly `/` and `/openapi.get`; no generated methods                                                |
-| OpenAPI document         | `scripts/generate_methods.py`                         | OpenAPI 3.1.x and SemVer `info.version`                                                             |
-| Service metadata         | `scripts/generate_methods.py`                         | exactly `x-pokerlost-service: {id: SERVICE_NAME}`                                                   |
-| Generator subset         | `scripts/generate_methods.py`                         | only the supported reachable schema subset; focused failure otherwise                               |
-| Runtime target/lifecycle | `client/client.py`, `client/session/httpx_session.py` | one explicit APIServer per session/client, lifespan ownership, deterministic close                  |
+| Contract | SDK implementation | Generated-service requirement |
+| --- | --- | --- |
+| Python and style | `pyproject.toml` | Python >=3.14, Ruff `py314`, mypy 3.14, line length 100, Python 3.14 images |
+| SDK installation | distribution `pypokerlost` | Verified private SSH source pinned to one full pushed commit SHA |
+| API operation | `pypokerlost/types/operation.py` | `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` |
+| HTTP method | `pypokerlost/types/operation.py` | Only GET, POST, PUT, PATCH, DELETE; POST default |
+| Runtime URL | `pypokerlost/client/api_server.py` | One API base plus `/<operation>` |
+| Request objects | `pypokerlost/client/request/` | `Request`, `RequestBuilder`, and `RequestOptions` |
+| Request serialization | `pypokerlost/client/request/request_builder.py` | Alias-free `snake_case` fields and `exclude_unset=True` |
+| Request body | `scripts/generate_methods.py` | One named typed JSON object, or no body when parameterless; no parameters |
+| Wire envelope | `pypokerlost/client/response/response.py` | Exact four fields/defaults/invariants; no extensions |
+| Response decoding | `pypokerlost/client/response/response_handler.py` | API, protocol, and decode errors remain distinct |
+| Publication endpoint | `scripts/generate_methods.py` | Wrapped `GET /openapi.get`, operation ID `openapi.get` |
+| System paths | `scripts/generate_methods.py` | Exactly `/` and `/openapi.get`; no generated methods |
+| OpenAPI document | `scripts/generate_methods.py` | OpenAPI 3.1.x and SemVer `info.version` |
+| Service metadata | `scripts/generate_methods.py` | Exactly `x-pokerlost-service: {id: SERVICE_NAME}` |
+| Generated layout | `scripts/generate_methods.py` | `pypokerlost/types/<service>/` and `pypokerlost/methods/<service>/` |
+| Runtime target/lifecycle | `pypokerlost/client/` | One explicit `APIServer` per client/session and deterministic close |
 
-Service identity and RPC identity are separate. `x-pokerlost-service.id` retains the Copier
+The relevant public imports are:
+
+```python
+from pypokerlost import Client, OpenAPIExtra, PokerlostMethod, Response
+from pypokerlost.client.api_server import APIServer
+from pypokerlost.client.request import Request, RequestBuilder, RequestOptions
+from pypokerlost.client.response import ResponseHandler
+from pypokerlost.types import APIOperation, HTTPMethod
+```
+
+Service identity and operation identity are separate. `x-pokerlost-service.id` retains the Copier
 `service_name`, including possible uppercase letters. Business operation IDs never derive directly
 from it. The root system operation uses the lowercase `service_slug` namespace.
 
 ## Server contract
 
-Canonical business RPC:
+Canonical business API operation:
 
 ```text
 operation = lowercase namespace.method
@@ -73,7 +74,7 @@ errors    = ApplicationResponse[None]
 Each route module declares one `OPERATION` constant and derives both decorator values from it.
 Application-owned JSON is alias-free `snake_case`. A request schema is `<SemanticName>Request`, a
 result schema is `<SemanticName>Response`, and typed nested objects are named closed components.
-OpenAPI parameters and `Body(embed=True)` are not part of PokerLost RPC transport. A `GET` with
+OpenAPI parameters and `Body(embed=True)` are not part of PokerLost operation transport. A `GET` with
 input still uses JSON content.
 
 All numeric 2xx responses for one operation have compatible JSON schemas. Request-body operations
@@ -182,8 +183,8 @@ repository.
 
 The pristine scaffold itself has only system paths, so fresh-copy verification does not require a
 generator run. If invoked there, the generator reports
-`OpenAPI document contains no non-system RPC operations`; that is expected and is why the temporary
-RPC is mandatory for the positive compatibility probe.
+`OpenAPI document contains no non-system API operations`; that is expected and is why the temporary
+operation is mandatory for the positive compatibility probe.
 
 ## Copier, image, and deployment regression
 
@@ -191,7 +192,7 @@ Every compatibility change also runs a fresh Copier copy and an update regressio
 prior-template Git snapshot. Modify `SERVICE.md` before update and verify it remains byte-identical.
 No new Copier question is needed for SDK compatibility, and PostgreSQL stays unconditional.
 
-The generated Dockerfile uses Python 3.13 in builder and runtime stages. Builder-only `git` and
+The generated Dockerfile uses Python 3.14 in builder and runtime stages. Builder-only `git` and
 `openssh-client` resolve the pinned private dependency through a BuildKit SSH-agent mount and an
 explicit trusted `known_hosts` input on every `uv sync`; only the installed virtual environment is
 copied to runtime. Verify the runtime has no SSH material, agent socket, Git credential, `git`, or
@@ -200,7 +201,7 @@ unchanged.
 
 ## Current SDK non-goals
 
-The SDK currently provides typed HTTP RPC, middleware, immutable request headers, storage,
+The SDK currently provides typed HTTP method calls, middleware, immutable request headers, storage,
 lifecycle, and method generation. It does not provide built-in auth/token refresh, authorization
 middleware, retries, automatic service routing, WebSocket/events, streaming, or subscriptions.
 The pristine template must not simulate those features or instantiate an unused SDK client.
@@ -221,13 +222,3 @@ OpenAPI publication, or SDK integration guidance:
 The template does not provide `sdk-generate` or `sdk-check` Makefile targets: normal service
 commands must not assume a sibling checkout, and generator output/manifest ownership belongs to the
 SDK repository. Use the explicit variable-driven commands above during compatibility work.
-
-## Known SDK prose differences at the inspected revision
-
-- The example envelope in `docs/generating_methods.md` marks all four fields required, while the
-  implementation requires only `ok`; the template follows implementation defaults.
-- `docs/adding_methods.md` demonstrates a manually authored `*Result`; generated referenced server
-  components preserve their `*Response` names, which is the template convention.
-- SDK service-mode discovery calls `raise_for_status()` before parsing the publication envelope, so
-  a non-2xx `/openapi.get` is a fetch failure even if its body is a valid failed envelope. Normal
-  successful publication is HTTP 200.

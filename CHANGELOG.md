@@ -9,16 +9,16 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
   Makefile quality workflows.
 - Expand generated Git hygiene rules and restrict Docker build contexts to the files consumed by
   the generated `Dockerfile`.
-- Stop generating `.python-version`; Python 3.13 remains aligned through project, Ruff, mypy, and
+- Stop generating `.python-version`; Python 3.14 remains aligned through project, Ruff, mypy, and
   Docker configuration.
 - Removed generic OAuth2/scope/OpenAPI authorization mechanics from the base template; concrete
   services own FastAPI security declarations.
 - Install `pypokerlost` in every generated service from its verified private GitHub SSH source at
   an immutable revision, including BuildKit SSH forwarding for image builds.
-- Align generated services with Python 3.13 and the current `pypokerlost` RPC contract: exact
-  operation/path identity, strict `ApplicationResponse` parity, SDK-compatible wrapped OpenAPI
-  publication, generator/runtime compatibility verification, corrected SDK acronym casing, and
-  generated SDK integration documentation.
+- Align generated services with Python 3.14 and the current `pypokerlost` operation contract:
+  exact operation/path identity, strict `ApplicationResponse` parity, SDK-compatible wrapped
+  OpenAPI publication, generator/runtime compatibility verification, corrected SDK acronym casing,
+  and generated SDK integration documentation.
 - Use `service_name` as the only user-supplied service identity input.
 - Make PostgreSQL, SQLAlchemy, and Alembic unconditional parts of the generated foundation.
 - Separate shared generated conventions in `AGENTS.md` from the service-owned `SERVICE.md`.

@@ -6,7 +6,7 @@ This page documents the generated Docker image and Helm chart workflows without 
 
 The builder resolves the pinned private `pypokerlost` Git source. BuildKit therefore requires an authorized SSH agent and a trusted GitHub `known_hosts` entry:
 
-```console
+```bash
 ssh-add -l
 ssh-keygen -F github.com
 make docker-build
@@ -14,13 +14,15 @@ make docker-build
 
 `make docker-build` forwards the agent with `--ssh default` and mounts `$HOME/.ssh/known_hosts` as the `github_known_hosts` build secret. The Dockerfile marks both inputs as required. Do not copy a private key into the build context, image, `.env`, or chart values, and do not disable host verification.
 
-The multi-stage image installs build-only Git and SSH tooling in the builder. The Python 3.13 runtime contains the locked application environment, runs as numeric user and group `10001`, and starts Gunicorn with Uvicorn workers. GitHub credentials are not runtime inputs.
+The multi-stage image installs build-only Git and SSH tooling in the builder. The Python 3.14
+runtime contains the locked application environment, runs as numeric user and group `10001`, and
+starts Gunicorn with Uvicorn workers. GitHub credentials are not runtime inputs.
 
 ## Helm validation
 
 The chart lives under `deploy/helm/{{ service_slug }}/`. Validate it locally with:
 
-```console
+```bash
 make helm-lint
 make helm-template
 ```

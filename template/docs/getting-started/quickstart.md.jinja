@@ -4,7 +4,7 @@ This page starts the generated service locally and exercises its two pristine HT
 
 Complete [installation](installation.md), provide a valid PostgreSQL configuration in `.env`, and start the development server:
 
-```console
+```bash
 make run
 ```
 
@@ -12,9 +12,9 @@ The server listens on the configured `http.host` and `http.port`; the example `.
 
 ## Service root
 
-Call the sole non-RPC path:
+Call the service root path:
 
-```console
+```bash
 curl --fail-with-body http://127.0.0.1:8000/
 ```
 
@@ -31,9 +31,9 @@ The response is the exact successful `ApplicationResponse[None]` envelope:
 
 ## OpenAPI document
 
-Retrieve the public OpenAPI document through its RPC-style system path:
+Retrieve the public OpenAPI document through its system operation path:
 
-```console
+```bash
 curl --fail-with-body http://127.0.0.1:8000/openapi.get
 ```
 

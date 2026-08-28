@@ -32,6 +32,9 @@ _TEMPORARY_MARKERS = (
     "todo from chat",
 )
 _URI_SCHEME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_FENCE_LANGUAGES = frozenset(
+    {"bash", "cmake", "cpp", "json", "python", "text", "toml", "yaml"},
+)
 
 
 def _relative_display(path: Path, repository_root: Path) -> str:
@@ -109,10 +112,16 @@ def _prose_lines(
             if match is None:
                 continue
             marker = match.group(1)
-            if not match.group(2).strip():
+            language = match.group(2).strip()
+            if not language:
                 errors.append(
                     f"{_relative_display(path, repository_root)}:{line_number}: "
                     "fenced code block has no language",
+                )
+            elif language not in _FENCE_LANGUAGES:
+                errors.append(
+                    f"{_relative_display(path, repository_root)}:{line_number}: "
+                    f"unsupported fenced code language {language!r}",
                 )
             active_fence = (marker[0], len(marker))
             prose[line_number - 1] = ""
@@ -366,7 +375,7 @@ def _heading_anchors(path: Path, cache: dict[Path, set[str]]) -> set[str]:
 
     try:
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+    except OSError, UnicodeError:
         cache[resolved] = set()
         return cache[resolved]
 

@@ -46,13 +46,13 @@ Run targets from the repository root. The Makefile checks required executables b
 
 `make run` wraps:
 
-```console
+```bash
 env PYTHONPATH=app uv run --locked {{ service_slug }} run
 ```
 
 `make serve` wraps the configured Gunicorn command:
 
-```console
+```bash
 env PYTHONPATH=app uv run --locked gunicorn "api.application:create_app()" \
   --worker-class uvicorn_worker.UvicornWorker \
   --bind "0.0.0.0:8000" \
@@ -95,7 +95,7 @@ Use `make format` deliberately when source repair is intended. Use `make check` 
 
 Pass the revision message through Make:
 
-```console
+```bash
 make db-revision message=describe_schema_change
 ```
 
@@ -105,7 +105,7 @@ See [database migrations](database-migrations.md) before changing metadata or re
 
 `make docker-build` wraps the BuildKit inputs required to resolve private `pypokerlost`:
 
-```console
+```bash
 docker build \
   --ssh default \
   --secret id=github_known_hosts,src="$HOME/.ssh/known_hosts" \
@@ -115,7 +115,7 @@ docker build \
 
 The chart wrappers are:
 
-```console
+```bash
 helm lint deploy/helm/{{ service_slug }}
 helm template {{ service_slug }} deploy/helm/{{ service_slug }}
 ```

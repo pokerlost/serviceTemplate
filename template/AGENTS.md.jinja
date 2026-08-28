@@ -43,9 +43,9 @@ latest direct user requirement
 ## API
 
 - FastAPI is the HTTP framework.
-- `/` and `/openapi.get` are the two system paths. Every business endpoint is a PokerLost RPC whose
-  lowercase `operation_id` matches `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` and whose path is
-  exactly `"/" + operation_id`.
+- `/` and `/openapi.get` are the two system paths. Every business endpoint is a PokerLost API
+  operation whose lowercase `operation_id` matches
+  `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` and whose path is exactly `"/" + operation_id`.
 - In each business route module, define one module-level `OPERATION` constant and derive both
   `path=f"/{OPERATION}"` and `operation_id=OPERATION` from it. Use only `GET`, `POST`, `PUT`,
   `PATCH`, or `DELETE`; prefer the SDK-default `POST` unless semantics require another method.
@@ -70,20 +70,20 @@ latest direct user requirement
 ## PokerLost SDK compatibility
 
 - The current `pypokerlost` public contracts and method generator are authoritative. Read
-  [`docs/api/rpc-contract.md`](docs/api/rpc-contract.md),
+  [`docs/api/operation-contract.md`](docs/api/operation-contract.md),
   [`docs/api/application-response.md`](docs/api/application-response.md), and
-  [`docs/api/openapi-and-sdk.md`](docs/api/openapi-and-sdk.md) before changing RPC,
+  [`docs/api/openapi-and-sdk.md`](docs/api/openapi-and-sdk.md) before changing the operation,
   request/response, or OpenAPI contracts.
 - `pypokerlost` is a mandatory dependency from the pinned private Git source in `pyproject.toml`.
   Do not replace it with a sibling path, editable checkout, `file://` source, floating branch, or
   credential-bearing URL.
 - Keep the local `ApplicationResponse` and `ResponseModel` exactly aligned with SDK fields,
   defaults, invariants, and strict configuration. Do not extend or wrap the envelope.
-- Type each business `OPERATION` as `Final[RPCOperation]` from `pypokerlost.types`.
+- Type each business `OPERATION` as `Final[APIOperation]` from `pypokerlost.types`.
 - PokerLost services do not implement direct HTTP clients for other PokerLost services.
-  Inter-service RPC calls use `pypokerlost.Client` and generated `PokerlostMethod`/response types.
+  Inter-service calls use `pypokerlost.Client` and generated `PokerlostMethod`/response types.
 - Do not add handwritten `httpx`, `requests`, or `aiohttp` transports to another PokerLost service,
-  manual RPC URL builders or envelope decoders, local copies of remote DTOs, or compatibility
+  manual operation URL builders or envelope decoders, local copies of remote DTOs, or compatibility
   wrappers around direct HTTP.
 - If a required generated SDK method is missing, define or fix the target service OpenAPI contract,
   regenerate the SDK methods, and use that generated API; never bypass the SDK.

@@ -19,9 +19,9 @@ x-pokerlost-service:
   id: {{ service_name }}
 ```
 
-The identifier is the canonical Copier service identity, while RPC namespaces follow the separate
-[RPC operation rules](rpc-contract.md). `info.version` comes from the `application.version` setting
-and remains a semantic version.
+The identifier is the canonical Copier service identity, while API operation namespaces follow the
+separate [operation rules](operation-contract.md). `info.version` comes from the
+`application.version` setting and remains a semantic version.
 
 Concrete security declarations come from the concrete service's FastAPI dependencies. The wrapper
 preserves FastAPI-generated security metadata without constructing or rewriting it.
@@ -29,14 +29,15 @@ preserves FastAPI-generated security metadata without constructing or rewriting 
 ## Method generation
 
 The authoritative generator reads the wrapped publication, ignores the two system paths, and
-creates typed `PokerlostMethod` and response classes for compatible service RPC operations. The
-pristine service has no business RPC, so it intentionally produces no callable service method.
+creates typed `PokerlostMethod` and response classes for compatible service operations. The
+pristine service has no business operation, so it intentionally produces no callable service
+method.
 
 Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
 it is not an installed command in the runtime SDK distribution. When the wire contract changes,
 run the compatibility workflow against the current SDK source and verify both service-mode and
 saved-file generation. The exact operation, request, response, and supported-schema requirements
-are part of the [RPC contract](rpc-contract.md) and
+are part of the [operation contract](operation-contract.md) and
 [ApplicationResponse contract](application-response.md).
 
 ## Inter-service calls

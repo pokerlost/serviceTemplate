@@ -5,12 +5,11 @@ canonical contract pages for authoring service operations.
 
 ## Transport and operations
 
-FastAPI owns HTTP routing, request validation, response serialization, and OpenAPI generation. The
-root path is the sole non-RPC path. Public service methods otherwise use RPC-style operation IDs and
-matching paths; their exact naming and body rules are defined in the
-[RPC contract](rpc-contract.md).
+FastAPI owns HTTP routing, request validation, response serialization, and OpenAPI generation.
+Business service methods use dotted operation IDs and matching paths; their exact naming and body
+rules are defined in the [operation contract](operation-contract.md).
 
-An RPC accepts one named, typed JSON request body when it needs input. A parameterless operation
+An operation accepts one named, typed JSON request body when it needs input. A parameterless operation
 omits the body. Transport details do not become application or domain values: a route translates a
 validated request into application input and translates the application result into a public
 response model.

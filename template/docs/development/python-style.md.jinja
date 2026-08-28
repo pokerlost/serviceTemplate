@@ -4,15 +4,21 @@ This page summarizes the executable Python quality contract for the generated se
 
 ## Executable source of truth
 
-The project requires Python 3.13 or newer. [`pyproject.toml`](../../pyproject.toml) is authoritative for the Python requirement, Ruff target, 100-character line length, lint selection, strict mypy configuration, source roots, and declared development dependencies. `uv.lock` records their resolved versions.
+The project requires Python 3.14 or newer. [`pyproject.toml`](../../pyproject.toml) is authoritative
+for the Python requirement, Ruff target, 100-character line length, lint selection, strict mypy
+configuration, source roots, and declared development dependencies. `uv.lock` records their
+resolved versions.
 
-Ruff owns formatting and linting. Mypy runs in strict mode with Python 3.13 semantics. Pre-commit invokes those tools through `uv run --locked`, so hook versions come from the project lock instead of an independent hook environment. Use the commands documented in [development commands](commands.md).
+Ruff owns formatting and linting. Mypy runs in strict mode with Python 3.14 semantics. Pre-commit
+invokes those tools through `uv run --locked`, so hook versions come from the project lock instead
+of an independent hook environment. Use the commands documented in
+[development commands](commands.md).
 
 Do not add broad `# noqa` or `# type: ignore` suppressions. A narrow suppression requires a specific, reviewable reason and must not hide an avoidable typing or lint defect.
 
 ## Language and dependency conventions
 
-- Use modern Python 3.13 syntax.
+- Use modern Python 3.14 syntax.
 - Expose FastAPI dependencies through PEP 695 type aliases backed by private resolver functions.
 - Keep public request, response, application, domain, and persistence models in their established layers.
 - Preserve explicit imports and focused package facades.

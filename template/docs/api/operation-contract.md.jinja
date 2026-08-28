@@ -1,13 +1,12 @@
-# RPC contract
+# Operation contract
 
-This page is the canonical wire contract for public PokerLost RPC operations implemented by
+This page is the canonical wire contract for public PokerLost API operations implemented by
 `{{ service_name }}`.
 
 ## System boundary
 
-`GET /` is the sole non-RPC path. `GET /openapi.get` is the platform OpenAPI publication operation.
-The `pypokerlost` generator treats both as system paths and does not generate callable methods for
-them.
+`GET /` and `GET /openapi.get` are platform system paths. The `pypokerlost` generator treats both
+as system paths and does not generate callable methods for them.
 
 Every added public service operation has a lowercase namespace and method:
 
@@ -32,10 +31,10 @@ Application input is one named, closed, typed JSON object based on `RequestModel
 class name ends in `Request`. Application-owned field names are alias-free `snake_case` and remain
 unchanged during serialization.
 
-RPC application input does not use OpenAPI path, query, header, or cookie parameters. Do not use an
-embedded body, an anonymous inline object, or a free-form top-level body. A `GET` operation that has
-input still receives a JSON body. A parameterless operation omits `requestBody` completely instead
-of publishing an empty object.
+Operation input does not use OpenAPI path, query, header, or cookie parameters. Do not use an
+embedded body, an anonymous inline object, or a free-form top-level body. A `GET` operation that
+has input still receives a JSON body. A parameterless operation omits `requestBody` completely
+instead of publishing an empty object.
 
 ## Response schemas
 
@@ -57,6 +56,6 @@ FastAPI-generated security metadata remains service-specific and is preserved by
 
 ## Contract changes
 
-An API change must update the [public surface manifest](public-surface.md), this page when the RPC
-rules change, and the relevant response or publication page. A wire-contract change also requires
-the authoritative `pypokerlost` compatibility workflow.
+An API change must update the [public surface manifest](public-surface.md), this page when the
+operation rules change, and the relevant response or publication page. A wire-contract change also
+requires the authoritative `pypokerlost` compatibility workflow.

@@ -12,7 +12,7 @@ contract is defined in [`TEMPLATE.md`](TEMPLATE.md).
    name beginning with a letter and containing only letters and digits.
 4. Run pinned Copier without `--trust`:
 
-```console
+```bash
 uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
   -d service_name=<SERVICE_NAME>
 ```
@@ -30,7 +30,7 @@ the complete API-service documentation tree, `scripts/check_documentation.py`, `
 `.pre-commit-config.yaml`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Confirm
 that every page under `docs/` is reachable from `docs/index.md`. Then run:
 
-```console
+```bash
 cd <destination>
 cp .env.example .env
 ssh-add -l
@@ -64,7 +64,7 @@ embedded credential, password, token, or floating `main` branch.
 
 When a Docker daemon is available, also verify the private dependency build and runtime package:
 
-```console
+```bash
 ssh-add -l
 ssh-keygen -F github.com
 docker build \
@@ -81,11 +81,11 @@ agent socket, `git`, or `openssh-client`, then remove the probe image. If `githu
 from `known_hosts`, configure a normal trusted GitHub SSH connection; never disable host
 verification. Helm receives no GitHub build credential.
 
-The pristine scaffold deliberately contains no non-system RPC, so fresh-copy verification does not
-run or require SDK method generation. A generator success probe requires a temporary business RPC
-and must not leave that route in the service. After any RPC, envelope, OpenAPI publication,
-Python-version, or SDK integration change, run the end-to-end procedure and negative matrix in
-[`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
+The pristine scaffold deliberately contains no non-system business operation, so fresh-copy
+verification does not run or require SDK method generation. A generator success probe requires a
+temporary business operation and must not leave that route in the service. After any operation
+contract, envelope, OpenAPI publication, Python-version, or SDK integration change, run the
+end-to-end procedure and negative matrix in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
 
 When the environment permits, use an ephemeral route or dependency probe against an unavailable
 PostgreSQL address to confirm `OperationalError` becomes a safe HTTP 503 response. Use a temporary
@@ -96,7 +96,7 @@ Never retain probe routes, tables, schemas, or migrations in the generated servi
 
 Run updates from a clean generated service checkout with valid Copier answers metadata:
 
-```console
+```bash
 uvx --from 'copier==9.17.2' copier check-update
 uvx --from 'copier==9.17.2' copier update
 ```
@@ -115,7 +115,7 @@ generated files, the update regression must also:
 
 Template maintainers can run `make template-copy` for a disposable render and
 `make template-check` for the private-dependency-backed generated checks. Both commands remove their
-temporary artifacts. `make template-check` requires `uv`, a usable GitHub SSH agent identity, and
+temporary artifacts. `make template-check` requires `uv`, working GitHub SSH credentials, and
 network access to the pinned private SDK source.
 
 Report every unavailable tool, failed command, and external-service limitation. Do not claim a

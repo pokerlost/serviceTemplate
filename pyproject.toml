@@ -1,0 +1,53 @@
+[project]
+name = "pokerlost-service-template-tooling"
+version = "0.0.0"
+description = "Repository-local quality tooling for the PokerLost service template."
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3,<2.4",
+    "pre-commit==4.6.2",
+    "ruff==0.16.4",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["scripts", "template"]
+
+[tool.ruff.lint]
+select = ["B", "E4", "E7", "E9", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.ruff.lint.isort]
+known-third-party = [
+    "alembic",
+    "fastapi",
+    "logfire",
+    "pydantic",
+    "pydantic_settings",
+    "sqlalchemy",
+    "starlette",
+    "typer",
+    "uvicorn",
+]
+known-first-party = [
+    "api",
+    "application",
+    "cli",
+    "configuration",
+    "domain",
+    "observability",
+    "persistence",
+    "service",
+]
+
+[tool.mypy]
+python_version = "3.14"
+files = ["scripts", "template/scripts"]
+strict = true
+warn_unused_configs = true

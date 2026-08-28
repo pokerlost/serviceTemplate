@@ -32,10 +32,10 @@ defined in `SERVICE.md`.
 
 ## Remote calls
 
-Do not hold a PostgreSQL transaction open across a remote `pypokerlost` SDK call. A remote RPC and a
-local database transaction cannot form one atomic transaction. Structure the application workflow
-so remote I/O and a short local persistence phase have explicit ordering and failure semantics,
-without treating either side as a distributed commit participant.
+Do not hold a PostgreSQL transaction open across a remote `pypokerlost` SDK call. A remote method
+call and a local database transaction cannot form one atomic transaction. Structure the application
+workflow so remote I/O and a short local persistence phase have explicit ordering and failure
+semantics, without treating either side as a distributed commit participant.
 
 ## Failure mapping
 
