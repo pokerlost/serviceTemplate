@@ -148,7 +148,8 @@ repository.
    not change the published successful result schema.
 4. Start the real FastAPI application/lifespan with valid required settings. PostgreSQL need not be
    contacted because the probe route is persistence-free.
-5. Configure `OPENAPI_OPERATION=contract.getOpenAPI`, fetch `/contract.getOpenAPI`, and assert the
+5. Configure `EXAMPLESERVICE_OPENAPI_OPERATION=contract.getOpenAPI`, fetch
+   `/contract.getOpenAPI`, and assert the
    envelope, OpenAPI 3.1.x, SemVer, exact service metadata,
    system paths, request component/body/no-parameters metadata, success envelope/result reference,
    and 409/422/500 error-envelope metadata.
