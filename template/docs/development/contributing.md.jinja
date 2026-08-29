@@ -4,7 +4,9 @@ This page defines the focused change and review workflow for `{{ service_name }}
 
 ## Before editing
 
-Read the repository [`AGENTS.md`](../../AGENTS.md) and service-owned [`SERVICE.md`](../../SERVICE.md), then inspect the current implementation and the canonical documentation for the area being changed. `SERVICE.md` defines concrete responsibilities; the pristine scaffold must not gain unrelated business behavior.
+Read the repository `AGENTS.md` and service-owned `SERVICE.md`, then inspect the current
+implementation and the canonical documentation for the area being changed. `SERVICE.md` defines
+concrete responsibilities; the pristine scaffold must not gain unrelated business behavior.
 
 Use the template and `pypokerlost` primitives that already own a concern. Do not introduce an alternative HTTP transport, transaction manager, configuration framework, dependency-injection system, or deployment workflow when an established primitive satisfies the requirement.
 
@@ -15,9 +17,11 @@ Use the template and `pypokerlost` primitives that already own a concern. Do not
 - Preserve layer boundaries and public contracts unless the task explicitly changes them.
 - Add infrastructure or dependencies only for a concrete service responsibility.
 - Update the one canonical documentation page for every affected concept.
-- Follow the [Python style](python-style.md) and [documentation style](documentation-style.md) guides.
+- Follow `docs/development/python-style.md` and `docs/development/documentation-style.md`.
 
-An API change must also update the [public surface manifest](../api/public-surface.md) and the relevant canonical API page. Wire-contract changes require the SDK/OpenAPI compatibility workflow described in [OpenAPI and SDK](../api/openapi-and-sdk.md).
+An API change must also update `docs/api/public-surface.md` and the relevant canonical API page.
+Wire-contract changes require the SDK/OpenAPI compatibility workflow described in
+`docs/api/openapi-and-sdk.md`.
 
 ## Verification
 

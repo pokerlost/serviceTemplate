@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from .router import router
+from .router import create_openapi_document_router
 
-__all__ = ("router",)
+__all__ = ("create_openapi_document_router",)

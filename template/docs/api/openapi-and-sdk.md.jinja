@@ -5,8 +5,10 @@ consumed by the authoritative `pypokerlost` tooling.
 
 ## Publication endpoint
 
-`GET /openapi.get` has `operation_id="openapi.get"`, accepts no parameters or request body, and
-returns the OpenAPI JSON object as the `result` of `OpenAPIResponse`. `OpenAPIResponse` is an
+`Settings.openapi_operation` supplies both the publication `operation_id` and its
+`"/" + operation_id` path. The generated `.env.example` uses `openapi.get`, so its default example
+path is `GET /openapi.get`. The operation accepts no parameters or request body and returns the
+OpenAPI JSON object as the `result` of `OpenAPIResponse`. `OpenAPIResponse` is an
 `ApplicationResponse` specialization, so publication uses the same success and failure invariants
 as every other operation.
 
@@ -20,7 +22,7 @@ x-pokerlost-service:
 ```
 
 The identifier is the canonical Copier service identity, while API operation namespaces follow the
-separate [operation rules](operation-contract.md). `info.version` comes from the
+separate rules in `docs/api/operation-contract.md`. `info.version` comes from the
 `application.version` setting and remains a semantic version.
 
 Concrete security declarations come from the concrete service's FastAPI dependencies. The wrapper
@@ -34,11 +36,12 @@ pristine service has no business operation, so it intentionally produces no call
 method.
 
 Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
-it is not an installed command in the runtime SDK distribution. When the wire contract changes,
-run the compatibility workflow against the current SDK source and verify both service-mode and
-saved-file generation. The exact operation, request, response, and supported-schema requirements
-are part of the [operation contract](operation-contract.md) and
-[ApplicationResponse contract](application-response.md).
+it is not an installed command in the runtime SDK distribution. Service mode receives the
+publication operation explicitly through `--openapi-operation`; its default remains `openapi.get`.
+When the wire contract changes, run the compatibility workflow against the current SDK source and
+verify both service-mode and saved-file generation. The exact operation, request, response, and
+supported-schema requirements are documented in `docs/api/operation-contract.md` and
+`docs/api/application-response.md`.
 
 ## Inter-service calls
 
@@ -48,5 +51,5 @@ response types. A concrete service creates a client only for a target declared b
 shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
 of a remote service DTO.
 
-The current pristine endpoints and their publication models are listed in the
-[public surface manifest](public-surface.md).
+The current pristine endpoints and their publication models are listed in
+`docs/api/public-surface.md`.

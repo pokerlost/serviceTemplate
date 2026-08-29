@@ -4,6 +4,14 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
+- Require settings-driven root and OpenAPI publication operations, register their routes at
+  application composition, and enforce the exact two-segment lowerCamelCase operation contract.
+- Generate the canonical keyed business-operation fingerprint primitive and optional typed key
+  settings, including Helm Secret-reference and key-version configuration foundations.
+- Replace relative inter-file Markdown links with repository-root references in backticks and make
+  the documentation checker enforce that policy in template and generated repositories.
+- Add disposable `template-copy` and `template-check` targets for reproducible structural,
+  documentation, and compile verification of a fresh Copier render.
 - Remove the repository-local disposable template verifier and its Make targets; maintainers now
   follow the documented Copier copy/update workflow directly when validating generated services.
 - Replace the generated two-page manual with canonical API-service documentation, a universal

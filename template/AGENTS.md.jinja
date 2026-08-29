@@ -30,22 +30,28 @@ latest direct user requirement
 ## Documentation
 
 - Keep `README.md` as a landing page and `docs/index.md` as the documentation home.
-- Write technical documentation in English, keep one canonical page per concept, use relative
-  links, and leave no page under `docs/` orphaned.
+- Write technical documentation in English, keep one canonical page per concept, reference
+  repository files with repository-root paths in backticks, and list every page under `docs/` in
+  `docs/index.md`.
+- Do not use relative inter-file Markdown links. Only `http://`, `https://`, `mailto:`, and
+  same-document `#anchor` link destinations are allowed.
 - Document only the verified current state. Do not record prompts, chat notes, temporary plans,
   invented checks, metrics, or guarantees in product documentation.
 - Every API change updates `docs/api/public-surface.md` and the relevant canonical API page;
   wire-contract changes also update `docs/api/openapi-and-sdk.md`.
-- Follow [`docs/development/documentation-style.md`](docs/development/documentation-style.md) and
-  [`docs/development/contributing.md`](docs/development/contributing.md).
+- Follow `docs/development/documentation-style.md` and `docs/development/contributing.md`.
 - Before handoff, run `make check` and `make pre-commit`.
 
 ## API
 
 - FastAPI is the HTTP framework.
-- `/` and `/openapi.get` are the two system paths. Every business endpoint is a PokerLost API
-  operation whose lowercase `operation_id` matches
-  `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` and whose path is exactly `"/" + operation_id`.
+- `/` is the only path exception. Its operation ID comes from `Settings.root_operation`. The
+  OpenAPI publication path is `"/" + Settings.openapi_operation`; every other API operation path
+  is likewise exactly `"/" + operation_id`.
+- Every operation ID matches `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$`: exactly two segments and
+  one dot, with each segment starting with a lowercase ASCII letter and containing only ASCII
+  letters and digits. Use lowerCamelCase; underscores, hyphens, extra dots, and uppercase initial
+  characters are forbidden.
 - In each business route module, define one module-level `OPERATION` constant and derive both
   `path=f"/{OPERATION}"` and `operation_id=OPERATION` from it. Use only `GET`, `POST`, `PUT`,
   `PATCH`, or `DELETE`; prefer the SDK-default `POST` unless semantics require another method.
@@ -62,7 +68,7 @@ latest direct user requirement
 - Generate OpenAPI with FastAPI's `get_openapi()`, preserve FastAPI-generated metadata, add only
   `x-pokerlost-service.id`, and cache the resulting schema.
 - Keep FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` endpoints disabled; publish the
-  wrapped schema through `GET /openapi.get`.
+  wrapped schema through the configured OpenAPI operation path.
 - The template does not construct OAuth2 or scope metadata manually. Authorization is
   service-specific: declare it with FastAPI security dependencies in the concrete service and do
   not manually mutate generated OpenAPI security metadata.
@@ -70,9 +76,8 @@ latest direct user requirement
 ## PokerLost SDK compatibility
 
 - The current `pypokerlost` public contracts and method generator are authoritative. Read
-  [`docs/api/operation-contract.md`](docs/api/operation-contract.md),
-  [`docs/api/application-response.md`](docs/api/application-response.md), and
-  [`docs/api/openapi-and-sdk.md`](docs/api/openapi-and-sdk.md) before changing the operation,
+  `docs/api/operation-contract.md`, `docs/api/application-response.md`, and
+  `docs/api/openapi-and-sdk.md` before changing the operation,
   request/response, or OpenAPI contracts.
 - `pypokerlost` is a mandatory dependency from the pinned private Git source in `pyproject.toml`.
   Do not replace it with a sibling path, editable checkout, `file://` source, floating branch, or
@@ -93,6 +98,36 @@ latest direct user requirement
   modules, `pypokerlost` scripts, or generator-internal models.
 - After an API contract change, run the authoritative SDK generator compatibility check. It catches
   invalid field names, reserved-name and generated-name collisions, and unsupported schemas.
+
+## Configuration policy
+
+- `{{ service_env_prefix }}_ROOT_OPERATION` and
+  `{{ service_env_prefix }}_OPENAPI_OPERATION` are required startup settings typed as
+  `pypokerlost.types.APIOperation`. Register their routes from the resolved `Settings` instance;
+  never read settings at module import time or duplicate the operation regex.
+- Base operation IDs are deployment settings. Business operation IDs remain stable source-defined
+  contracts and do not move into environment configuration.
+- Put deployment and security policy in typed settings: secrets, active key versions, cost factors,
+  TTLs, timeouts, pool sizing, rate limits, retention periods, password limits, and deployment-
+  tunable resource limits.
+- Keep protocol invariants in code: algorithm identifiers, serialization domain separators,
+  wire-format versions, field grammar, database identifiers, role values, and business operation
+  IDs.
+
+## Business-operation fingerprinting
+
+- Reuse `application/idempotency/business_operation_fingerprinting.py`; do not fork its encoding or
+  comparison behavior in a feature package.
+- A concrete idempotent operation supplies a small explicit field mapping, including an operation
+  discriminator when different operation types share one persistence key namespace. Never use
+  JSON, `repr()`, randomized password hashes, or manually concatenated values as canonical input.
+- Active services require the optional settings secret with `require_secret()`, construct one
+  process-owned `BusinessOperationFingerprinter` at application composition or lifespan, and
+  inject it into handlers. Never instantiate it per request, in a repository, or at import time.
+- Persist only the 32-byte digest and positive key version. Never persist or log canonical
+  plaintext, input fields, secrets, or digests, and never expose them through the API.
+- Do not rotate the active key until all retained idempotency records created with the old key have
+  expired or been deleted. A candidate with a different key version is a conflict.
 
 ## Dependencies
 

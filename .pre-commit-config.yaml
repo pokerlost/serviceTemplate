@@ -35,13 +35,11 @@ repos:
         entry: uvx --from 'mypy>=2.3,<2.4' mypy
         language: system
         pass_filenames: false
-        files: ^template/scripts/.*\.py$
+        files: ^(scripts|template/scripts)/.*\.py$
 
       - id: root-documentation
         name: Root documentation contract
-        entry: >-
-          python3 template/scripts/check_documentation.py --documents
-          README.md docs/index.md TEMPLATE.md CREATE_SERVICE.md SDK_COMPATIBILITY.md CHANGELOG.md AGENTS.md
+        entry: make docs-check
         language: system
         pass_filenames: false
-        files: ^(README\.md|docs/index\.md|TEMPLATE\.md|CREATE_SERVICE\.md|SDK_COMPATIBILITY\.md|CHANGELOG\.md|AGENTS\.md|template/scripts/check_documentation\.py)$
+        files: ^(.*\.md(?:\.jinja)?|template/scripts/check_documentation\.py)$

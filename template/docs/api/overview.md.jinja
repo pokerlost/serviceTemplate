@@ -6,8 +6,8 @@ canonical contract pages for authoring service operations.
 ## Transport and operations
 
 FastAPI owns HTTP routing, request validation, response serialization, and OpenAPI generation.
-Business service methods use dotted operation IDs and matching paths; their exact naming and body
-rules are defined in the [operation contract](operation-contract.md).
+Business service methods use exact two-segment lowerCamelCase operation IDs and matching paths;
+their naming and body rules are defined in `docs/api/operation-contract.md`.
 
 An operation accepts one named, typed JSON request body when it needs input. A parameterless operation
 omits the body. Transport details do not become application or domain values: a route translates a
@@ -16,19 +16,21 @@ response model.
 
 ## Responses and errors
 
-Every operation returns the four-field [`ApplicationResponse`](application-response.md) envelope.
+Every operation returns the four-field `ApplicationResponse` envelope documented in
+`docs/api/application-response.md`.
 The envelope distinguishes success from failure while keeping the successful result strongly
 typed. Central exception handlers convert the supported failure categories into safe public
-responses described in [API errors](errors.md).
+responses described in `docs/api/errors.md`.
 
 ## OpenAPI and generated clients
 
 The service disables FastAPI's built-in schema and documentation URLs. It publishes the generated
-OpenAPI 3.1 document inside `ApplicationResponse` through `GET /openapi.get`. The document is the
+OpenAPI 3.1 document inside `ApplicationResponse` through the configured publication operation.
+The document is the
 input to the authoritative `pypokerlost` method generator; PokerLost inter-service calls use the
 generated methods and SDK client rather than a service-owned HTTP transport. See
-[OpenAPI and SDK](openapi-and-sdk.md) for the publication and client boundary.
+`docs/api/openapi-and-sdk.md` for the publication and client boundary.
 
-The pristine endpoint inventory is maintained in the
-[public surface manifest](public-surface.md). A concrete service updates that manifest and the
+The pristine endpoint inventory is maintained in `docs/api/public-surface.md`. A concrete service
+updates that manifest and the
 relevant canonical contract page whenever its API changes.

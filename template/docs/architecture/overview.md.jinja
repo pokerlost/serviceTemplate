@@ -47,9 +47,9 @@ than sharing one model across layers.
 
 ## Runtime foundation
 
-The [request lifecycle](request-lifecycle.md) explains composition and per-request flow. The
-[persistence and transaction contract](persistence-and-transactions.md) defines PostgreSQL session
-ownership. The API wire surface is documented separately in the [API overview](../api/overview.md).
+`docs/architecture/request-lifecycle.md` explains composition and per-request flow.
+`docs/architecture/persistence-and-transactions.md` defines PostgreSQL session ownership. The API
+wire surface is documented separately in `docs/api/overview.md`.
 
 The pristine scaffold intentionally contains no business operations, entities, tables, or concrete
 repositories. `SERVICE.md` defines those responsibilities before a concrete service adds them.

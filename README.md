@@ -23,11 +23,11 @@ Trusted execution is not required. After generation, follow the generated `READM
 
 ## Documentation
 
-- [`docs/index.md`](docs/index.md) is the repository documentation home.
-- [`TEMPLATE.md`](TEMPLATE.md) is the canonical contract for generated content and omissions.
-- [`CREATE_SERVICE.md`](CREATE_SERVICE.md) contains the Copier copy, update, and verification
+- `docs/index.md` is the repository documentation home.
+- `TEMPLATE.md` is the canonical contract for generated content and omissions.
+- `CREATE_SERVICE.md` contains the Copier copy, update, and verification
   workflow.
-- [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md) is the authoritative template-maintainer contract
+- `SDK_COMPATIBILITY.md` is the authoritative template-maintainer contract
   and end-to-end SDK compatibility procedure.
 
 ## Maintain the template
@@ -38,12 +38,15 @@ The root Makefile is a thin interface for documentation and pre-commit checks:
 make help
 make check
 make check-full
+make template-copy
+make template-check
 ```
 
 The tooling-only `pyproject.toml` records the Python, Ruff, mypy, and pre-commit baseline. Root
 commands resolve those pinned tools with `uvx`; generated services instead use their locked
 project environment.
 
-`make check-full` adds the complete pre-commit hook pass to the regular non-mutating checks. Follow
-[`CREATE_SERVICE.md`](CREATE_SERVICE.md) to verify a disposable generated service and its pinned
-private SDK dependency.
+`make template-copy` performs a structural inspection of one disposable Copier render;
+`make template-check` also runs generated documentation and compile checks. `make check` includes
+that static template check, while `make check-full` adds the complete pre-commit hook pass. Follow
+`CREATE_SERVICE.md` for dependency-backed generated-service and SDK verification.

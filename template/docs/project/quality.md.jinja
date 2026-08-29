@@ -10,9 +10,12 @@ This page describes the independent checks available in the generated service an
   3.14 semantics.
 - `compileall` checks that application modules, the Alembic entry point, and documentation checker compile.
 - Pre-commit applies standard file hygiene and runs project Ruff, mypy, and documentation hooks through the locked environment.
-- The documentation audit checks navigation, relative links, practical local anchors, H1 ownership, opening paragraphs, fenced-block languages, and prohibited local or temporary text.
+- The documentation audit rejects relative inter-file links and checks the index inventory,
+  same-document anchors, H1 ownership, opening paragraphs, fenced-block languages, and prohibited
+  local or temporary text.
 
-Run the regular layers through `make check` and the expanded hook set through `make check-full`. Their exact composition is documented in [development commands](../development/commands.md).
+Run the regular layers through `make check` and the expanded hook set through `make check-full`.
+Their exact composition is documented in `docs/development/commands.md`.
 
 ## Persistence and packaging checks
 
@@ -21,7 +24,10 @@ Run the regular layers through `make check` and the expanded hook set through `m
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
 
-Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local daemons, credentials, network access, or external checkouts. See [database migrations](../development/database-migrations.md), [containers and Kubernetes](../development/containers-and-kubernetes.md), and [OpenAPI and SDK](../api/openapi-and-sdk.md).
+Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local
+daemons, credentials, network access, or external checkouts. See
+`docs/development/database-migrations.md`, `docs/development/containers-and-kubernetes.md`, and
+`docs/api/openapi-and-sdk.md`.
 
 ## Interpretation
 

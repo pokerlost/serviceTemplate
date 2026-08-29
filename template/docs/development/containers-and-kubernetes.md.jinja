@@ -33,6 +33,13 @@ These targets wrap `helm lint` and `helm template`; they do not install or upgra
 
 The Deployment exposes the HTTP container port and configures both liveness and readiness probes as `GET /`. The root endpoint does not require a database query, so it checks that the application process can serve its base response without turning the probe into a business operation.
 
-Non-secret environment values come from the generated ConfigMap. Database credentials and the optional Logfire token use `secretEnvironment` references to existing Kubernetes Secret names and keys. Never place secret values in `environment`, a ConfigMap, a committed values file, or rendered documentation.
+The top-level Helm values `rootOperation` and `openapiOperation` map explicitly to
+`{{ service_env_prefix }}_ROOT_OPERATION` and
+`{{ service_env_prefix }}_OPENAPI_OPERATION` in the generated ConfigMap. Other non-secret
+environment values, including the fingerprint key version, come from the `environment` map.
+Database credentials, the optional Logfire token, and an activated business-operation fingerprint
+secret use `secretEnvironment` references to existing Kubernetes Secret names and keys. Never
+place secret values in `environment`, a ConfigMap, a committed values file, or rendered
+documentation.
 
 The chart also disables service-account token mounting, requests a non-root runtime, uses a read-only root filesystem, drops Linux capabilities, and mounts a bounded writable temporary volume. Review rendered output and environment-specific Secret references before deployment; successful linting and rendering do not prove cluster readiness or application correctness.

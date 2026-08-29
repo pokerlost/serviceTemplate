@@ -8,7 +8,7 @@ that every pristine service preserves.
 `serviceTemplate` is the reusable Copier baseline for PokerLost backend services. It generates
 infrastructure and general architectural primitives, never a concrete service domain. Its HTTP
 wire contract and OpenAPI 3.1 publication are compatible with the authoritative `pypokerlost` SDK
-described in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
+described in `SDK_COMPATIBILITY.md`.
 
 ## Generation contract
 
@@ -51,6 +51,11 @@ at `domain/value_model.py` and the deployment `Environment` category at
 `domain/enums/environment.py`. The application layer builds its `Command`, `Query`, and `Result`
 value bases on `ValueModel` and provides an abstract asynchronous `Handler` contract.
 
+The application foundation also contains the generic keyed business-operation fingerprinting
+primitive. It uses HMAC-SHA-256 with deterministic sorted, length-prefixed framing and persists only
+the 32-byte digest plus positive key version. Its optional typed secret setting lets pristine
+services remain business-free; concrete idempotent services require the secret at composition.
+
 Persistence provides reusable SQLAlchemy metadata, repository, result-reader, and projection
 foundations without a concrete model, table, or migration. One request-owned session and
 transaction is opened with SQLAlchemy's async context manager: normal exit commits, exceptional
@@ -63,9 +68,12 @@ not translate exceptions.
 
 ## Public API contract
 
-- `GET /` and `GET /openapi.get` are the two SDK system paths.
-- A business API operation is a lowercase `namespace.method`, and its path is exactly the same
-  value prefixed with `/`.
+- `GET /` is the only path exception. Its operation ID comes from required root settings.
+- OpenAPI publication uses its required settings operation for both the operation ID and
+  `"/" + operation_id` path; `.env.example` uses `openapi.get`.
+- Every API operation ID matches `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$`: exactly two
+  lowerCamelCase-compatible segments and one dot. A non-root path is exactly the operation ID
+  prefixed with `/`.
 - Business inputs use one named, closed, typed JSON request body; operation transport does not use
   OpenAPI path, query, header, or cookie parameters.
 - Every success uses `ApplicationResponse[ResponseType]`; handled errors use
@@ -73,8 +81,8 @@ not translate exceptions.
 - Application-owned JSON uses `snake_case`.
 - FastAPI generates the base OpenAPI 3.1 document; the template adds only the required
   `x-pokerlost-service.id` platform metadata and preserves FastAPI-generated route metadata.
-- Built-in `/openapi.json`, `/docs`, and `/redoc` are disabled; `GET /openapi.get` publishes the
-  wrapped document.
+- Built-in `/openapi.json`, `/docs`, and `/redoc` are disabled; the configured OpenAPI operation
+  publishes the wrapped document.
 - Public dependencies use PEP 695 aliases with private resolver functions.
 
 The complete artifact naming contract, including API, ORM, projection, base-class, operation
@@ -96,8 +104,9 @@ package, and enum conventions, lives only in the generated `AGENTS.md`.
 - `SERVICE.md` is the service-owned record of concrete purpose, responsibilities, and local rules;
   Copier preserves it during updates.
 
-The standard-library `scripts/check_documentation.py` validates documentation structure, links,
-anchors, reachability, code fences, and repository-safe content. The generated self-documenting
+The standard-library `scripts/check_documentation.py` validates documentation structure,
+same-document anchors, the prohibition on relative inter-file Markdown links, the index inventory,
+code fences, and repository-safe content. The generated self-documenting
 Makefile exposes regular non-mutating checks through `make check` and the complete local hook pass
 through `make check-full`.
 

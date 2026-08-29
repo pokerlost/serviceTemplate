@@ -7,15 +7,15 @@ belong in generated `AGENTS.md`.
 
 ## Authoritative SDK revision
 
-The compatibility work on 2026-08-28 verified the private
+The compatibility work on 2026-08-29 verified the private
 [`pokerlost/pypokerlost`](https://github.com/pokerlost/pypokerlost) `origin/main` revision:
 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
 distribution version: 0.2.0
-commit:               6a3f0451c10895ddef90f8b6e1753949b9ab73b8
+commit:               8ca9d7153a99f57149364e0b860c319b02cac602
 pin status:            verified on origin/main
-generator version:    1.0.0
+generator version:    1.1.0
 Python:               >=3.14
 ```
 
@@ -30,7 +30,7 @@ unverified index, or floating branch.
 | --- | --- | --- |
 | Python and style | `pyproject.toml` | Python >=3.14, Ruff `py314`, mypy 3.14, line length 100, Python 3.14 images |
 | SDK installation | distribution `pypokerlost` | Verified private SSH source pinned to one full pushed commit SHA |
-| API operation | `pypokerlost/types/operation.py` | `^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$` |
+| API operation | `pypokerlost/types/operation.py` | `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$` |
 | HTTP method | `pypokerlost/types/operation.py` | Only GET, POST, PUT, PATCH, DELETE; POST default |
 | Runtime URL | `pypokerlost/client/api_server.py` | One API base plus `/<operation>` |
 | Request objects | `pypokerlost/client/request/` | `Request`, `RequestBuilder`, and `RequestOptions` |
@@ -38,8 +38,8 @@ unverified index, or floating branch.
 | Request body | `scripts/generate_methods.py` | One named typed JSON object, or no body when parameterless; no parameters |
 | Wire envelope | `pypokerlost/client/response/response.py` | Exact four fields/defaults/invariants; no extensions |
 | Response decoding | `pypokerlost/client/response/response_handler.py` | API, protocol, and decode errors remain distinct |
-| Publication endpoint | `scripts/generate_methods.py` | Wrapped `GET /openapi.get`, operation ID `openapi.get` |
-| System paths | `scripts/generate_methods.py` | Exactly `/` and `/openapi.get`; no generated methods |
+| Publication endpoint | `scripts/generate_methods.py` | Configurable wrapped operation through `--openapi-operation`; default `openapi.get` |
+| System paths | `scripts/generate_methods.py` | `/` and the configured publication path; no generated methods |
 | OpenAPI document | `scripts/generate_methods.py` | OpenAPI 3.1.x and SemVer `info.version` |
 | Service metadata | `scripts/generate_methods.py` | Exactly `x-pokerlost-service: {id: SERVICE_NAME}` |
 | Generated layout | `scripts/generate_methods.py` | `pypokerlost/types/<service>/` and `pypokerlost/methods/<service>/` |
@@ -64,14 +64,16 @@ from it. The root system operation uses the lowercase `service_slug` namespace.
 Canonical business API operation:
 
 ```text
-operation = lowercase namespace.method
+operation = namespace.someOperation
 path      = /<same operation>
 request   = named closed typed JSON body, absent only when parameterless
 success   = ApplicationResponse[<SemanticName>Response]
 errors    = ApplicationResponse[None]
 ```
 
-Each route module declares one `OPERATION` constant and derives both decorator values from it.
+The operation ID has exactly two segments and one dot; each segment starts with a lowercase ASCII
+letter and otherwise contains only ASCII letters and digits. Each business route module declares
+one `OPERATION` constant and derives both decorator values from it.
 Application-owned JSON is alias-free `snake_case`. A request schema is `<SemanticName>Request`, a
 result schema is `<SemanticName>Response`, and typed nested objects are named closed components.
 OpenAPI parameters and `Body(embed=True)` are not part of PokerLost operation transport. A `GET` with
@@ -138,22 +140,25 @@ repository.
    dependency through GitHub SSH, import `pypokerlost`, and run `make check`, `make pre-commit`,
    the documentation checker, and the final diff check.
 2. Add only in that temporary service:
-   `EchoRequest(message: str)`, `EchoResponse(message: str)`, and public `POST /echo.send` with one
-   `OPERATION = "echo.send"` constant. Publish success as
+   `EchoRequest(message: str)`, `EchoResponse(message: str)`, and public
+   `POST /echo.sendMessage` with one `OPERATION = "echo.sendMessage"` constant. Publish success as
    `ApplicationResponse[EchoResponse]`, and publish 409/422/500 as
    `ApplicationResponse[None]`.
 3. Add a temporary failure branch that returns a valid failed envelope with a non-2xx status. Do
    not change the published successful result schema.
 4. Start the real FastAPI application/lifespan with valid required settings. PostgreSQL need not be
    contacted because the probe route is persistence-free.
-5. Fetch `/openapi.get` and assert the envelope, OpenAPI 3.1.x, SemVer, exact service metadata,
+5. Configure `OPENAPI_OPERATION=contract.getOpenAPI`, fetch `/contract.getOpenAPI`, and assert the
+   envelope, OpenAPI 3.1.x, SemVer, exact service metadata,
    system paths, request component/body/no-parameters metadata, success envelope/result reference,
    and 409/422/500 error-envelope metadata.
 6. From an ephemeral copy of the authoritative SDK source, using its locked toolchain, run service
    mode to one temporary output root:
 
    ```bash
-   uv run python scripts/generate_methods.py service <base-url> --output <service-output>
+   uv run python scripts/generate_methods.py service <base-url> \
+     --openapi-operation contract.getOpenAPI \
+     --output <service-output>
    ```
 
 7. Save the actual wrapped publication's `result` (the raw OpenAPI document) to JSON and run file
@@ -175,9 +180,10 @@ repository.
 11. Run `ApplicationResponse` parity checks for fields/defaults/invariants, forbidden extras,
     frozen mutation, strict values, `hide_input_in_errors`, `validate_default`, model config, and
     representative JSON schema.
-12. Run generator negatives for camelCase/no-dot operation IDs, path mismatch, query/path
-    parameters, free-form body, camelCase request field, raw/wrong/extended envelope, incompatible
-    2xx schemas, and external `$ref`. Each case must fail before writing generated sources.
+12. Run generator negatives for missing-dot, snake_case, multi-dot, uppercase-initial, hyphenated,
+    and path-mismatched operation IDs; query/path parameters; free-form bodies; camelCase request
+    fields; raw, wrong, or extended envelopes; incompatible 2xx schemas; and external `$ref`. Each
+    case must fail before writing generated sources.
 13. Terminate the server and remove temporary services, generated outputs, output-scoped manifests,
     captured OpenAPI, bytecode, and processes.
 

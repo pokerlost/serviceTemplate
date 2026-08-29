@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from collections import defaultdict, deque
+from collections import defaultdict
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote
 
 _FENCE_PATTERN = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
 _HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
@@ -31,7 +31,20 @@ _TEMPORARY_MARKERS = (
     "conversation transcript",
     "todo from chat",
 )
-_URI_SCHEME_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
+_ALLOWED_LINK_PREFIXES = ("http://", "https://", "mailto:")
+_IGNORED_DIRECTORY_NAMES = frozenset(
+    {
+        ".agents",
+        ".codex",
+        ".git",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".venv",
+        "build",
+        "dist",
+        "site",
+    }
+)
 _FENCE_LANGUAGES = frozenset(
     {"bash", "cmake", "cpp", "json", "python", "text", "toml", "yaml"},
 )
@@ -403,78 +416,56 @@ def _heading_anchors(path: Path, cache: dict[Path, set[str]]) -> set[str]:
     return anchors
 
 
-def _resolve_link(
-    source: Path,
-    destination: str,
-    repository_root: Path,
-) -> tuple[Path, str] | None:
-    if not destination or _URI_SCHEME_PATTERN.match(destination) or destination.startswith("//"):
-        return None
-
-    split = urlsplit(destination)
-    raw_path = unquote(split.path)
-    if not raw_path:
-        target = source
-    elif raw_path.startswith("/"):
-        return Path(raw_path), unquote(split.fragment)
-    else:
-        target = (source.parent / raw_path).resolve()
-    return target, unquote(split.fragment)
-
-
 def _check_links(
     pages: dict[Path, list[str]],
     repository_root: Path,
     errors: list[str],
-) -> dict[Path, set[Path]]:
-    edges: dict[Path, set[Path]] = {path: set() for path in pages}
-    page_paths = {path.resolve() for path in pages}
+) -> None:
     anchor_cache: dict[Path, set[str]] = {}
 
     for source, prose in pages.items():
         display = _relative_display(source, repository_root)
-        for destination, navigable in _link_destinations(prose):
-            resolved_link = _resolve_link(source, destination, repository_root)
-            if resolved_link is None:
+        for destination, _navigable in _link_destinations(prose):
+            if destination.startswith("#"):
+                fragment = unquote(destination[1:])
+                anchors = _heading_anchors(source, anchor_cache)
+                if not fragment or fragment.casefold() not in {
+                    anchor.casefold() for anchor in anchors
+                }:
+                    errors.append(f"{display}: same-document anchor does not exist: {destination}")
                 continue
-            target, fragment = resolved_link
-            target = target.resolve()
-            if not target.is_relative_to(repository_root):
-                errors.append(f"{display}: local link escapes the repository: {destination}")
+
+            if destination.casefold().startswith(_ALLOWED_LINK_PREFIXES):
                 continue
-            if not target.exists():
-                errors.append(f"{display}: relative link target does not exist: {destination}")
-                continue
-            if navigable and target in page_paths:
-                edges[source.resolve()].add(target)
-            if fragment and target.is_file() and target.suffix.casefold() == ".md":
-                anchors = _heading_anchors(target, anchor_cache)
-                if fragment.casefold() not in {anchor.casefold() for anchor in anchors}:
-                    errors.append(f"{display}: local anchor does not exist: {destination}")
-    return edges
+
+            errors.append(
+                f"{display}: inter-file Markdown link is forbidden; use a repository-root "
+                f"path in backticks instead: {destination}"
+            )
 
 
-def _check_reachability(
+def _check_index_inventory(
     index: Path,
+    docs_directory: Path,
     pages: dict[Path, list[str]],
-    edges: dict[Path, set[Path]],
     repository_root: Path,
     errors: list[str],
 ) -> None:
-    queue: deque[Path] = deque([index.resolve()])
-    reachable: set[Path] = set()
-    while queue:
-        page = queue.popleft()
-        if page in reachable:
+    index_text = index.read_text(encoding="utf-8")
+    for page in sorted(pages):
+        if page == index.resolve() or not page.is_relative_to(docs_directory.resolve()):
             continue
-        reachable.add(page)
-        queue.extend(edges.get(page, set()) - reachable)
+        reference = f"`{_relative_display(page, repository_root)}`"
+        if reference not in index_text:
+            errors.append(
+                f"{_relative_display(page, repository_root)}: page is not listed by its "
+                f"repository-root path in {_relative_display(index, repository_root)}"
+            )
 
-    for orphan in sorted({path.resolve() for path in pages} - reachable):
-        errors.append(
-            f"{_relative_display(orphan, repository_root)}: page is not reachable from "
-            f"{_relative_display(index, repository_root)}",
-        )
+
+def _is_ignored_document(path: Path, repository_root: Path) -> bool:
+    relative_parts = path.relative_to(repository_root).parts
+    return any(part in _IGNORED_DIRECTORY_NAMES for part in relative_parts)
 
 
 def _parse_arguments() -> argparse.Namespace:
@@ -512,6 +503,7 @@ def main() -> int:
             for path in arguments.documents
         ]
         index = None
+        docs_directory = None
     else:
         docs_directory = (
             arguments.docs_dir.resolve()
@@ -528,7 +520,11 @@ def main() -> int:
             errors.append(
                 f"{_relative_display(index, repository_root)}: documentation index is missing",
             )
-        document_paths = sorted(docs_directory.rglob("*.md")) if docs_directory.is_dir() else []
+        document_paths = sorted(
+            path
+            for path in repository_root.rglob("*.md")
+            if not _is_ignored_document(path, repository_root)
+        )
         if not document_paths:
             errors.append(
                 f"{_relative_display(docs_directory, repository_root)}: no Markdown pages found",
@@ -548,9 +544,9 @@ def main() -> int:
         pages[path.resolve()] = prose
         _check_page_structure(path, text, prose, errors, repository_root)
 
-    edges = _check_links(pages, repository_root, errors)
-    if index is not None and index.resolve() in pages:
-        _check_reachability(index, pages, edges, repository_root, errors)
+    _check_links(pages, repository_root, errors)
+    if index is not None and docs_directory is not None and index.resolve() in pages:
+        _check_index_inventory(index, docs_directory, pages, repository_root, errors)
 
     if errors:
         print("Documentation check failed:", file=sys.stderr)

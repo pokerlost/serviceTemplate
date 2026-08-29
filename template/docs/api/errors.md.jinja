@@ -31,8 +31,8 @@ statuses retain their status and use `{{ service_env_prefix }}_HTTP_ERROR` with
 Application errors are transport-independent exceptions with stable public codes and messages.
 The API layer selects the HTTP status. A concrete service may add a specific application failure
 only when its responsibilities require one, then it must publish the corresponding
-`ApplicationResponse[None]` status on affected routes and update the
-[public surface manifest](public-surface.md).
+`ApplicationResponse[None]` status on affected routes and update
+`docs/api/public-surface.md`.
 
 ## Database and unexpected failures
 
@@ -43,5 +43,4 @@ becomes the generic internal `500` response.
 
 Request and correlation identifiers accompany logs and response headers, not the JSON envelope.
 Public failures do not expose submitted values, tracebacks, SQL details, credentials, or other
-secrets. The envelope invariants are defined in
-[ApplicationResponse](application-response.md).
+secrets. The envelope invariants are defined in `docs/api/application-response.md`.

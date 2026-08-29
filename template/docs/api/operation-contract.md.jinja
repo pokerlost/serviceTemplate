@@ -5,21 +5,29 @@ This page is the canonical wire contract for public PokerLost API operations imp
 
 ## System boundary
 
-`GET /` and `GET /openapi.get` are platform system paths. The `pypokerlost` generator treats both
-as system paths and does not generate callable methods for them.
+`GET /` is the sole path exception. Its operation ID comes from the required
+`{{ service_env_prefix }}_ROOT_OPERATION` setting. OpenAPI publication uses the required
+`{{ service_env_prefix }}_OPENAPI_OPERATION` setting for both its operation ID and its
+`"/" + operation_id` path. The generator treats both configured base operations as system
+operations and does not generate callable methods for them.
 
-Every added public service operation has a lowercase namespace and method:
+Every operation ID has exactly two segments and one dot:
 
 ```text
-operation_id = lowercase namespace.method
+operation_id = namespace.someOperation
 path         = "/" + operation_id
 ```
 
 The complete accepted operation pattern is:
 
 ```text
-^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$
+^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$
 ```
+
+Each segment starts with a lowercase ASCII letter and otherwise contains only ASCII letters and
+digits. Ordinary lowerCamelCase is expected. Underscores, hyphens, extra dots, missing dots, and
+uppercase initial characters are invalid. `accounts.confirmLogin` is valid;
+`accounts.confirm_login`, `accounts.self.get`, and `Accounts.get` are invalid.
 
 Define one module-level `OPERATION` constant and derive both `path` and `operation_id` from it. The
 SDK-compatible HTTP methods are `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`; use `POST` by default
@@ -43,19 +51,18 @@ handled 4xx or 5xx response publishes `ApplicationResponse[None]`; an operation 
 also publishes that model for validation status `422`. All numeric 2xx responses for one operation
 must use compatible JSON schemas.
 
-The envelope fields and invariants belong to
-[ApplicationResponse](application-response.md), and runtime failure mappings belong to
-[API errors](errors.md).
+The envelope fields and invariants belong to `docs/api/application-response.md`, and runtime
+failure mappings belong to `docs/api/errors.md`.
 
 ## Service-specific security
 
 When a concrete service requires authorization, declare it through that service's FastAPI security
 dependencies. It must not alter the operation, path, application-input, or response-envelope rules.
-FastAPI-generated security metadata remains service-specific and is preserved by the
-[OpenAPI publication](openapi-and-sdk.md).
+FastAPI-generated security metadata remains service-specific and is preserved by the OpenAPI
+publication described in `docs/api/openapi-and-sdk.md`.
 
 ## Contract changes
 
-An API change must update the [public surface manifest](public-surface.md), this page when the
-operation rules change, and the relevant response or publication page. A wire-contract change also
-requires the authoritative `pypokerlost` compatibility workflow.
+An API change must update `docs/api/public-surface.md`, this page when the operation rules change,
+and the relevant response or publication page. A wire-contract change also requires the
+authoritative `pypokerlost` compatibility workflow.

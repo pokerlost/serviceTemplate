@@ -31,6 +31,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     configure_request_context(application)
     configure_exception_handlers(application)
-    configure_routes(application)
+    configure_routes(application, resolved_settings)
     instrument_fastapi(application, resolved_settings)
     return application

@@ -2,10 +2,10 @@
 
 `{{ service_name }}` is a generated PokerLost FastAPI service foundation with PostgreSQL,
 SDK-compatible API/OpenAPI publication, observability, Docker, and Helm. Business functionality is
-absent until it is defined in [`SERVICE.md`](SERVICE.md).
+absent until it is defined in `SERVICE.md`.
 
-Read the [documentation home](docs/index.md) for the complete guide and [`AGENTS.md`](AGENTS.md)
-for normative engineering rules. Python 3.14 or newer is required.
+Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules.
+Python 3.14 or newer is required.
 
 ## Install
 
@@ -21,8 +21,7 @@ uv sync --locked
 ```
 
 Replace the local placeholders in `.env`; do not store secrets or private keys in the repository.
-See [installation](docs/getting-started/installation.md) and
-[configuration](docs/getting-started/configuration.md) for details.
+See `docs/getting-started/installation.md` and `docs/getting-started/configuration.md` for details.
 
 ## Run
 
@@ -34,11 +33,12 @@ make run
 
 | method | path | operation_id | response_model |
 | --- | --- | --- | --- |
-| `GET` | `/` | `{{ service_slug }}.root` | `RootResponse` |
+| `GET` | `/` | `{{ service_slug }}.getRoot` | `RootResponse` |
 | `GET` | `/openapi.get` | `openapi.get` | `OpenAPIResponse` |
 
-Both responses use `ApplicationResponse`. See the [quickstart](docs/getting-started/quickstart.md)
-and the authoritative [public surface](docs/api/public-surface.md).
+The identifiers shown are the generated `.env.example` values. Both are required settings and may
+be changed without changing the root HTTP path. Both responses use `ApplicationResponse`; see
+`docs/getting-started/quickstart.md` and `docs/api/public-surface.md`.
 
 ## Development and deployment
 
@@ -49,6 +49,5 @@ make check
 make pre-commit
 ```
 
-See [development commands](docs/development/commands.md) and
-[containers and Kubernetes](docs/development/containers-and-kubernetes.md) for Docker and Helm
-workflows.
+See `docs/development/commands.md` and `docs/development/containers-and-kubernetes.md` for Docker
+and Helm workflows.

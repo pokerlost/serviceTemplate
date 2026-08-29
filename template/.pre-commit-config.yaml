@@ -39,4 +39,4 @@ repos:
         entry: uv run --locked python scripts/check_documentation.py
         language: system
         pass_filenames: false
-        files: ^(README\.md|docs/.*\.md|scripts/check_documentation\.py)$
+        files: ^(AGENTS\.md|README\.md|SERVICE\.md|docs/.*\.md|scripts/check_documentation\.py)$

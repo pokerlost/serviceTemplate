@@ -6,17 +6,23 @@ This page records the intentional current state of a pristine generated `{{ serv
 
 The generated repository provides the FastAPI composition root, typed configuration, request context, safe error mapping, Logfire instrumentation foundations, mandatory PostgreSQL session and transaction ownership, Alembic integration, Docker packaging, Helm resources, and the locked local quality workflow.
 
-The two base endpoints are ready:
+The two base endpoints are ready with the `.env.example` values:
 
 - `GET /` returns the service root envelope;
 - `GET /openapi.get` publishes the wrapped FastAPI OpenAPI document.
 
-Their exact contract is listed in the [public surface manifest](../api/public-surface.md).
+Their operation IDs and the OpenAPI publication path are settings-driven; the root HTTP path is
+always `/`.
+
+Their exact contract is listed in `docs/api/public-surface.md`.
 
 ## Intentionally absent
 
 Business functionality is absent by design. The pristine repository defines no concrete business operation, entity, table, migration, remote-service client, authentication policy, or authorization policy.
 
-[`SERVICE.md`](../../SERVICE.md) must define the concrete service purpose, responsibilities, and service-specific rules before those capabilities are added. Future domain documentation should describe only responsibilities established there and must be linked from the documentation home when it is introduced.
+`SERVICE.md` must define the concrete service purpose, responsibilities, and service-specific rules
+before those capabilities are added. Future domain documentation should describe only
+responsibilities established there and must be listed in `docs/index.md` when introduced.
 
-See the [architecture overview](../architecture/overview.md) for layer ownership and [contributing](../development/contributing.md) for change discipline.
+See `docs/architecture/overview.md` for layer ownership and
+`docs/development/contributing.md` for change discipline.

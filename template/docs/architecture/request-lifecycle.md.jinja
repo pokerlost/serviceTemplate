@@ -45,8 +45,8 @@ create_app
    statements through the injected request session and let exceptions propagate to the API
    boundary.
 5. The route converts the application result into a typed API response and returns the
-   [`ApplicationResponse`](../api/application-response.md) envelope. FastAPI validates and
-   serializes the declared response model.
+   `ApplicationResponse` envelope documented in `docs/api/application-response.md`. FastAPI
+   validates and serializes the declared response model.
 
 The two pristine endpoints stop at the route: they have no application handler, repository, query
 adapter, or database dependency.
@@ -57,7 +57,7 @@ Registered handlers convert validation, application, HTTP, and SQLAlchemy failur
 documented safe envelopes. If another exception escapes, request middleware records it with the
 request and correlation identifiers and returns the generic internal failure. The response still
 receives both context headers, while tracebacks and secrets stay out of the public body. See
-[API errors](../api/errors.md) for the exact mappings.
+`docs/api/errors.md` for the exact mappings.
 
 Transaction completion and database error ownership are defined in
-[persistence and transactions](persistence-and-transactions.md).
+`docs/architecture/persistence-and-transactions.md`.

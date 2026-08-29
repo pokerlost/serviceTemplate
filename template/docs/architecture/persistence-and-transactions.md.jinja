@@ -44,13 +44,12 @@ The engine boundary narrowly converts an exact driver `ConnectionRefusedError` i
 response. Other `SQLAlchemyError` instances become sanitized `500` responses. The request
 dependency does not catch or translate these exceptions.
 
-The exact public forms live in [API errors](../api/errors.md). The root probe does not open a
-session or establish database readiness; see the [public surface](../api/public-surface.md).
+The exact public forms live in `docs/api/errors.md`. The root probe does not open a session or
+establish database readiness; see `docs/api/public-surface.md`.
 
 ## Alembic metadata
 
 Alembic owns schema migrations against the shared `Base.metadata`. Every concrete ORM model must be
 imported through `persistence.database.models` so migration autogeneration can see it. Do not add a
 fake baseline model or migration to an otherwise pristine service. The command workflow and review
-discipline are documented in
-[database migrations](../development/database-migrations.md).
+discipline are documented in `docs/development/database-migrations.md`.

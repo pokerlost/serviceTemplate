@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
-from .routers.openapi_document import router as openapi_document_router
-from .routers.root import router as root_router
+from configuration import Settings
+
+from .routers.openapi_document import create_openapi_document_router
+from .routers.root import create_root_router
 
 
-def configure_routes(application: FastAPI) -> None:
-    """Register template-managed baseline routers."""
-    application.include_router(root_router)
-    application.include_router(openapi_document_router)
+def configure_routes(application: FastAPI, settings: Settings) -> None:
+    """Register settings-aware template baseline routers."""
+    application.include_router(create_root_router(settings))
+    application.include_router(create_openapi_document_router(settings))

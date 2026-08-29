@@ -5,21 +5,21 @@ service template.
 
 ## Getting started
 
-- [Create and update a service](../CREATE_SERVICE.md)
+- `CREATE_SERVICE.md` — create and update a service.
 
 ## API
 
-- [SDK compatibility](../SDK_COMPATIBILITY.md)
+- `SDK_COMPATIBILITY.md` — SDK compatibility.
 
 ## Architecture
 
-- [Generated template contract](../TEMPLATE.md)
+- `TEMPLATE.md` — generated template contract.
 
 ## Development
 
-- [Repository rules](../AGENTS.md)
-- [Root command interface](../Makefile)
+- `AGENTS.md` — repository rules.
+- `Makefile` — root command interface.
 
 ## Project
 
-- [Changelog](../CHANGELOG.md)
+- `CHANGELOG.md` — changelog.

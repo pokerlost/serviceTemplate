@@ -19,13 +19,16 @@ Every page must contain:
 1. exactly one H1 heading;
 2. one short, non-empty opening paragraph explaining the page's purpose;
 3. logically ordered sections;
-4. relative links to canonical pages when they help the reader continue.
+4. repository-root file references in backticks when they help the reader continue.
 
 Do not create title-only pages, placeholder pages, or pages that require an earlier prompt or conversation to make sense.
 
 ## Inline code
 
-Use backticks for classes, functions, operation IDs, HTTP paths, schema fields, filenames, commands, options, and literal values. Examples include `ApplicationResponse`, `create_app()`, `namespace.method`, `/openapi.get`, `error_message`, `pyproject.toml`, `make check`, and `null`.
+Use backticks for classes, functions, operation IDs, HTTP paths, schema fields, filenames, commands,
+options, and literal values. Examples include `ApplicationResponse`, `create_app()`,
+`namespace.someOperation`, `/openapi.get`, `error_message`, `pyproject.toml`, `make check`, and
+`null`.
 
 ## Code blocks
 
@@ -37,12 +40,15 @@ Examples must use the current public contract, avoid secret values, and be minim
 
 ## Links and navigation
 
-- Use relative repository links.
-- Keep every page reachable from [`docs/index.md`](../index.md).
-- Do not leave orphan pages.
-- Update links and local anchors when a file or heading is renamed.
-- Link to the canonical explanation instead of copying it into another page.
-- Verify relative links and anchors after documentation changes.
+- Do not use relative inter-file Markdown links.
+- Reference repository files as repository-root paths in backticks, such as
+  `docs/api/operation-contract.md` or `SERVICE.md`.
+- List every page under `docs/` in `docs/index.md`; do not leave orphan pages.
+- Markdown link destinations may use only `http://`, `https://`, `mailto:`, or a
+  same-document `#anchor`.
+- Do not replace internal links with private GitHub blob URLs or absolute local filesystem paths.
+- Update repository-root references and same-document anchors when a file or heading is renamed.
+- Refer to the canonical explanation instead of copying it into another page.
 
 ## Current state
 
@@ -58,10 +64,10 @@ Maintain one detailed page per concept. Other pages may give a short summary and
 
 Any API contract change must update:
 
-- [`docs/api/public-surface.md`](../api/public-surface.md);
+- `docs/api/public-surface.md`;
 - the relevant canonical API page;
 - affected OpenAPI examples;
-- [`docs/api/openapi-and-sdk.md`](../api/openapi-and-sdk.md) when the wire contract changes.
+- `docs/api/openapi-and-sdk.md` when the wire contract changes.
 
 Examples must agree with the generated OpenAPI and the installed `pypokerlost` contract. Do not claim tests, coverage, compatibility, or security verification that does not exist.
 
@@ -74,4 +80,6 @@ make docs-check
 make pre-commit
 ```
 
-Also review headings, opening paragraphs, terminology, links, anchors, examples, commands, and canonical ownership manually. The checker enforces structural rules but does not prove that prose is semantically correct.
+Also review headings, opening paragraphs, terminology, file references, anchors, examples,
+commands, and canonical ownership manually. The checker rejects inter-file Markdown links and
+enforces structural rules, but it does not prove that prose is semantically correct.

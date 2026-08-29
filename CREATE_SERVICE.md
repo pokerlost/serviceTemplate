@@ -1,7 +1,7 @@
 # Create and Update a PokerLost Service
 
 This document is the Copier copy, update, and verification workflow. The generated-content
-contract is defined in [`TEMPLATE.md`](TEMPLATE.md).
+contract is defined in `TEMPLATE.md`.
 
 ## Fresh copy
 
@@ -28,7 +28,7 @@ uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
 Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`, `docs/index.md`,
 the complete API-service documentation tree, `scripts/check_documentation.py`, `Makefile`,
 `.pre-commit-config.yaml`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Confirm
-that every page under `docs/` is reachable from `docs/index.md`. Then run:
+that every page under `docs/` is listed by its repository-root path in `docs/index.md`. Then run:
 
 ```bash
 cd <destination>
@@ -47,16 +47,20 @@ python -m compileall -q app alembic/env.py scripts
 git diff --check
 ```
 
-Verify the generated imports and artifact naming structurally. Exercise `GET /` and
-`GET /openapi.get` through the real application lifespan and confirm:
+Verify the generated imports and artifact naming structurally. Exercise `GET /` and the configured
+OpenAPI publication path through the real application lifespan and confirm:
 
 - both endpoints return the exact four-field `ApplicationResponse` envelope;
 - the wrapped document reports OpenAPI 3.1.x and a SemVer `info.version`;
 - the top level contains exactly `x-pokerlost-service: {id: <service_name>}` for platform metadata;
-- the system paths are `/` and `/openapi.get`, with lowercase `<service_slug>.root` and
-  `openapi.get` operation IDs;
+- `.env.example` uses `/` with `<service_slug>.getRoot` and `/openapi.get` with `openapi.get`;
+- replacing `ROOT_OPERATION` with `example.getRoot` changes only the root operation ID, while
+  replacing `OPENAPI_OPERATION` with `contract.getOpenAPI` creates
+  `/contract.getOpenAPI` with that same operation ID;
 - `/openapi.json`, `/docs`, and `/redoc` are disabled;
 - local `ResponseModel` and `ApplicationResponse` behavior matches the authoritative SDK contract.
+- the canonical fingerprint module exists, has no static methods, and its deterministic probes
+  cover order independence, changed values, framing, UTF-8, bytes, validation, and comparison.
 
 Inspect `pyproject.toml` and `uv.lock`: `pypokerlost` must resolve from the configured private SSH
 Git source at its immutable revision. Neither file may contain a sibling path, `file://` source,
@@ -85,7 +89,7 @@ The pristine scaffold deliberately contains no non-system business operation, so
 verification does not run or require SDK method generation. A generator success probe requires a
 temporary business operation and must not leave that route in the service. After any operation
 contract, envelope, OpenAPI publication, Python-version, or SDK integration change, run the
-end-to-end procedure and negative matrix in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md).
+end-to-end procedure and negative matrix in `SDK_COMPATIBILITY.md`.
 
 When the environment permits, use an ephemeral route or dependency probe against an unavailable
 PostgreSQL address to confirm `OperationalError` becomes a safe HTTP 503 response. Use a temporary
@@ -117,6 +121,18 @@ Template maintainers verify a disposable render by following the fresh-copy proc
 temporary destination, then removing that destination after review. Dependency-backed generated
 checks require `uv`, working GitHub SSH credentials, and network access to the pinned private SDK
 source.
+
+The repository provides reproducible source-only smoke targets that create and clean their own
+temporary destination:
+
+```bash
+make template-copy
+make template-check
+```
+
+`template-copy` validates the rendered contract structure. `template-check` additionally runs the
+generated documentation checker and `compileall`; it does not replace the dependency-backed
+fresh-copy or SDK compatibility workflows above.
 
 Report every unavailable tool, failed command, and external-service limitation. Do not claim a
 check that was not executed.

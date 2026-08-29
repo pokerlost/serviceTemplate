@@ -99,7 +99,7 @@ Pass the revision message through Make:
 make db-revision message=describe_schema_change
 ```
 
-See [database migrations](database-migrations.md) before changing metadata or revisions.
+See `docs/development/database-migrations.md` before changing metadata or revisions.
 
 ## Container and Helm commands
 
@@ -120,4 +120,4 @@ helm lint deploy/helm/{{ service_slug }}
 helm template {{ service_slug }} deploy/helm/{{ service_slug }}
 ```
 
-See [containers and Kubernetes](containers-and-kubernetes.md) for SSH, runtime, probe, and Secret requirements.
+See `docs/development/containers-and-kubernetes.md` for SSH, runtime, probe, and Secret requirements.

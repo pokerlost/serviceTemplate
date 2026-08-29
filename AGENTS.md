@@ -4,8 +4,8 @@ This repository owns the shared Copier foundation for PokerLost backend services
 
 ## Before every task
 
-1. Read this file, [`TEMPLATE.md`](TEMPLATE.md), and [`copier.yml`](copier.yml).
-2. Read [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md) before changing the operation contract,
+1. Read this file, `TEMPLATE.md`, and `copier.yml`.
+2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
    `ApplicationResponse`, OpenAPI publication, Python support, or SDK integration.
 3. Inspect the current template, documentation, Makefile, pre-commit configuration, and relevant
    generated source before editing.
@@ -51,14 +51,16 @@ or pre-release layouts unless the user explicitly requires them.
   constants. Preserve canonical `API`, `HTTP`, `JSON`, `UUID`, `OpenAPI`, and `URL` acronym casing.
 - Use PokerLost in prose. Preserve established public identifiers such as `pypokerlost`,
   `PokerlostMethod`, and `PokerlostType`.
-- Describe the dotted `namespace.method` mechanism as an API operation, operation contract, method
+- Describe the dotted `namespace.someOperation` mechanism as an API operation, operation contract, method
   call, or inter-service call.
 
 ## Documentation
 
-- Keep [`README.md`](README.md) concise and [`docs/index.md`](docs/index.md) as the navigation hub.
+- Keep `README.md` concise and `docs/index.md` as the navigation hub.
 - Write repository documentation in English with exactly one H1, a short opening paragraph,
-  relative links, and language-tagged code fences.
+  repository-root file references in backticks, and language-tagged code fences.
+- Do not use relative inter-file Markdown links. Only `http://`, `https://`, `mailto:`, and
+  same-document `#anchor` link destinations are allowed.
 - Use `bash`, `python`, `toml`, `yaml`, `json`, `text`, `cpp`, or `cmake` fences as appropriate.
 - Do not record prompts, chat notes, temporary plans, absolute local checkout paths, stale commands,
   invented verification, or unsupported guarantees.
@@ -73,7 +75,7 @@ or pre-release layouts unless the user explicitly requires them.
   service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and
   confirm service-owned `SERVICE.md` remains unchanged.
-- Run the complete compatibility probe in [`SDK_COMPATIBILITY.md`](SDK_COMPATIBILITY.md) after
+- Run the complete compatibility probe in `SDK_COMPATIBILITY.md` after
   changes to the API operation, request/response, OpenAPI, Python, or SDK boundary.
 - Report every unavailable tool, failed command, and external-service limitation.
 

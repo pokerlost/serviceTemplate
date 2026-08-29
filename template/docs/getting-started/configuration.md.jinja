@@ -2,13 +2,31 @@
 
 This page documents the generated service settings groups and their environment variable mapping.
 
-`Settings` loads `.env` and process environment values with the `{{ service_env_prefix }}_` prefix. Nested fields use a double underscore, so the general form is:
+`Settings` loads `.env` and process environment values with the `{{ service_env_prefix }}_` prefix.
+Nested fields use a double underscore, so the general form is:
 
 ```text
 {{ service_env_prefix }}_<GROUP>__<FIELD>
 ```
 
-For example, `database.url` maps to `{{ service_env_prefix }}_DATABASE__URL`. Names are case-insensitive, but the checked-in [`.env.example`](../../.env.example) uses uppercase names consistently. Process environment values override values from `.env` according to Pydantic Settings behavior.
+For example, `database.url` maps to `{{ service_env_prefix }}_DATABASE__URL`. Names are
+case-insensitive, but `.env.example` uses uppercase names consistently. Process environment values
+override values from `.env` according to Pydantic Settings behavior.
+
+## Base operations
+
+| Field | Environment variable | Required | Example |
+| --- | --- | --- | --- |
+| `root_operation` | `{{ service_env_prefix }}_ROOT_OPERATION` | Yes | `{{ service_slug }}.getRoot` |
+| `openapi_operation` | `{{ service_env_prefix }}_OPENAPI_OPERATION` | Yes | `openapi.get` |
+
+Both fields use `pypokerlost.types.APIOperation`, so invalid startup values fail validation. The
+root operation controls only the operation ID for `GET /`; the HTTP path remains `/`. The OpenAPI
+operation controls both its operation ID and its `"/" + operation_id` path. Business operation IDs
+remain source-defined stable contracts rather than environment settings.
+
+The Helm values `rootOperation` and `openapiOperation` map explicitly to those exact two
+environment variables in the ConfigMap. They are not Kubernetes Secrets.
 
 ## `application`
 
@@ -48,4 +66,24 @@ The database URL must include a username, password, host, and database. It is tr
 | `minimum_level` | `{{ service_env_prefix }}_LOGFIRE__MINIMUM_LEVEL` | Minimum recorded level. |
 | `token` | `{{ service_env_prefix }}_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
 
-Keep the token and database URL outside source control. Kubernetes supplies them through Secret references rather than the chart ConfigMap; see [containers and Kubernetes](../development/containers-and-kubernetes.md).
+## `business_operation_fingerprint`
+
+| Field | Environment variable | Default | Secret? |
+| --- | --- | --- | --- |
+| `secret` | `{{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__SECRET` | Not configured in a pristine service | Yes |
+| `key_version` | `{{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION` | `1` | No |
+
+A configured secret must contain at least 32 UTF-8 bytes. The generic pristine service leaves it
+optional because it has no concrete idempotent mutation. A concrete service with active
+fingerprinting calls `require_secret()` during application composition so a missing secret fails
+startup. Kubernetes supplies the secret only through a Secret reference; the key version belongs
+in the ConfigMap.
+
+The first-version rotation policy is intentionally simple: do not rotate the active fingerprint
+key until every retained idempotency record created with the old key has expired or been deleted.
+The persisted digest and key version remain together, and a candidate with another version is a
+conflict. Removing an old secret does not preserve replay comparison for records created with it.
+
+Keep the fingerprint secret, Logfire token, and database URL outside source control. Kubernetes
+supplies them through Secret references rather than the chart ConfigMap; see
+`docs/development/containers-and-kubernetes.md`.
