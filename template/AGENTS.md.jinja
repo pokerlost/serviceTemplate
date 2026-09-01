@@ -52,9 +52,11 @@ latest direct user requirement
   one dot, with each segment starting with a lowercase ASCII letter and containing only ASCII
   letters and digits. Use lowerCamelCase; underscores, hyphens, extra dots, and uppercase initial
   characters are forbidden.
-- In each business route module, define one module-level `OPERATION` constant and derive both
-  `path=f"/{OPERATION}"` and `operation_id=OPERATION` from it. Use only `GET`, `POST`, `PUT`,
-  `PATCH`, or `DELETE`; prefer the SDK-default `POST` unless semantics require another method.
+- Build every router through a functional `create_<feature>_router(...)` factory. Create
+  `APIRouter()` inside the factory, register closure endpoints with decorators, and return the
+  router. Write stable business operation IDs directly in decorator arguments. Inject dynamic
+  root/OpenAPI operations from validated settings. Do not use imperative route registration,
+  mutable module-level routers, post-hoc route mutation, or route-level operation constants.
 - Application-owned JSON uses alias-free `snake_case` fields.
 - Put every business input in one named, typed JSON `*Request` body. Do not use path, query, header,
   or cookie parameters, `Body(embed=True)`, free-form bodies, or inline anonymous object schemas.
@@ -67,6 +69,9 @@ latest direct user requirement
 - Public typed object models reject unknown fields; request numbers are finite.
 - Generate OpenAPI with FastAPI's `get_openapi()`, preserve FastAPI-generated metadata, add only
   `x-pokerlost-service.id`, and cache the resulting schema.
+- Do not use project-owned route extra metadata or add custom authorization extensions. Standard
+  request bodies, responses, security schemes, operation security, scopes, tags, summaries, and
+  descriptions are the complete route contract.
 - Keep FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` endpoints disabled; publish the
   wrapped schema through the configured OpenAPI operation path.
 - The template does not construct OAuth2 or scope metadata manually. Authorization is
@@ -84,7 +89,6 @@ latest direct user requirement
   credential-bearing URL.
 - Keep the local `ApplicationResponse` and `ResponseModel` exactly aligned with SDK fields,
   defaults, invariants, and strict configuration. Do not extend or wrap the envelope.
-- Type each business `OPERATION` as `Final[APIOperation]` from `pypokerlost.types`.
 - PokerLost services do not implement direct HTTP clients for other PokerLost services.
   Inter-service calls use `pypokerlost.Client` and generated `PokerlostMethod`/response types.
 - Do not add handwritten `httpx`, `requests`, or `aiohttp` transports to another PokerLost service,
@@ -92,27 +96,42 @@ latest direct user requirement
   wrappers around direct HTTP.
 - If a required generated SDK method is missing, define or fix the target service OpenAPI contract,
   regenerate the SDK methods, and use that generated API; never bypass the SDK.
+- The SDK owns transport, target description, request construction, shared authorization wire
+  models, generated methods, response decoding, canonical exceptions, generic headers, and
+  `PokerLostRetryPolicy`. It does not acquire, store, refresh, invalidate, sign, or verify tokens;
+  own credentials; choose scopes or audience; inject bearer credentials through auth middleware;
+  or replay an operation after `401`.
+- A concrete consuming service owns token orchestration in this direction:
+  application use case -> service-owned application port -> service-owned `pypokerlost` adapter ->
+  generated `oauth.token` method. Add token storage or refresh only when the implemented service
+  stage requires it. Keep credentials, requested exact scopes, and audience in that service.
 - Create exactly one target-specific `pypokerlost.Client` for each real target declared by
   `SERVICE.md`. Create and start it in FastAPI lifespan, store it in an explicitly named typed
   `ApplicationResources` field, reuse it across requests, and stop it in reverse ownership order
-  during shutdown. Do not add a placeholder client to a service without a real target, a
-  string-keyed client registry, a service locator, a per-request client, or a module-global client.
-- For service authentication, construct `ClientCredentialsTokenProvider` with the exact target
-  resource and least-privilege scope set, then install `RetryMiddleware()` outermost before
-  `BearerTokenMiddleware(token_provider)` in the client's immutable `middleware` sequence.
-  Credentials and token acquisition remain inside the SDK; never build a Basic header, bearer
-  cache, token request, or `Authorization` header in service code.
-- Outbound retry is disabled unless one call passes `RequestOptions(retry=RetryPolicy(...))`.
-  Enable it only for a read-only operation or an operation whose target contract is replay-safe.
-  A mutation retry must reuse the same `business_operation_id` and the same semantic payload;
-  business idempotency and reconciliation remain service responsibilities rather than SDK state.
+  during shutdown. Do not add a placeholder client, automatic authService client, string-keyed
+  registry, service locator, per-request client, or module-global client.
+- Supply authentication material through the SDK's generic immutable per-call header capability
+  from the service-owned adapter. Do not introduce auth-specific transport middleware. Never log
+  `Authorization`, `Cookie`, `Proxy-Authorization`, tokens, credentials, or sensitive bodies.
+- Outbound retry is disabled unless one call passes
+  `RequestOptions(retry=PokerLostRetryPolicy())`. The policy is fixed and shared by every service;
+  do not add service-specific retry settings or values. Enable it only for a read-only operation or
+  an operation whose target contract is replay-safe. A mutation retry must reuse the same
+  `business_operation_id`, semantic payload, and target operation. Business idempotency and
+  reconciliation remain service responsibilities rather than SDK state.
+- Project-owned OAuth scopes use at least two dot-separated lowerCamelCase segments and the shared
+  `OAuthScope` value type. Underscores, hyphens, wildcards, whitespace, empty segments, and
+  uppercase segment initials are forbidden. API operation IDs and OAuth scopes are separate
+  contracts.
+- Resource services reuse shared `OAuthTokenResponse`, `AccessTokenClaims`,
+  `AuthorizationContext`, and cross-service authorization enums from `pypokerlost`; they do not
+  create near-duplicate wire models. These data models do not perform network, token lifecycle,
+  signing, verification, role expansion, or authorization decisions.
 - Never hold a request-owned PostgreSQL transaction open across token acquisition, an outbound SDK
   call, retry backoff, or another attempt. Persist and complete local phases at explicit workflow
   boundaries, and do not treat transport retry as reconciliation after an ambiguous outcome.
 - Do not automatically replay `401` or `403`. Propagate the canonical SDK failure and resolve
   credentials or authorization policy outside the call.
-- Never put client credentials, `Authorization` values, access tokens, or sensitive request and
-  response bodies in logs, exception messages, model representations, telemetry, or documentation.
 - Import only focused public SDK facades or the generated methods package; do not import private
   modules, `pypokerlost` scripts, or generator-internal models.
 - After an API contract change, run the authoritative SDK generator compatibility check. It catches
@@ -135,8 +154,10 @@ latest direct user requirement
 
 ## Business-operation fingerprinting
 
-- Reuse `application/idempotency/business_operation_fingerprinting.py`; do not fork its encoding or
-  comparison behavior in a feature package.
+- Reuse the focused `application/idempotency` package; do not fork its encoding or comparison
+  behavior in a feature package. Its exact protocol domain is
+  `pokerlost.businessOperationFingerprint.v2` followed by one NUL byte, and semantic field names
+  match ASCII lowerCamelCase `^[a-z][A-Za-z0-9]*$`.
 - A concrete idempotent operation supplies a small explicit field mapping, including an operation
   discriminator when different operation types share one persistence key namespace. Never use
   JSON, `repr()`, randomized password hashes, or manually concatenated values as canonical input.
@@ -147,6 +168,9 @@ latest direct user requirement
   plaintext, input fields, secrets, or digests, and never expose them through the API.
 - Do not rotate the active key until all retained idempotency records created with the old key have
   expired or been deleted. A candidate with a different key version is a conflict.
+- The v2 format is a coordinated pre-production break. Clear disposable records produced by the
+  former format before enabling v2; do not add dual-format comparison or silently claim old
+  replays remain comparable.
 
 ## Dependencies
 
@@ -182,11 +206,14 @@ other `SQLAlchemyError` instances.
 
 ## Application
 
-- Reuse immutable `Command`, `Query`, and `Result` value bases and the abstract asynchronous
-  `Handler` execution contract.
+- Reuse immutable `Command`, `Query`, and `Result` value bases and the structural asynchronous
+  `Handler` Protocol from `application.ports`.
 - Application contracts are internal typed values, not transport schemas.
 - Handlers orchestrate use cases without depending on FastAPI or owning transaction commit and
   rollback.
+- Application ports use meaningful `typing.Protocol` contracts and do not expose FastAPI, HTTP,
+  `httpx`, SQLAlchemy sessions, concrete SDK clients, configuration implementations, generic CRUD,
+  service locators, empty marker protocols, or business behavior.
 - Do not add a command bus, mediator, registry, or dependency-injection framework without a
   concrete requirement.
 
@@ -225,7 +252,7 @@ account_summary_projection.py
 
 The exceptions are narrow:
 
-- Shared and abstract bases retain their established names: `RequestModel`, `ResponseModel`,
+- Shared and structural bases retain their established names: `RequestModel`, `ResponseModel`,
   `ORMResponse`, `Base`, `UUIDModel`, `Projection`, `Command`, `Query`, `Result`, and `Handler`.
 - An operation-oriented package carries its semantic name. For example,
   `application/accounts/create_account/` may contain `command.py`, `handler.py`, and `result.py`

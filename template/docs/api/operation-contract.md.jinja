@@ -27,11 +27,15 @@ The complete accepted operation pattern is:
 Each segment starts with a lowercase ASCII letter and otherwise contains only ASCII letters and
 digits. Ordinary lowerCamelCase is expected. Underscores, hyphens, extra dots, missing dots, and
 uppercase initial characters are invalid. `accounts.confirmLogin` is valid;
-`accounts.confirm_login`, `accounts.self.get`, and `Accounts.get` are invalid.
+`account.confirm_login`, `accounts.self.get`, and `Accounts.get` are invalid.
 
-Define one module-level `OPERATION` constant and derive both `path` and `operation_id` from it. The
-SDK-compatible HTTP methods are `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`; use `POST` by default
-unless the operation semantics require another supported method.
+Create each feature router through a factory, define endpoint closures inside it, and register them
+with decorators. Write a stable business operation ID directly in both decorator arguments, for
+example `path="/accounts.confirmLogin"` and `operation_id="accounts.confirmLogin"`. Dynamic root
+and OpenAPI operation IDs enter their factories from validated settings. Do not use imperative
+route registration, mutable module-level routers, route-level operation constants, or post-hoc
+route mutation. The SDK-compatible HTTP methods are `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`;
+use `POST` by default unless semantics require another supported method.
 
 ## Request body
 
@@ -60,6 +64,10 @@ When a concrete service requires authorization, declare it through that service'
 dependencies. It must not alter the operation, path, application-input, or response-envelope rules.
 FastAPI-generated security metadata remains service-specific and is preserved by the OpenAPI
 publication described in `docs/api/openapi-and-sdk.md`.
+
+Project-owned OAuth scope identifiers use at least two dot-separated lowerCamelCase segments and
+the shared `pypokerlost.types.OAuthScope` value. Scope identifiers and API operation IDs are
+separate contracts.
 
 ## Contract changes
 

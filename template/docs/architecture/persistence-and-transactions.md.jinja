@@ -37,7 +37,7 @@ call and a local database transaction cannot form one atomic transaction. Struct
 workflow so remote I/O and a short local persistence phase have explicit ordering and failure
 semantics, without treating either side as a distributed commit participant.
 
-The prohibited span includes client-credentials token acquisition, the first target attempt,
+The prohibited span includes service-owned token acquisition, the first target attempt,
 `Retry-After` or jitter backoff sleep, and every later attempt. End the request-owned transaction
 before entering that outbound phase. Reuse the service's existing workflow or reconciliation seam
 for an ambiguous remote outcome; do not introduce an unowned transaction, hold a session idle, or

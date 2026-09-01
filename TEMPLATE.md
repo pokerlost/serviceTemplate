@@ -30,9 +30,11 @@ Every generated service declares the private `pypokerlost` distribution from the
 `origin/main`. This platform source is constant and does not add a Copier question. Docker builds
 forward the SSH agent and trusted `known_hosts` only while the builder resolves dependencies.
 
-The SDK defines the canonical outbound middleware, service-authentication, and bounded retry
-interfaces. A generated service documents how a concrete `SERVICE.md`-declared target adopts those
-interfaces, but the pristine runtime does not create a target client or request credentials.
+The SDK defines HTTP transport, generated methods, shared authorization wire contracts, generic
+request headers, response decoding, canonical exceptions, and the fixed opt-in
+`PokerLostRetryPolicy`. Token acquisition, storage, refresh, scopes, audience, and credential
+ownership remain in the consuming service behind application ports and adapters. The pristine
+runtime does not create a target client, credentials, token storage, or retry settings.
 
 ## Generated foundation
 
@@ -53,12 +55,14 @@ The source tree separates `api`, `application`, `domain`, `configuration`, `obse
 `persistence`, and `cli`. The domain foundation contains the immutable internal `ValueModel` base
 at `domain/value_model.py` and the deployment `Environment` category at
 `domain/enums/environment.py`. The application layer builds its `Command`, `Query`, and `Result`
-value bases on `ValueModel` and provides an abstract asynchronous `Handler` contract.
+value bases on `ValueModel` and provides a structural asynchronous `Handler` port at
+`application/ports/handler.py`.
 
-The application foundation also contains the generic keyed business-operation fingerprinting
-primitive. It uses HMAC-SHA-256 with deterministic sorted, length-prefixed framing and persists only
-the 32-byte digest plus positive key version. Its optional typed secret setting lets pristine
-services remain business-free; concrete idempotent services require the secret at composition.
+The application foundation also contains the focused generic keyed business-operation
+fingerprinting package. Its camelCase v2 format uses HMAC-SHA-256 with deterministic sorted,
+length-prefixed framing and persists only the 32-byte digest plus positive key version. Its
+optional typed secret setting lets pristine services remain business-free; concrete idempotent
+services require the secret at composition.
 
 Persistence provides reusable SQLAlchemy metadata, repository, result-reader, and projection
 foundations without a concrete model, table, or migration. One request-owned session and
@@ -78,6 +82,8 @@ not translate exceptions.
 - Every API operation ID matches `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$`: exactly two
   lowerCamelCase-compatible segments and one dot. A non-root path is exactly the operation ID
   prefixed with `/`.
+- Project-owned OAuth scopes use the shared SDK `OAuthScope` type and at least two dot-separated
+  lowerCamelCase segments. Scope identifiers and operation IDs remain separate contracts.
 - Business inputs use one named, closed, typed JSON request body; operation transport does not use
   OpenAPI path, query, header, or cookie parameters.
 - Every success uses `ApplicationResponse[ResponseType]`; handled errors use
@@ -85,9 +91,14 @@ not translate exceptions.
 - Application-owned JSON uses `snake_case`.
 - FastAPI generates the base OpenAPI 3.1 document; the template adds only the required
   `x-pokerlost-service.id` platform metadata and preserves FastAPI-generated route metadata.
+- Shared token responses, access-token claims, authorization contexts, and cross-service
+  authorization enums come from `pypokerlost`; services do not copy the wire contracts.
 - Built-in `/openapi.json`, `/docs`, and `/redoc` are disabled; the configured OpenAPI operation
   publishes the wrapped document.
 - Public dependencies use PEP 695 aliases with private resolver functions.
+- Every router is produced by a functional factory whose endpoints are registered with decorators.
+  Router modules do not use imperative route registration, mutable module-level routers,
+  route-level operation constants, or project-owned OpenAPI extra metadata.
 
 The complete artifact naming contract, including API, ORM, projection, base-class, operation
 package, and enum conventions, lives only in the generated `AGENTS.md`.
@@ -100,8 +111,9 @@ package, and enum conventions, lives only in the generated `AGENTS.md`.
 - Canonical API pages separate the operation contract, `ApplicationResponse`, errors, OpenAPI/SDK
   integration, and the exact pristine public surface.
 - Canonical architecture pages separate dependency direction, request lifecycle, and PostgreSQL
-  transaction ownership. The inter-service client page owns the optional target-specific client,
-  authentication, retry, idempotency, and transaction-boundary extension pattern.
+  transaction ownership. The inter-service client page owns the optional target-specific client
+  adapter, service-owned token orchestration, fixed retry policy, idempotency, and
+  transaction-boundary extension pattern.
 - Development pages own commands, contribution and style rules, migrations, and Docker/Helm use;
   project pages describe the actual quality layers and intentionally unfinished service state.
 - `AGENTS.md` is the normative shared PokerLost engineering rulebook and links to the detailed
@@ -119,10 +131,10 @@ through `make check-full`.
 
 The template contains no business entities, business categories, inbound authentication or
 authorization implementation (including OAuth2 policy, scopes, token verification, authorization
-policy, security scheme, or scope registry), credentials, target-specific outbound client, ledger,
-poker or blockchain behavior, concrete persistence entity, fake migration, OpenAPI registry,
-generated tests, or CI/CD. A generated service adds only the behavior supported by its known
-`SERVICE.md` responsibilities.
+policy, security scheme, or scope registry), token acquisition or storage, credentials,
+target-specific outbound client, ledger, poker or blockchain behavior, concrete persistence
+entity, fake migration, OpenAPI registry, generated tests, or CI/CD. A generated service adds only
+the behavior supported by its known `SERVICE.md` responsibilities.
 
 ## Ownership
 

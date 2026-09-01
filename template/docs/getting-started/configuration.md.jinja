@@ -79,8 +79,8 @@ fingerprinting calls `require_secret()` during application composition so a miss
 startup. Kubernetes supplies the secret only through a Secret reference; the key version belongs
 in the ConfigMap.
 
-The first-version rotation policy is intentionally simple: do not rotate the active fingerprint
-key until every retained idempotency record created with the old key has expired or been deleted.
+The active-key rotation policy is intentionally simple: do not rotate the fingerprint key until
+every retained idempotency record created with the old key has expired or been deleted.
 The persisted digest and key version remain together, and a candidate with another version is a
 conflict. Removing an old secret does not preserve replay comparison for records created with it.
 
@@ -90,16 +90,13 @@ supplies them through Secret references rather than the chart ConfigMap; see
 
 ## Concrete outbound targets
 
-The pristine service has no outbound target settings or credentials. When `SERVICE.md` declares a
-real target, add one focused immutable settings group named for that target and one explicitly
-named field on root `Settings`. Validate its SDK-compatible HTTP base URL, public client UUID,
-non-empty `SecretStr` client secret, bounded token refresh skew, positive request timeout, and
-strict bounded retry values at startup.
+The pristine service has no outbound target settings, credentials, token storage, or retry
+configuration. When `SERVICE.md` declares a real target, add one focused immutable settings group
+named for that target and one explicitly named field on root `Settings`. A target base URL and
+request timeout are deployment configuration. Token credentials, storage, refresh, requested exact
+scopes, and audience remain service-owned and are added only when the implemented use case needs
+them.
 
-Nested environment names follow the same delimiter, for example
-`{{ service_env_prefix }}_AUTH_SERVICE__BASE_URL` and
-`{{ service_env_prefix }}_AUTH_SERVICE__CLIENT_SECRET`. The URL, client ID, timeout, refresh skew,
-and retry bounds are non-secret configuration. Only the client secret uses a Secret source. Exact
-requested scopes and `urn:pokerlost:service:<targetIdentity>` belong in composition code because
-they are stable authorization contracts, not deployment knobs. The complete typed example is in
-`docs/architecture/inter-service-clients.md`.
+Do not expose `PokerLostRetryPolicy` values as settings; its transport algorithm is fixed by the
+SDK. Do not automatically add authService configuration to every service. The complete ownership
+pattern is in `docs/architecture/inter-service-clients.md`.

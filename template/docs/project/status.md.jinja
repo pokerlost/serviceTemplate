@@ -18,14 +18,15 @@ Their exact contract is listed in `docs/api/public-surface.md`.
 
 ## Intentionally absent
 
-Business functionality is absent by design. The pristine repository defines no concrete business operation, entity, table, migration, remote-service client, authentication policy, or authorization policy.
+Business functionality is absent by design. The pristine repository defines no concrete business
+operation, entity, table, migration, remote-service client, authentication policy, authorization
+policy, credential, token port, token storage, or service-specific retry configuration.
 
-The canonical SDK outbound middleware, client-credentials token provider, bearer enrichment, and
-explicit bounded per-call retry pattern is documented in
-`docs/architecture/inter-service-clients.md`. A concrete service adopts it only when its immutable
-SDK pin contains those public facades. These capabilities are extension points, not default runtime
-resources: a pristine service has no target URL, client ID, client secret, scope bundle, retry
-policy, or unused client.
+The SDK transport/shared-contract boundary, service-owned token port and adapter, and explicit
+`PokerLostRetryPolicy` opt-in are documented in
+`docs/architecture/inter-service-clients.md`. These are extension points, not default runtime
+resources: a pristine service has no target URL, client ID, client secret, scope bundle, token
+cache, or unused client.
 
 `SERVICE.md` must define the concrete service purpose, responsibilities, and service-specific rules
 before those capabilities are added. Future domain documentation should describe only

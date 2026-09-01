@@ -1,107 +1,141 @@
 # serviceTemplate ↔ pypokerlost compatibility
 
 This is the canonical maintainer contract and verification procedure for the generated server
-template. Service-author guidance belongs in generated `docs/api/operation-contract.md`,
-`docs/api/application-response.md`, and `docs/api/openapi-and-sdk.md`; short normative constraints
-belong in generated `AGENTS.md`.
+template. Service-author guidance belongs in generated API and architecture documentation; short
+normative constraints belong in generated `AGENTS.md`.
 
 ## Authoritative SDK revision
 
-The compatibility work on 2026-08-29 verified the private
-[`pokerlost/pypokerlost`](https://github.com/pokerlost/pypokerlost) `origin/main` revision:
+The generated dependency uses the published and verified unified foundation SDK revision:
 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
 distribution version: 0.2.0
-commit:               8ca9d7153a99f57149364e0b860c319b02cac602
-pin status:            verified on origin/main
-generator version:    1.1.0
+current dependency:   f2de9e11e66c52685d7324b0d70d747358a8d6e1
+foundation pin:       f2de9e11e66c52685d7324b0d70d747358a8d6e1
 Python:               >=3.14
 ```
 
-The generated-service dependency pins that exact full commit SHA. Local and remote SDK SHAs were
-confirmed identical before the template pin was updated. The SDK implementation wins over stale
-prose. Never substitute a sibling path, absolute path, `file://` source, embedded credential,
-unverified index, or floating branch.
-
-The 2026-09-01 outbound API audit also verified the final public middleware,
-client-credentials-provider, and retry facades in the current SDK source. Those changes are not in
-the reachable commit above, so the generated dependency pin intentionally remains unchanged. The
-consumption pattern is documented now, but a concrete generated service must not add imports from
-that facade until a published full SHA containing it replaces the pin. Never invent a SHA or record
-a working-tree path as a dependency source.
+Replace the dependency revision in `template/pyproject.toml.jinja`, this section, and the rendered
+contract verifier only with the exact full SDK SHA confirmed on `origin/main`. Then lock every
+generated service against that same revision. Never use a sibling path, absolute path, `file://`
+source, embedded credential, unverified index, or floating branch.
 
 ## Compatibility boundary
 
-| Contract | SDK implementation | Generated-service requirement |
+| Contract | Canonical owner | Generated-service requirement |
 | --- | --- | --- |
-| Python and style | `pyproject.toml` | Python >=3.14, Ruff `py314`, mypy 3.14, line length 100, Python 3.14 images |
-| SDK installation | distribution `pypokerlost` | Verified private SSH source pinned to one full pushed commit SHA |
-| API operation | `pypokerlost/types/operation.py` | `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$` |
-| HTTP method | `pypokerlost/types/operation.py` | Only GET, POST, PUT, PATCH, DELETE; POST default |
-| Runtime URL | `pypokerlost/client/api_server.py` | One API base plus `/<operation>` |
-| Request objects | `pypokerlost/client/request/` | `Request`, `RequestBuilder`, and `RequestOptions` |
-| Outbound middleware | `pypokerlost/middleware/` | One immutable ordered sequence per target-specific client; first entry is outermost |
-| Service credentials | `pypokerlost/client/auth/` | SDK-owned form/Basic token request, process-local single-flight cache, and bearer enrichment |
-| Retry policy | `pypokerlost/client/retry/` | Disabled by default; explicit bounded `RequestOptions.retry` only on replay-safe calls |
-| Request serialization | `pypokerlost/client/request/request_builder.py` | Alias-free `snake_case` fields and `exclude_unset=True` |
-| Request body | `scripts/generate_methods.py` | One named typed JSON object, or no body when parameterless; no parameters |
-| Wire envelope | `pypokerlost/client/response/response.py` | Exact four fields/defaults/invariants; no extensions |
-| Response decoding | `pypokerlost/client/response/response_handler.py` | API, protocol, and decode errors remain distinct |
-| Publication endpoint | `scripts/generate_methods.py` | Configurable wrapped operation through `--openapi-operation`; default `openapi.get` |
-| System paths | `scripts/generate_methods.py` | `/` and the configured publication path; no generated methods |
-| OpenAPI document | `scripts/generate_methods.py` | OpenAPI 3.1.x and SemVer `info.version` |
-| Service metadata | `scripts/generate_methods.py` | Exactly `x-pokerlost-service: {id: SERVICE_NAME}` |
-| Generated layout | `scripts/generate_methods.py` | `pypokerlost/types/<service>/` and `pypokerlost/methods/<service>/` |
-| Runtime target/lifecycle | `pypokerlost/client/` | One explicit `APIServer` per client/session and deterministic close |
+| Python and style | SDK and template project metadata | Python >=3.14, Ruff `py314`, mypy 3.14, line length 100 |
+| SDK installation | `pypokerlost` distribution | Private SSH source pinned to one full pushed SHA |
+| API operation | `pypokerlost.types.APIOperation` | Exactly `namespace.someOperation` |
+| OAuth scope | `pypokerlost.types.OAuthScope` | At least two dot-separated lowerCamelCase segments |
+| Shared authorization data | `pypokerlost.contracts.authorization` | Reuse canonical models and enums; no local wire copies |
+| Runtime target | `pypokerlost.client.api_server.APIServer` | One explicit target per concrete client |
+| Request objects | `pypokerlost.client.request` | Generic immutable headers and standard body content |
+| Retry | `pypokerlost.client.retry.PokerLostRetryPolicy` | Fixed explicit per-call opt-in only |
+| Wire envelope | SDK decoder and local `ApplicationResponse` | Exact four fields/defaults/invariants |
+| OpenAPI publication | FastAPI and generated template | Standard OpenAPI plus `x-pokerlost-service.id` |
+| Generated methods | SDK generator | Standard paths, request bodies, responses, security, and schemas |
+| Token lifecycle | Consuming service | Application port, SDK adapter, optional service-owned storage |
+| Business idempotency | Consuming service/template primitive | Same operation key, semantic payload, and target operation |
 
-The relevant public imports are:
+The target public imports are:
 
 ```python
-from pypokerlost import Client, OpenAPIExtra, PokerlostMethod, Response
+from pypokerlost import Client, PokerlostMethod, Response
 from pypokerlost.client.api_server import APIServer
-from pypokerlost.client.auth import ClientCredentials, ClientCredentialsTokenProvider
 from pypokerlost.client.request import Request, RequestBuilder, RequestOptions
 from pypokerlost.client.response import ResponseHandler
-from pypokerlost.client.retry import RetryPolicy
-from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
-from pypokerlost.types import APIOperation, HTTPMethod
+from pypokerlost.client.retry import PokerLostRetryPolicy
+from pypokerlost.contracts.authorization import (
+    AccessTokenClaims,
+    AuthorizationContext,
+    AuthorizationRole,
+    OAuthTokenResponse,
+    OAuthTokenType,
+    PrincipalStatus,
+    PrincipalType,
+)
+from pypokerlost.types import APIOperation, HTTPMethod, OAuthScope
 ```
 
-The auth, retry, and bearer imports above describe the inspected final source API and remain a pin
-blocker until that API is available at a reachable full commit SHA. The generated canonical example
-in `template/docs/architecture/inter-service-clients.md.jinja` uses these exact facades and the
-actual `Client(middleware=...)` and `options=RequestOptions(retry=...)` signatures.
+Generated method and response imports remain in their service-specific SDK packages. Service
+identity and operation identity are separate: `x-pokerlost-service.id` retains the Copier
+`service_name`, while API operation segments begin with lowercase ASCII letters.
 
-Service identity and operation identity are separate. `x-pokerlost-service.id` retains the Copier
-`service_name`, including possible uppercase letters. Business operation IDs never derive directly
-from it. The root system operation uses the lowercase `service_slug` namespace.
+## SDK boundary
+
+The SDK owns:
+
+```text
+HTTP transport and target description
+request construction and serialization
+generic immutable per-call headers
+ApplicationResponse decoding
+canonical transport exceptions
+generated methods and request/response types
+shared authorization wire/value contracts
+canonical transport retry execution
+```
+
+The SDK does not acquire, store, cache, refresh, invalidate, sign, verify, or revoke tokens. It does
+not own client credentials or secrets, choose scopes or audience, inject bearer credentials through
+auth-specific middleware, start background token tasks, or replay an operation after `401`.
+
+When a consuming service needs a token, dependency direction is:
+
+```text
+application use case
+-> service-owned application port
+-> service-owned pypokerlost adapter
+-> generated oauth.token method
+-> optional service-owned token store
+```
+
+The pristine template creates none of these target-specific objects.
 
 ## Server contract
 
-Canonical business API operation:
+Canonical business operation:
 
 ```text
 operation = namespace.someOperation
 path      = /<same operation>
-request   = named closed typed JSON body, absent only when parameterless
 success   = ApplicationResponse[<SemanticName>Response]
 errors    = ApplicationResponse[None]
 ```
 
-The operation ID has exactly two segments and one dot; each segment starts with a lowercase ASCII
-letter and otherwise contains only ASCII letters and digits. Each business route module declares
-one `OPERATION` constant and derives both decorator values from it.
-Application-owned JSON is alias-free `snake_case`. A request schema is `<SemanticName>Request`, a
-result schema is `<SemanticName>Response`, and typed nested objects are named closed components.
-OpenAPI parameters and `Body(embed=True)` are not part of PokerLost operation transport. A `GET` with
-input still uses JSON content.
+The operation pattern is:
 
-All numeric 2xx responses for one operation have compatible JSON schemas. Request-body operations
-explicitly publish `422` as `ApplicationResponse[None]`; expected 4xx/5xx use the same envelope so
-FastAPI never advertises its default validation body as the public contract.
+```text
+^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$
+```
 
-The local `ResponseModel` config is exactly:
+`GET /` is the sole path exception. Root and OpenAPI publication operations come from validated
+settings. Router factories create an `APIRouter`, declare closure endpoints with decorators, and
+return it. Stable business operation strings appear directly in decorator arguments. Imperative
+route registration, mutable module-level routers, route-level operation constants, and post-hoc
+route mutation are incompatible.
+
+Application-owned JSON uses alias-free `snake_case`. Ordinary business inputs use one named,
+closed, typed JSON body. Standard endpoint-specific media types remain available when the target
+contract requires them.
+
+`POST /oauth.token` has this exact contract:
+
+```text
+path:            /oauth.token
+operation_id:    oauth.token
+request media:   application/x-www-form-urlencoded
+success:         ApplicationResponse[OAuthTokenResponse]
+failure:         ApplicationResponse[None]
+```
+
+The generated method obtains operation, path, content type, request model, and response result model
+from standard OpenAPI. Confidential-client authentication is supplied by the consuming adapter
+through generic request headers. The SDK has no token-specific transport routine.
+
+The local `ResponseModel` configuration remains:
 
 ```python
 ConfigDict(
@@ -113,172 +147,165 @@ ConfigDict(
 )
 ```
 
-The local `ApplicationResponse` has exactly `ok`, `result`, `error`, and `error_message`. `ok` is
-required; the other three fields default to `None`. On success, both error fields are null. On
-failure, result is null and both error fields are non-null. The schema has exactly four properties
-and `additionalProperties: false`.
+`ApplicationResponse` has exactly `ok`, `result`, `error`, and `error_message`. Success forbids
+error metadata. Failure requires both error fields and forbids a result. The schema has exactly
+four properties and `additionalProperties: false`.
 
-`POST /oauth.token` is not an exception. It accepts an OAuth2 client-credentials form and HTTP
-Basic confidential-client authentication, but success is
-`ApplicationResponse[OAuthTokenResponse]` and handled failure is `ApplicationResponse[None]`.
-`access_token` exists only as `result.access_token`; raw OAuth2 token/error documents,
-`error_description`, a token-specific envelope, and FastAPI `detail` bodies are incompatible.
+## OAuth scope and shared authorization contracts
 
-OpenAPI generation remains a thin `fastapi.openapi.utils.get_openapi` customization with cached
-`application.openapi_schema`. It emits OpenAPI 3.1.0 and adds only:
+`OAuthScope` accepts at least two dot-separated segments matching:
+
+```text
+^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$
+```
+
+The standard scope string parser rejects duplicates and empty tokens; its formatter sorts scopes
+lexicographically. API operations use exactly two segments, while scopes may use more, so these
+types are not interchangeable.
+
+`OAuthTokenResponse`, `AccessTokenClaims`, `AuthorizationContext`, and the cross-service enums are
+strict immutable data contracts. They contain validation and deterministic conversion only, never
+network, token lifecycle, signing, verification, role expansion, or authorization decisions.
+Token-bearing fields are hidden from representations and validation errors.
+
+When an OpenAPI component is one of these canonical shared schemas, the generator reuses the SDK
+model through one exact built-in mapping. It validates schema compatibility and fails closed on a
+same-named incompatible component. It does not use runtime reflection, plugin registration, Python
+import extensions, or route extra metadata.
+
+## Standard OpenAPI
+
+FastAPI generates and caches OpenAPI 3.1. The template adds only:
 
 ```yaml
 x-pokerlost-service:
   id: <SERVICE_NAME>
 ```
 
-The public endpoint wraps that document in `ApplicationResponse`; built-in OpenAPI/docs URLs stay
-disabled. Authorization declarations are service-specific FastAPI metadata and are not part of the
-required template-to-generator subset; the wrapper preserves them without mutation.
+The generator derives its contract from standard paths, `operationId`, request-body content,
+responses, schemas, security schemes, and operation security. Route-level project extensions and
+custom authorization metadata are forbidden. FastAPI security dependencies own concrete OAuth2
+security declarations and exact scopes.
 
-## Supported generator subset
+Supported request bodies include the established named JSON object and standard form content used
+by actual schemas. Content-type support is generic rather than keyed to an operation name.
 
-Reachable schemas may use named typed objects, arrays, typed/JSON-value dictionaries where
-supported, string/integer/finite number/boolean/null, UUID/date/date-time/time, scalar enum/const,
-nullable unions, supported `anyOf`/`oneOf`, object-only `allOf`, supported bounds/patterns, and
-local component references.
+## Generic headers
 
-The generator rejects external/relative refs, OpenAPI parameters, free-form top-level request
-bodies, inline nested objects, unsupported media types or reachable JSON Schema keywords, invalid
-field names, method-model or generated-name collisions, malformed/raw success envelopes, and
-incompatible multiple 2xx schemas. Do not duplicate its complete reserved-name set or parser in
-this repository.
+Per-call headers are an immutable transport capability. Header names receive case-insensitive
+duplicate protection, values reject CR/LF injection, caller mappings cannot mutate shared state,
+and merging is deterministic. `Authorization`, `Cookie`, and `Proxy-Authorization` values are
+redacted from representations, logs, telemetry, and errors.
 
-The generator is repository-only development tooling: the runtime distribution installs the
-`pypokerlost` package but no generator console command or `scripts/` package. Generator checks use
-an authoritative SDK checkout or ephemeral copy; runtime client checks use the generated service's
-installed dependency.
+Services do not add auth-specific SDK middleware solely to set a header.
+
+## Canonical retry
+
+Retry remains disabled when `RequestOptions.retry` is `None`. Every service opts in through:
+
+```python
+RequestOptions(
+    retry=PokerLostRetryPolicy(),
+)
+```
+
+The immutable first policy has no service configuration arguments:
+
+```text
+max_attempts = 3, including the first attempt
+initial_delay_seconds = 0.2
+max_delay_seconds = 2.0
+backoff_multiplier = 2.0
+jitter = full
+retryable_status_codes = 408, 425, 429, 500, 502, 503, 504
+respect Retry-After = true
+total logical-call budget = 5.0 seconds
+```
+
+It retries canonical connection and timeout errors and listed statuses. A retryable proxy status
+with an empty or malformed body may retry before final decoding. It does not retry `401`, `403`,
+`404`, `409`, `410`, `422`, local validation or serialization errors, non-retryable application
+failures, caller cancellation, or decode/protocol failures without a retryable status.
+
+Backoff uses full jitter. Valid delta-seconds and HTTP-date `Retry-After` values are honored only
+within the remaining fixed budget. Exhaustion preserves the normal final canonical SDK exception.
+Services do not define retry attempt, delay, multiplier, status, or budget settings.
+
+Transport retry does not prove semantic replay safety. A mutation may opt in only when every
+attempt reuses the same `business_operation_id`, semantic payload, and target operation.
 
 ## Mandatory compatibility probe
 
-Use actual Copier 9.17.2 and the authoritative SDK's locked environment. All paths below are
-temporary and variable-driven; do not add Makefile defaults or generated SDK files to this
-repository.
+Use actual Copier 9.17.2, a disposable generated service, and the authoritative SDK locked
+environment:
 
-1. Copy this template to a temporary `exampleService` repository, resolve and sync its private
-   dependency through GitHub SSH, import `pypokerlost`, and run `make check`, `make pre-commit`,
-   the documentation checker, and the final diff check.
-2. Add only in that temporary service:
-   `EchoRequest(message: str)`, `EchoResponse(message: str)`, and public
-   `POST /echo.sendMessage` with one `OPERATION = "echo.sendMessage"` constant. Publish success as
-   `ApplicationResponse[EchoResponse]`, and publish 409/422/500 as
-   `ApplicationResponse[None]`.
-3. Add a temporary failure branch that returns a valid failed envelope with a non-2xx status. Do
-   not change the published successful result schema.
-4. Start the real FastAPI application/lifespan with valid required settings. PostgreSQL need not be
-   contacted because the probe route is persistence-free.
-5. Configure `EXAMPLESERVICE_OPENAPI_OPERATION=contract.getOpenAPI`, fetch
-   `/contract.getOpenAPI`, and assert the
-   envelope, OpenAPI 3.1.x, SemVer, exact service metadata,
-   system paths, request component/body/no-parameters metadata, success envelope/result reference,
-   and 409/422/500 error-envelope metadata.
-6. From an ephemeral copy of the authoritative SDK source, using its locked toolchain, run service
-   mode to one temporary output root:
+1. Render an `exampleService`, resolve its pinned SDK dependency, and run generated checks.
+2. Assert root and OpenAPI routers are closure factories using decorators and validated operation
+   arguments.
+3. Add a temporary decorated `POST /echo.sendMessage` JSON operation and publish success and
+   handled error envelopes.
+4. Publish the real wrapped OpenAPI document and generate SDK methods in service and file modes.
+5. Compare generated Python sources byte-for-byte and manifests semantically.
+6. Call the generated echo method through `Client` and assert typed success and canonical failure.
+7. Add a temporary `POST /oauth.token` schema with standard form request content and
+   `ApplicationResponse[OAuthTokenResponse]`.
+8. Generate and call `OAuthTokenMethod`; assert generic form serialization, propagation of a
+   caller-supplied safe test `Authorization` header, and shared response-model decoding.
+9. Assert no preliminary token request, stored-token lookup, refresh, background task, or `401`
+   replay occurs.
+10. Assert canonical shared schemas are reused and same-named incompatible schemas fail generation.
+11. Run operation negatives for missing-dot, snake_case, multi-dot, uppercase-initial, hyphenated,
+    and path-mismatched IDs, and scope negatives for underscores, hyphens, empty segments,
+    wildcard, whitespace, and uppercase initials.
+12. Assert standard security schemes and operation scopes survive publication and generation
+    without project-owned route metadata.
+13. Remove all temporary routes, generated files, captured OpenAPI, bytecode, and processes.
 
-   ```bash
-   uv run python scripts/generate_methods.py service <base-url> \
-     --openapi-operation contract.getOpenAPI \
-     --output <service-output>
-   ```
+Use disposable sessions or a local server to verify retry:
 
-7. Save the actual wrapped publication's `result` (the raw OpenAPI document) to JSON and run file
-   mode to a second temporary output root:
+| Case | Expected attempts/result |
+| --- | --- |
+| No policy | One attempt |
+| Connection error | At most three attempts |
+| Malformed `503` | At most three attempts, then canonical final error |
+| `429` with valid `Retry-After` | Honored only within budget |
+| `401`, `409`, or `422` | One attempt |
+| Caller cancellation | Immediate propagation |
 
-   ```bash
-   uv run python scripts/generate_methods.py file <openapi.json> --output <file-output>
-   ```
+Verify header duplicate rejection, CR/LF rejection, immutability, deterministic merge, and sensitive
+redaction without printing a secret value.
 
-8. Compare generated Python sources byte-for-byte. Manifests are intentionally output-root scoped;
-   compare their semantic generator/OpenAPI/source/service/files fields rather than paths.
-9. Put the temporary generated output on the generated service's import path and use the installed
-   `pypokerlost` dependency. Configure `APIServer.from_base(base_url)`, `HttpxSession`, and `Client`;
-   call `await client(EchoMethod(message="hello"))`. Assert the exact generated `EchoResponse` type
-   and `message == "hello"`.
-10. Call the failure branch through the same generated method and assert `PokerlostAPIError` with
-    only safe scalar `operation`, `status_code`, `error`, and `error_message` metadata. Do not print
-    raw bodies or headers.
-11. Run `ApplicationResponse` parity checks for fields/defaults/invariants, forbidden extras,
-    frozen mutation, strict values, `hide_input_in_errors`, `validate_default`, model config, and
-    representative JSON schema.
-12. Run generator negatives for missing-dot, snake_case, multi-dot, uppercase-initial, hyphenated,
-    and path-mismatched operation IDs; query/path parameters; free-form bodies; camelCase request
-    fields; raw, wrong, or extended envelopes; incompatible 2xx schemas; and external `$ref`. Each
-    case must fail before writing generated sources.
-13. Terminate the server and remove temporary services, generated outputs, output-scoped manifests,
-    captured OpenAPI, bytecode, and processes.
+## Copier and generated-service regression
 
-The pristine scaffold itself has only system paths, so fresh-copy verification does not require a
-generator run. If invoked there, the generator reports
-`OpenAPI document contains no non-system API operations`; that is expected and is why the temporary
-operation is mandatory for the positive compatibility probe.
+Every compatibility change requires:
 
-## Outbound compatibility probe
+1. a fresh disposable copy;
+2. an update from the exact prior template commit;
+3. a byte-identical service-owned `SERVICE.md`;
+4. preserved service migrations and business handlers;
+5. removal of obsolete unchanged template-owned files;
+6. one shared `application/ports/handler.py`;
+7. the focused camelCase v2 `application/idempotency` package;
+8. no local or path SDK dependency;
+9. a fixed-point SDK generation check against final service OpenAPI.
 
-After the outbound SDK source is published and the template pin can be advanced, use its locked
-environment and disposable transports to verify the documented consumer pattern:
-
-1. Import `ClientCredentials`, `ClientCredentialsTokenProvider`, `RetryPolicy`,
-   `BearerTokenMiddleware`, and `RetryMiddleware` only through the public facades above.
-2. Verify that the first middleware enters first and exits last and that
-   `RetryMiddleware(), BearerTokenMiddleware(provider)` resolves bearer credentials on every
-   attempt while reusing a valid cached token.
-3. Verify one form-encoded `POST /oauth.token` with HTTP Basic only, sorted exact scopes, the exact
-   resource indicator, no credentials in the body, and success/failure decoding through the
-   universal `ApplicationResponse` path. Do not print any secret or token.
-4. Verify monotonic cache expiry, concurrent single-flight acquisition, recovery after a failed
-   refresh, cancellation isolation, and token-reference clearing at shutdown.
-5. Verify one attempt without a policy and bounded retries only with
-   `RequestOptions(retry=RetryPolicy(...))`. Cover connection/timeout errors, the documented
-   retryable statuses, non-retryable authorization/business/protocol/decode cases, full jitter,
-   delta/date `Retry-After`, total budget, final canonical exception preservation, and immediate
-   caller cancellation.
-6. Render the template and confirm the new page and `AGENTS.md` rules are present while pristine
-   settings, resources, environment examples, and Helm contain no outbound target or credential.
-
-## Copier, image, and deployment regression
-
-Every compatibility change also runs a fresh Copier copy and an update regression from a temporary
-prior-template Git snapshot. Modify `SERVICE.md` before update and verify it remains byte-identical.
-No new Copier question is needed for SDK compatibility, and PostgreSQL stays unconditional.
-
-The generated Dockerfile uses Python 3.14 in builder and runtime stages. Builder-only `git` and
-`openssh-client` resolve the pinned private dependency through a BuildKit SSH-agent mount and an
-explicit trusted `known_hosts` input on every `uv sync`; only the installed virtual environment is
-copied to runtime. Verify the runtime has no SSH material, agent socket, Git credential, `git`, or
-`openssh-client`. Helm requires no SDK repository credentials; its root `GET /` probe remains
-unchanged.
-
-## Outbound SDK boundary and non-goals
-
-The inspected SDK source provides the single outbound middleware pipeline, immutable request
-headers/context, client-credentials token provider, bearer middleware, bounded opt-in retry,
-storage, lifecycle, and method generation. The token provider caches only in process memory, uses
-no refresh token, and performs no automatic `401` replay. Retry is not global and is inert without
-a per-call policy.
-
-The SDK does not own authorization decisions, business idempotency keys, payload fingerprints,
-workflow/outbox/reconciliation state, automatic service routing, WebSocket/events, streaming, or
-subscriptions. The pristine template documents the extension but does not simulate a target,
-instantiate an unused SDK client, require credentials, or add a client registry.
+The generated Dockerfile resolves the pinned private SDK through BuildKit SSH forwarding and an
+explicit trusted `known_hosts` input. Runtime images and Helm configuration contain no SDK
+repository credentials. Pristine settings, resources, environment examples, and Helm values
+contain no target client, authService credentials, token storage, or retry algorithm settings.
 
 ## Update policy
 
-Before changing Python version, operation/path rules, request serialization, response contracts,
-OpenAPI publication, or SDK integration guidance:
+Before changing operation/path rules, request serialization, shared response contracts, OpenAPI
+publication, Python support, or SDK integration:
 
-1. inspect the current SDK working tree and its public facades;
-2. record the inspected SDK commit/distribution/generator versions here;
-3. reconcile implementation/documentation differences in favor of implementation and report them;
-4. update the server-local contract without compatibility wrappers;
-5. increase a service's `info.version` when canonical API content changes;
-6. run the complete probe, negative matrix, Copier copy/update, and generated-service checks;
-7. verify the SDK checkout remains byte-for-byte unmodified.
+1. inspect the current SDK source and public facades;
+2. reconcile implementation and documentation in favor of implementation;
+3. update server and generator contracts without compatibility wrappers;
+4. publish the SDK and pin its exact remote SHA;
+5. run the complete compatibility, retry, header, shared-model, and Copier probes;
+6. verify the SDK generator reaches a fixed point against final service OpenAPI;
+7. report unavailable tools and external-service limitations.
 
-The template does not provide `sdk-generate` or `sdk-check` Makefile targets: normal service
-commands must not assume a sibling checkout, and generator output/manifest ownership belongs to the
-SDK repository. Use the explicit variable-driven commands above during compatibility work.
+The template does not provide generator Makefile targets or depend on a sibling SDK checkout.
+Generator output and manifests belong to the SDK repository.

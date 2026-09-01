@@ -55,9 +55,10 @@ canonical space-delimited granted `scope` inside `result`. A handled token failu
 `ApplicationResponse[None]` with the same top-level four fields.
 
 There is no raw OAuth2 token response, token-specific error envelope, `error_description`, or
-FastAPI `detail` body for handled token errors. Service consumers obtain the bearer value only as
-`ApplicationResponse.result.access_token`, through the SDK's
-`ClientCredentialsTokenProvider`; application code does not decode this envelope itself.
+FastAPI `detail` body for handled token errors. The generated `oauth.token` method decodes the
+result into the shared `pypokerlost.contracts.authorization.OAuthTokenResponse`. A consuming
+service decides when to call that method and owns any credential, token storage, or refresh
+orchestration behind its application port and adapter.
 
 ## SDK behavior
 

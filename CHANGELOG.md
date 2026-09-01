@@ -4,10 +4,18 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
-- Document the canonical target-specific `pypokerlost.Client` lifecycle, SDK client-credentials
-  provider, outbound middleware order, explicit bounded per-call retry, business-idempotency and
-  transaction boundaries, and Secret-only credential wiring while keeping pristine services free
-  of target clients and outbound settings.
+- Make consuming services own token acquisition, storage, refresh, credentials, scopes, and
+  audience behind application ports and generated-method adapters; keep the SDK boundary limited
+  to transport, shared wire contracts, and canonical retry.
+- Replace configurable retry and outbound authentication middleware guidance with the single
+  explicit per-call `PokerLostRetryPolicy`.
+- Generate functional decorator-based router factories without imperative registration,
+  route-level operation constants, or project-owned OpenAPI extra metadata.
+- Promote the structural asynchronous `Handler` Protocol into `application/ports`.
+- Split business-operation fingerprinting into focused modules and adopt the exact camelCase v2
+  format domain and field grammar without v1 compatibility behavior.
+- Require dot-separated lowerCamelCase OAuth scope identifiers and shared `pypokerlost`
+  authorization contracts.
 - Require settings-driven root and OpenAPI publication operations, register their routes at
   application composition, and enforce the exact two-segment lowerCamelCase operation contract.
 - Generate the canonical keyed business-operation fingerprint primitive and optional typed key

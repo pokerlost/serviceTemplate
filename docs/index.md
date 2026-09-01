@@ -9,7 +9,7 @@ service template.
 
 ## API and SDK
 
-- `SDK_COMPATIBILITY.md` — API, outbound middleware, authentication, and retry compatibility.
+- `SDK_COMPATIBILITY.md` — API, shared contracts, token ownership, and retry compatibility.
 
 ## Architecture
 
