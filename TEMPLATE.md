@@ -30,6 +30,10 @@ Every generated service declares the private `pypokerlost` distribution from the
 `origin/main`. This platform source is constant and does not add a Copier question. Docker builds
 forward the SSH agent and trusted `known_hosts` only while the builder resolves dependencies.
 
+The SDK defines the canonical outbound middleware, service-authentication, and bounded retry
+interfaces. A generated service documents how a concrete `SERVICE.md`-declared target adopts those
+interfaces, but the pristine runtime does not create a target client or request credentials.
+
 ## Generated foundation
 
 Every generated service includes:
@@ -96,7 +100,8 @@ package, and enum conventions, lives only in the generated `AGENTS.md`.
 - Canonical API pages separate the operation contract, `ApplicationResponse`, errors, OpenAPI/SDK
   integration, and the exact pristine public surface.
 - Canonical architecture pages separate dependency direction, request lifecycle, and PostgreSQL
-  transaction ownership.
+  transaction ownership. The inter-service client page owns the optional target-specific client,
+  authentication, retry, idempotency, and transaction-boundary extension pattern.
 - Development pages own commands, contribution and style rules, migrations, and Docker/Helm use;
   project pages describe the actual quality layers and intentionally unfinished service state.
 - `AGENTS.md` is the normative shared PokerLost engineering rulebook and links to the detailed
@@ -112,11 +117,12 @@ through `make check-full`.
 
 ## Intentionally absent
 
-The template contains no business entities, business categories, authentication or authorization
-implementation (including OAuth2, scopes, token verification, authorization policy, security
-scheme, or scope registry), credentials, ledger, poker or blockchain behavior, concrete
-persistence entity, fake migration, OpenAPI registry, generated tests, or CI/CD. A generated
-service adds only the behavior supported by its known `SERVICE.md` responsibilities.
+The template contains no business entities, business categories, inbound authentication or
+authorization implementation (including OAuth2 policy, scopes, token verification, authorization
+policy, security scheme, or scope registry), credentials, target-specific outbound client, ledger,
+poker or blockchain behavior, concrete persistence entity, fake migration, OpenAPI registry,
+generated tests, or CI/CD. A generated service adds only the behavior supported by its known
+`SERVICE.md` responsibilities.
 
 ## Ownership
 

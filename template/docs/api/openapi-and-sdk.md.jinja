@@ -51,5 +51,12 @@ response types. A concrete service creates a client only for a target declared b
 shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
 of a remote service DTO.
 
+Service authentication uses the SDK's `ClientCredentialsTokenProvider` and
+`BearerTokenMiddleware`. `RetryMiddleware` is outermost when installed, but retry remains disabled
+until a verified replay-safe call passes `RequestOptions(retry=RetryPolicy(...))`. The token
+operation itself uses the same `ApplicationResponse` decoder as generated methods; no consuming
+service implements a token-specific transport or envelope parser. The exact extension pattern is
+documented in `docs/architecture/inter-service-clients.md`.
+
 The current pristine endpoints and their publication models are listed in
 `docs/api/public-surface.md`.

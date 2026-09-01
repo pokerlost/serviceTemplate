@@ -92,8 +92,27 @@ latest direct user requirement
   wrappers around direct HTTP.
 - If a required generated SDK method is missing, define or fix the target service OpenAPI contract,
   regenerate the SDK methods, and use that generated API; never bypass the SDK.
-- Create only clients for actual configured targets. Own each target-specific client in FastAPI
-  lifespan, store it in `ApplicationResources`, reuse it across requests, and close it on shutdown.
+- Create exactly one target-specific `pypokerlost.Client` for each real target declared by
+  `SERVICE.md`. Create and start it in FastAPI lifespan, store it in an explicitly named typed
+  `ApplicationResources` field, reuse it across requests, and stop it in reverse ownership order
+  during shutdown. Do not add a placeholder client to a service without a real target, a
+  string-keyed client registry, a service locator, a per-request client, or a module-global client.
+- For service authentication, construct `ClientCredentialsTokenProvider` with the exact target
+  resource and least-privilege scope set, then install `RetryMiddleware()` outermost before
+  `BearerTokenMiddleware(token_provider)` in the client's immutable `middleware` sequence.
+  Credentials and token acquisition remain inside the SDK; never build a Basic header, bearer
+  cache, token request, or `Authorization` header in service code.
+- Outbound retry is disabled unless one call passes `RequestOptions(retry=RetryPolicy(...))`.
+  Enable it only for a read-only operation or an operation whose target contract is replay-safe.
+  A mutation retry must reuse the same `business_operation_id` and the same semantic payload;
+  business idempotency and reconciliation remain service responsibilities rather than SDK state.
+- Never hold a request-owned PostgreSQL transaction open across token acquisition, an outbound SDK
+  call, retry backoff, or another attempt. Persist and complete local phases at explicit workflow
+  boundaries, and do not treat transport retry as reconciliation after an ambiguous outcome.
+- Do not automatically replay `401` or `403`. Propagate the canonical SDK failure and resolve
+  credentials or authorization policy outside the call.
+- Never put client credentials, `Authorization` values, access tokens, or sensitive request and
+  response bodies in logs, exception messages, model representations, telemetry, or documentation.
 - Import only focused public SDK facades or the generated methods package; do not import private
   modules, `pypokerlost` scripts, or generator-internal models.
 - After an API contract change, run the authoritative SDK generator compatibility check. It catches

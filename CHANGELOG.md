@@ -4,6 +4,10 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
+- Document the canonical target-specific `pypokerlost.Client` lifecycle, SDK client-credentials
+  provider, outbound middleware order, explicit bounded per-call retry, business-idempotency and
+  transaction boundaries, and Secret-only credential wiring while keeping pristine services free
+  of target clients and outbound settings.
 - Require settings-driven root and OpenAPI publication operations, register their routes at
   application composition, and enforce the exact two-segment lowerCamelCase operation contract.
 - Generate the canonical keyed business-operation fingerprint primitive and optional typed key

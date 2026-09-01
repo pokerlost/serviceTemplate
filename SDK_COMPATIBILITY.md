@@ -24,6 +24,13 @@ confirmed identical before the template pin was updated. The SDK implementation 
 prose. Never substitute a sibling path, absolute path, `file://` source, embedded credential,
 unverified index, or floating branch.
 
+The 2026-09-01 outbound API audit also verified the final public middleware,
+client-credentials-provider, and retry facades in the current SDK source. Those changes are not in
+the reachable commit above, so the generated dependency pin intentionally remains unchanged. The
+consumption pattern is documented now, but a concrete generated service must not add imports from
+that facade until a published full SHA containing it replaces the pin. Never invent a SHA or record
+a working-tree path as a dependency source.
+
 ## Compatibility boundary
 
 | Contract | SDK implementation | Generated-service requirement |
@@ -34,6 +41,9 @@ unverified index, or floating branch.
 | HTTP method | `pypokerlost/types/operation.py` | Only GET, POST, PUT, PATCH, DELETE; POST default |
 | Runtime URL | `pypokerlost/client/api_server.py` | One API base plus `/<operation>` |
 | Request objects | `pypokerlost/client/request/` | `Request`, `RequestBuilder`, and `RequestOptions` |
+| Outbound middleware | `pypokerlost/middleware/` | One immutable ordered sequence per target-specific client; first entry is outermost |
+| Service credentials | `pypokerlost/client/auth/` | SDK-owned form/Basic token request, process-local single-flight cache, and bearer enrichment |
+| Retry policy | `pypokerlost/client/retry/` | Disabled by default; explicit bounded `RequestOptions.retry` only on replay-safe calls |
 | Request serialization | `pypokerlost/client/request/request_builder.py` | Alias-free `snake_case` fields and `exclude_unset=True` |
 | Request body | `scripts/generate_methods.py` | One named typed JSON object, or no body when parameterless; no parameters |
 | Wire envelope | `pypokerlost/client/response/response.py` | Exact four fields/defaults/invariants; no extensions |
@@ -50,10 +60,18 @@ The relevant public imports are:
 ```python
 from pypokerlost import Client, OpenAPIExtra, PokerlostMethod, Response
 from pypokerlost.client.api_server import APIServer
+from pypokerlost.client.auth import ClientCredentials, ClientCredentialsTokenProvider
 from pypokerlost.client.request import Request, RequestBuilder, RequestOptions
 from pypokerlost.client.response import ResponseHandler
+from pypokerlost.client.retry import RetryPolicy
+from pypokerlost.middleware import BearerTokenMiddleware, RetryMiddleware
 from pypokerlost.types import APIOperation, HTTPMethod
 ```
+
+The auth, retry, and bearer imports above describe the inspected final source API and remain a pin
+blocker until that API is available at a reachable full commit SHA. The generated canonical example
+in `template/docs/architecture/inter-service-clients.md.jinja` uses these exact facades and the
+actual `Client(middleware=...)` and `options=RequestOptions(retry=...)` signatures.
 
 Service identity and operation identity are separate. `x-pokerlost-service.id` retains the Copier
 `service_name`, including possible uppercase letters. Business operation IDs never derive directly
@@ -99,6 +117,12 @@ The local `ApplicationResponse` has exactly `ok`, `result`, `error`, and `error_
 required; the other three fields default to `None`. On success, both error fields are null. On
 failure, result is null and both error fields are non-null. The schema has exactly four properties
 and `additionalProperties: false`.
+
+`POST /oauth.token` is not an exception. It accepts an OAuth2 client-credentials form and HTTP
+Basic confidential-client authentication, but success is
+`ApplicationResponse[OAuthTokenResponse]` and handled failure is `ApplicationResponse[None]`.
+`access_token` exists only as `result.access_token`; raw OAuth2 token/error documents,
+`error_description`, a token-specific envelope, and FastAPI `detail` bodies are incompatible.
 
 OpenAPI generation remains a thin `fastapi.openapi.utils.get_openapi` customization with cached
 `application.openapi_schema`. It emits OpenAPI 3.1.0 and adds only:
@@ -193,6 +217,29 @@ generator run. If invoked there, the generator reports
 `OpenAPI document contains no non-system API operations`; that is expected and is why the temporary
 operation is mandatory for the positive compatibility probe.
 
+## Outbound compatibility probe
+
+After the outbound SDK source is published and the template pin can be advanced, use its locked
+environment and disposable transports to verify the documented consumer pattern:
+
+1. Import `ClientCredentials`, `ClientCredentialsTokenProvider`, `RetryPolicy`,
+   `BearerTokenMiddleware`, and `RetryMiddleware` only through the public facades above.
+2. Verify that the first middleware enters first and exits last and that
+   `RetryMiddleware(), BearerTokenMiddleware(provider)` resolves bearer credentials on every
+   attempt while reusing a valid cached token.
+3. Verify one form-encoded `POST /oauth.token` with HTTP Basic only, sorted exact scopes, the exact
+   resource indicator, no credentials in the body, and success/failure decoding through the
+   universal `ApplicationResponse` path. Do not print any secret or token.
+4. Verify monotonic cache expiry, concurrent single-flight acquisition, recovery after a failed
+   refresh, cancellation isolation, and token-reference clearing at shutdown.
+5. Verify one attempt without a policy and bounded retries only with
+   `RequestOptions(retry=RetryPolicy(...))`. Cover connection/timeout errors, the documented
+   retryable statuses, non-retryable authorization/business/protocol/decode cases, full jitter,
+   delta/date `Retry-After`, total budget, final canonical exception preservation, and immediate
+   caller cancellation.
+6. Render the template and confirm the new page and `AGENTS.md` rules are present while pristine
+   settings, resources, environment examples, and Helm contain no outbound target or credential.
+
 ## Copier, image, and deployment regression
 
 Every compatibility change also runs a fresh Copier copy and an update regression from a temporary
@@ -206,12 +253,18 @@ copied to runtime. Verify the runtime has no SSH material, agent socket, Git cre
 `openssh-client`. Helm requires no SDK repository credentials; its root `GET /` probe remains
 unchanged.
 
-## Current SDK non-goals
+## Outbound SDK boundary and non-goals
 
-The SDK currently provides typed HTTP method calls, middleware, immutable request headers, storage,
-lifecycle, and method generation. It does not provide built-in auth/token refresh, authorization
-middleware, retries, automatic service routing, WebSocket/events, streaming, or subscriptions.
-The pristine template must not simulate those features or instantiate an unused SDK client.
+The inspected SDK source provides the single outbound middleware pipeline, immutable request
+headers/context, client-credentials token provider, bearer middleware, bounded opt-in retry,
+storage, lifecycle, and method generation. The token provider caches only in process memory, uses
+no refresh token, and performs no automatic `401` replay. Retry is not global and is inert without
+a per-call policy.
+
+The SDK does not own authorization decisions, business idempotency keys, payload fingerprints,
+workflow/outbox/reconciliation state, automatic service routing, WebSocket/events, streaming, or
+subscriptions. The pristine template documents the extension but does not simulate a target,
+instantiate an unused SDK client, require credentials, or add a client registry.
 
 ## Update policy
 

@@ -7,9 +7,9 @@ service template.
 
 - `CREATE_SERVICE.md` — create and update a service.
 
-## API
+## API and SDK
 
-- `SDK_COMPATIBILITY.md` — SDK compatibility.
+- `SDK_COMPATIBILITY.md` — API, outbound middleware, authentication, and retry compatibility.
 
 ## Architecture
 

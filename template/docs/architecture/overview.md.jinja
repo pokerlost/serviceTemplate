@@ -15,6 +15,9 @@ api
 api/application composition
 -> persistence adapters
 
+api/application composition
+-> target-specific pypokerlost clients
+
 configuration and observability
 -> infrastructure concerns
 ```
@@ -49,7 +52,10 @@ than sharing one model across layers.
 
 `docs/architecture/request-lifecycle.md` explains composition and per-request flow.
 `docs/architecture/persistence-and-transactions.md` defines PostgreSQL session ownership. The API
-wire surface is documented separately in `docs/api/overview.md`.
+wire surface is documented separately in `docs/api/overview.md`. When `SERVICE.md` declares a real
+outbound target, `docs/architecture/inter-service-clients.md` defines the target-specific SDK
+client, authentication, retry, dependency, and lifecycle extension.
 
 The pristine scaffold intentionally contains no business operations, entities, tables, or concrete
-repositories. `SERVICE.md` defines those responsibilities before a concrete service adds them.
+repositories. It also contains no placeholder remote client, outbound settings, or credentials.
+`SERVICE.md` defines those responsibilities before a concrete service adds them.

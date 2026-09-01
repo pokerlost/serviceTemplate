@@ -6,6 +6,10 @@ the standard Python tooling used by the platform. Generated services publish the
 API/OpenAPI operation contract and install the verified `pypokerlost` SDK from a pinned private
 GitHub SSH source.
 
+Generated documentation includes the canonical extension pattern for target-specific SDK clients,
+client-credentials authentication, and explicit bounded per-call retry. The pristine runtime stays
+target-free and requires no outbound credentials.
+
 The template supports Copier 9.17.2, asks only for `service_name`, and requires Python 3.14 or newer
 for repository maintenance and generated services.
 Generating and locking a service requires GitHub SSH read access to `pokerlost/pypokerlost`; no

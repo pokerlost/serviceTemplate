@@ -14,6 +14,13 @@ engine when configured, and stores both in immutable `ApplicationResources`. Set
 are attached to application state for dependencies. Shutdown removes that state and disposes the
 engine.
 
+A concrete service with a real outbound target extends this same lifespan rather than adding a
+second resource framework. It creates and starts one target-specific `pypokerlost.Client` before
+publishing `ApplicationResources`, stores it in an explicitly named typed field, reuses it across
+requests, and stops it in reverse ownership order. Partial startup failure unwinds resources that
+already started. The pristine service has no target and therefore creates no client, token
+provider, outbound setting, or credential requirement.
+
 Creating the engine does not itself prove a PostgreSQL connection. A route opens a request session
 only when it declares the database dependency; the pristine root and OpenAPI routes do not.
 
@@ -47,6 +54,12 @@ create_app
 5. The route converts the application result into a typed API response and returns the
    `ApplicationResponse` envelope documented in `docs/api/application-response.md`. FastAPI
    validates and serializes the declared response model.
+
+When an application workflow makes an outbound call, its dependency resolves the named
+lifespan-owned client. SDK outbound middleware is separate from inbound FastAPI middleware.
+`RetryMiddleware` wraps bearer resolution but remains inert without a per-call `RetryPolicy`; a
+request-owned database transaction must end before token acquisition, the remote call, or backoff.
+See `docs/architecture/inter-service-clients.md` for the complete pattern.
 
 The two pristine endpoints stop at the route: they have no application handler, repository, query
 adapter, or database dependency.

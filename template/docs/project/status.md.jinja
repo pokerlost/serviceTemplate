@@ -20,6 +20,13 @@ Their exact contract is listed in `docs/api/public-surface.md`.
 
 Business functionality is absent by design. The pristine repository defines no concrete business operation, entity, table, migration, remote-service client, authentication policy, or authorization policy.
 
+The canonical SDK outbound middleware, client-credentials token provider, bearer enrichment, and
+explicit bounded per-call retry pattern is documented in
+`docs/architecture/inter-service-clients.md`. A concrete service adopts it only when its immutable
+SDK pin contains those public facades. These capabilities are extension points, not default runtime
+resources: a pristine service has no target URL, client ID, client secret, scope bundle, retry
+policy, or unused client.
+
 `SERVICE.md` must define the concrete service purpose, responsibilities, and service-specific rules
 before those capabilities are added. Future domain documentation should describe only
 responsibilities established there and must be listed in `docs/index.md` when introduced.

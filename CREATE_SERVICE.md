@@ -26,7 +26,8 @@ uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
 ## Fresh-copy verification
 
 Confirm that the generated root contains `AGENTS.md`, `SERVICE.md`, `README.md`, `docs/index.md`,
-the complete API-service documentation tree, `scripts/check_documentation.py`, `Makefile`,
+the complete API-service documentation tree including
+`docs/architecture/inter-service-clients.md`, `scripts/check_documentation.py`, `Makefile`,
 `.pre-commit-config.yaml`, `.copier-answers.yml`, `app/`, `alembic/`, and `deploy/helm/`. Confirm
 that every page under `docs/` is listed by its repository-root path in `docs/index.md`. Then run:
 
@@ -65,6 +66,12 @@ OpenAPI publication path through the real application lifespan and confirm:
 Inspect `pyproject.toml` and `uv.lock`: `pypokerlost` must resolve from the configured private SSH
 Git source at its immutable revision. Neither file may contain a sibling path, `file://` source,
 embedded credential, password, token, or floating `main` branch.
+
+Inspect the rendered `AGENTS.md` and inter-service client page for the target-specific lifecycle,
+SDK service authentication, outer retry middleware, explicit per-call retry, business-idempotency,
+transaction, and secret rules. Also confirm the pristine `ApplicationResources`, root `Settings`,
+`.env.example`, and Helm chart contain no target client, outbound credentials, global retry policy,
+or client registry.
 
 When a Docker daemon is available, also verify the private dependency build and runtime package:
 
@@ -112,7 +119,8 @@ generated files, the update regression must also:
 2. modify its service-owned `SERVICE.md`;
 3. update from a revision containing a safe template-owned change;
 4. confirm the template-owned file and any new files update;
-5. confirm `SERVICE.md` remains byte-for-byte unchanged;
+5. confirm `SERVICE.md` remains byte-for-byte unchanged, including when the new inter-service
+   client page and `AGENTS.md` rules are rendered;
 6. confirm obsolete unchanged template-owned pages are removed;
 7. confirm `.copier-answers.yml` remains valid Copier metadata;
 8. repeat `make docs-check`, `make check`, and `make pre-commit`.

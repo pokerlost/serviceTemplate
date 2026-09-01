@@ -40,6 +40,12 @@ The identifiers shown are the generated `.env.example` values. Both are required
 be changed without changing the root HTTP path. Both responses use `ApplicationResponse`; see
 `docs/getting-started/quickstart.md` and `docs/api/public-surface.md`.
 
+The SDK source defines the canonical outbound middleware, client-credentials authentication, and
+explicit per-call retry pattern for concrete services with real targets. Adoption requires an
+immutable SDK pin that contains those public facades. The pristine service creates no target client
+and requires no outbound credentials; extension guidance lives in
+`docs/architecture/inter-service-clients.md`.
+
 ## Development and deployment
 
 Run `make help` for the thin local tool interface. The regular quality entry points are:

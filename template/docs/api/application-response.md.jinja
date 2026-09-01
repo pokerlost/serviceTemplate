@@ -47,6 +47,18 @@ The error code is stable machine-readable metadata; the message is safe for a ca
 The public model is strict, immutable, and closed to extra fields. The wire envelope has exactly
 these four properties; do not extend it with transport or observability metadata.
 
+## OAuth token operation
+
+The envelope is universal, including for `POST /oauth.token`. A successful client-credentials
+response carries `access_token`, literal `bearer` `token_type`, positive `expires_in`, and the
+canonical space-delimited granted `scope` inside `result`. A handled token failure uses
+`ApplicationResponse[None]` with the same top-level four fields.
+
+There is no raw OAuth2 token response, token-specific error envelope, `error_description`, or
+FastAPI `detail` body for handled token errors. Service consumers obtain the bearer value only as
+`ApplicationResponse.result.access_token`, through the SDK's
+`ClientCredentialsTokenProvider`; application code does not decode this envelope itself.
+
 ## SDK behavior
 
 The `pypokerlost` client interprets the envelope and HTTP status together:
