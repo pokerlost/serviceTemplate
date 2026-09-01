@@ -7,6 +7,7 @@ from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 from fastapi import FastAPI
 
+from application.ports import PokerlostTokenVerifier
 from configuration import Settings
 from observability import instrument_database
 from persistence.database import create_database_engine, create_session_factory
@@ -20,7 +21,11 @@ type ApplicationLifespan = Callable[
 ]
 
 
-def create_lifespan(settings: Settings) -> ApplicationLifespan:
+def create_lifespan(
+    settings: Settings,
+    *,
+    token_verifier: PokerlostTokenVerifier | None,
+) -> ApplicationLifespan:
     """Create and dispose the service runtime resources."""
 
     @asynccontextmanager
@@ -33,6 +38,7 @@ def create_lifespan(settings: Settings) -> ApplicationLifespan:
         application.state.resources = ApplicationResources(
             engine=engine,
             session_factory=create_session_factory(engine),
+            token_verifier=token_verifier,
         )
         application.state.settings = settings
         try:

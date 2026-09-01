@@ -28,8 +28,8 @@ Do not add broad `# noqa` or `# type: ignore` suppressions. A narrow suppression
 ## Artifact names
 
 Concrete artifact names include their category in both the class suffix and the matching
-`snake_case` module suffix. Request, response, persistence model, and projection details remain in
-the generated rulebook rather than being repeated here.
+`snake_case` module suffix. Request, response, persistence model, and service-owned projection
+details remain in the generated rulebook rather than being repeated here.
 
 The generated `AGENTS.md` is the normative source for the complete naming matrix, layer rules,
 allowed base-name exceptions, operation-package naming, and public API conventions. Keep this page

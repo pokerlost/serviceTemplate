@@ -7,7 +7,7 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from api.request_context import correlation_id_from_state, request_id_from_state
+from api.request_context import request_id_from_state
 from service import SERVICE_ERROR_PREFIX
 
 from .response import error_response
@@ -20,7 +20,6 @@ async def handle_database_unavailable(request: Request, exception: Exception) ->
     logfire.warn(
         "PostgreSQL connectivity failed",
         request_id=request_id_from_state(request),
-        correlation_id=correlation_id_from_state(request),
         _exc_info=exception,
     )
     return error_response(
@@ -37,7 +36,6 @@ async def handle_database_error(request: Request, exception: Exception) -> JSONR
     logfire.error(
         "Database operation failed",
         request_id=request_id_from_state(request),
-        correlation_id=correlation_id_from_state(request),
         _exc_info=exception,
     )
     return error_response(

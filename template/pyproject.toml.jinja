@@ -1,7 +1,7 @@
 [project]
 name = "pokerlost-{{ service_slug }}"
 version = "0.1.0"
-description = "PokerLost FastAPI service foundation."
+description = "Pokerlost FastAPI service foundation."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "dc38c6e69edcd85c73af88efa2c9e226826622d6" }
+pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "a10cc8872c5de7e0065b3551e96d23fa2e99958f" }
 
 [project.scripts]
 "{{ service_slug }}" = "cli:cli"

@@ -2,12 +2,10 @@
 
 Before every task:
 
-1. Read `AGENTS.md`.
-2. Read `SERVICE.md`.
-3. Inspect the current repository and relevant implementation.
-4. Treat the latest direct user requirement as highest priority.
-5. Treat `SERVICE.md` as the source of truth for service-specific purpose and rules.
-6. Treat this file as the source of truth for shared PokerLost engineering conventions.
+1. Read `AGENTS.md` and `SERVICE.md`.
+2. Inspect the current repository and relevant implementation.
+3. Treat the latest direct user requirement as highest priority.
+4. Preserve service-owned behavior, migrations, and local changes.
 
 Priority:
 
@@ -15,276 +13,161 @@ Priority:
 latest direct user requirement
 → SERVICE.md
 → AGENTS.md
+→ current implementation
 → older decisions
 ```
 
 ## General architecture
 
-- Keep transport, application, domain, configuration, observability, persistence, and CLI
+- Keep API, application, domain, configuration, observability, persistence, and CLI
   responsibilities separated.
-- Do not introduce abstractions without a concrete use or copy business logic from other services.
-- PostgreSQL is the unconditional primary persistence layer.
-- Validate critical settings at startup and fail fast.
+- Do not introduce an abstraction without a concrete responsibility.
+- PostgreSQL remains the primary persistence layer.
+- Validate critical settings at startup and fail closed.
 - Do not commit or log secrets.
 
-## Documentation
+## Pokerlost JSON protocol
 
-- Keep `README.md` as a landing page and `docs/index.md` as the documentation home.
-- Write technical documentation in English, keep one canonical page per concept, reference
-  repository files with repository-root paths in backticks, and list every page under `docs/` in
-  `docs/index.md`.
-- Do not use relative inter-file Markdown links. Only `http://`, `https://`, `mailto:`, and
-  same-document `#anchor` link destinations are allowed.
-- Document only the verified current state. Do not record prompts, chat notes, temporary plans,
-  invented checks, metrics, or guarantees in product documentation.
-- Every API change updates `docs/api/public-surface.md` and the relevant canonical API page;
-  wire-contract changes also update `docs/api/openapi-and-sdk.md`.
-- Follow `docs/development/documentation-style.md` and `docs/development/contributing.md`.
-- Before handoff, run `make check` and `make pre-commit`.
+- Pokerlost service calls use a private body-only JSON protocol over HTTPS. Do not describe the
+  wire protocol as standard OAuth2 or a bearer-compatible API.
+- `GET /`, `GET /getOpenApi`, and existing health probes are the only public infrastructure
+  exceptions. They accept no business body or authentication material.
+- Every business/API operation uses `POST /<operationId>` with one JSON request body and one JSON
+  `PokerlostResponse` body.
+- Every operation ID matches `^[a-z][A-Za-z0-9]*$`. Use a single lowerCamelCase verb name such as
+  `getMe`, `registerAccount`, or `provisionHuman`.
+- Do not use business path parameters, query parameters, cookies, caller-supplied transport
+  metadata, GET bodies, form data, content negotiation, or manual content-type construction.
+- Public operations accept `PokerlostRequest[Payload]`. Protected operations accept
+  `PokerlostAuthorizedRequest[Payload]`; the access token exists only at
+  `authorization.access_token`.
+- Client credentials belong only in the `getToken` JSON payload. A refresh token belongs only in
+  the `refreshToken` JSON payload. Do not prepend a token type string.
+- Build every route in one flat `app/api/routers/<operation>.py` module through a
+  `create_<operation>_router(...)` factory and decorators. Do not create one-directory-per-router,
+  route constants, imperative registration, or post-hoc route mutation.
 
-## API
+## Responses and errors
 
-- FastAPI is the HTTP framework.
-- `/` is the only path exception. Its operation ID comes from `Settings.root_operation`. The
-  OpenAPI publication path is `"/" + Settings.openapi_operation`; every other API operation path
-  is likewise exactly `"/" + operation_id`.
-- Every operation ID matches `^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$`: exactly two segments and
-  one dot, with each segment starting with a lowercase ASCII letter and containing only ASCII
-  letters and digits. Use lowerCamelCase; underscores, hyphens, extra dots, and uppercase initial
-  characters are forbidden.
-- Build every router through a functional `create_<feature>_router(...)` factory. Create
-  `APIRouter()` inside the factory, register closure endpoints with decorators, and return the
-  router. Write stable business operation IDs directly in decorator arguments. Inject dynamic
-  root/OpenAPI operations from validated settings. Do not use imperative route registration,
-  mutable module-level routers, post-hoc route mutation, or route-level operation constants.
-- Application-owned JSON uses alias-free `snake_case` fields.
-- Put every business input in one named, typed JSON `*Request` body. Do not use path, query, header,
-  or cookie parameters, `Body(embed=True)`, free-form bodies, or inline anonymous object schemas.
-- Every success response is `ApplicationResponse[*Response]`; every handled error is
-  `ApplicationResponse[None]`. Explicitly publish that error model for request validation `422`
-  and expected 4xx/5xx responses, and keep one compatible success schema across all numeric 2xx
-  responses.
-- Use `RequestModel` for public requests, `ResponseModel` for public responses, and `ORMResponse`
-  only for responses populated from ORM attributes.
-- Public typed object models reject unknown fields; request numbers are finite.
-- Generate OpenAPI with FastAPI's `get_openapi()`, preserve FastAPI-generated metadata, add only
-  `x-pokerlost-service.id`, and cache the resulting schema.
-- Do not use project-owned route extra metadata or add custom authorization extensions. Standard
-  request bodies, responses, security schemes, operation security, scopes, tags, summaries, and
-  descriptions are the complete route contract.
-- Keep FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` endpoints disabled; publish the
-  wrapped schema through the configured OpenAPI operation path.
-- The template does not construct OAuth2 or scope metadata manually. Authorization is
-  service-specific: declare it with FastAPI security dependencies in the concrete service and do
-  not manually mutate generated OpenAPI security metadata.
+- Every normal response uses `pypokerlost.types.PokerlostResponse[ResultT]` with exactly `ok`,
+  `result`, `error`, `error_message`, and `retry_after`.
+- Success requires null error metadata and null `retry_after`. Failure requires a stable error
+  code, null result, an optional safe message, and an optional finite non-negative retry delay.
+- Do not create a parallel service response envelope or an application-layer Result wrapper with
+  the same wire shape.
+- Central handlers return sanitized failures and never echo request input, response bodies,
+  tracebacks, SQL details, credentials, or tokens.
+- Use Pydantic validation, `ValueError`/`TypeError`, application errors, or focused Pokerlost SDK
+  errors. Project-owned runtime Python must not use assertions for validation or protocol state.
 
-## PokerLost SDK compatibility
+## Body authorization and scopes
 
-- The current `pypokerlost` public contracts and method generator are authoritative. Read
-  `docs/api/operation-contract.md`, `docs/api/application-response.md`, and
-  `docs/api/openapi-and-sdk.md` before changing the operation,
-  request/response, or OpenAPI contracts.
-- `pypokerlost` is a mandatory dependency from the pinned private Git source in `pyproject.toml`.
-  Do not replace it with a sibling path, editable checkout, `file://` source, floating branch, or
-  credential-bearing URL.
-- Keep the local `ApplicationResponse` and `ResponseModel` exactly aligned with SDK fields,
-  defaults, invariants, and strict configuration. Do not extend or wrap the envelope.
-- PokerLost services do not implement direct HTTP clients for other PokerLost services.
-  Inter-service calls use `pypokerlost.Client` and generated `PokerlostMethod`/response types.
-- Do not add handwritten `httpx`, `requests`, or `aiohttp` transports to another PokerLost service,
-  manual operation URL builders or envelope decoders, local copies of remote DTOs, or compatibility
-  wrappers around direct HTTP.
-- If a required generated SDK method is missing, define or fix the target service OpenAPI contract,
-  regenerate the SDK methods, and use that generated API; never bypass the SDK.
-- The SDK owns transport, target description, request construction, shared authorization wire
-  models, generated methods, response decoding, canonical exceptions, generic headers, and
-  `PokerLostRetryPolicy`. It does not acquire, store, refresh, invalidate, sign, or verify tokens;
-  own credentials; choose scopes or audience; inject bearer credentials through auth middleware;
-  or replay an operation after `401`.
-- A concrete consuming service owns token orchestration in this direction:
-  application use case -> service-owned application port -> service-owned `pypokerlost` adapter ->
-  generated `oauth.token` method. Add token storage or refresh only when the implemented service
-  stage requires it. Keep credentials, requested exact scopes, and audience in that service.
-- Create exactly one target-specific `pypokerlost.Client` for each real target declared by
-  `SERVICE.md`. Create and start it in FastAPI lifespan, store it in an explicitly named typed
-  `ApplicationResources` field, reuse it across requests, and stop it in reverse ownership order
-  during shutdown. Do not add a placeholder client, automatic authService client, string-keyed
-  registry, service locator, per-request client, or module-global client.
-- Supply authentication material through the SDK's generic immutable per-call header capability
-  from the service-owned adapter. Do not introduce auth-specific transport middleware. Never log
-  `Authorization`, `Cookie`, `Proxy-Authorization`, tokens, credentials, or sensitive bodies.
-- Outbound retry is disabled unless one call passes
-  `RequestOptions(retry=PokerLostRetryPolicy())`. The policy is fixed and shared by every service;
-  do not add service-specific retry settings or values. Enable it only for a read-only operation or
-  an operation whose target contract is replay-safe. A mutation retry must reuse the same
-  `business_operation_id`, semantic payload, and target operation. Business idempotency and
-  reconciliation remain service responsibilities rather than SDK state.
-- Project-owned OAuth scopes use at least two dot-separated lowerCamelCase segments and the shared
-  `OAuthScope` value type. Underscores, hyphens, wildcards, whitespace, empty segments, and
-  uppercase segment initials are forbidden. API operation IDs and OAuth scopes are separate
-  contracts.
-- Resource services reuse shared `OAuthTokenResponse`, `AccessTokenClaims`,
-  `AuthorizationContext`, and cross-service authorization enums from `pypokerlost`; they do not
-  create near-duplicate wire models. These data models do not perform network, token lifecycle,
-  signing, verification, role expansion, or authorization decisions.
-- Never hold a request-owned PostgreSQL transaction open across token acquisition, an outbound SDK
-  call, retry backoff, or another attempt. Persist and complete local phases at explicit workflow
-  boundaries, and do not treat transport retry as reconciliation after an ambiguous outcome.
-- Do not automatically replay `401` or `403`. Propagate the canonical SDK failure and resolve
-  credentials or authorization policy outside the call.
-- Import only focused public SDK facades or the generated methods package; do not import private
-  modules, `pypokerlost` scripts, or generator-internal models.
-- After an API contract change, run the authoritative SDK generator compatibility check. It catches
-  invalid field names, reserved-name and generated-name collisions, and unsupported schemas.
+- Pokerlost scopes use dot-separated lowerCamelCase segments and match
+  `^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$`. Wildcards and role-based bypasses are forbidden.
+- Keep the service-owned catalog in the flat `app/api/scopes.py` module. Every member is validated
+  through `PokerlostScope`; a pristine service keeps the catalog empty.
+- A protected route declares every exact scope through
+  `Security(authorize_pokerlost_request, scopes=[...])` and accepts a
+  `PokerlostAuthorizedRequest` body. A public route has neither dependency nor authorization body.
+- `PokerlostTokenVerifier` is the transport-independent application port for local verification.
+  A concrete service supplies a real verifier at composition only when its implemented stage
+  protects a route. The template does not provide a fake verifier or remote verification call.
+- The body dependency reads Starlette's cached JSON value, validates only `authorization` through
+  `PokerlostAuthorization`, verifies locally for `SERVICE_NAME`, compares the returned audience,
+  and requires every exact route scope.
+- Missing or malformed body authentication fails with `AUTHENTICATION_REQUIRED`; an invalid token
+  or audience fails with `INVALID_ACCESS_TOKEN`; missing scope fails with `INSUFFICIENT_SCOPE`.
+- A role name never grants scope. Do not call authService for every protected request.
+- Protected composition without a configured verifier must fail closed.
 
-## Configuration policy
+## OpenAPI
 
-- `{{ service_env_prefix }}_ROOT_OPERATION` and
-  `{{ service_env_prefix }}_OPENAPI_OPERATION` are required startup settings typed as
-  `pypokerlost.types.APIOperation`. Register their routes from the resolved `Settings` instance;
-  never read settings at module import time or duplicate the operation regex.
-- Base operation IDs are deployment settings. Business operation IDs remain stable source-defined
-  contracts and do not move into environment configuration.
-- Put deployment and security policy in typed settings: secrets, active key versions, cost factors,
-  TTLs, timeouts, pool sizing, rate limits, retention periods, password limits, and deployment-
-  tunable resource limits.
-- Keep protocol invariants in code: algorithm identifiers, serialization domain separators,
-  wire-format versions, field grammar, database identifiers, role values, and business operation
-  IDs.
+- Use FastAPI's ordinary OpenAPI generation and request/response models without project-owned
+  extensions or service-identity metadata.
+- Do not publish a misleading OAuth2, API-key, or other header-oriented security scheme. Body
+  authentication is represented by `PokerlostAuthorizedRequest` in the request schema.
+- OpenAPI cannot express the exact required body-token scopes. Inspect both canonical sources:
+  the route's `Security(..., scopes=[...])` declaration and the matching SDK method's
+  `required_scopes` tuple.
+- Keep built-in `/openapi.json`, `/docs`, and `/redoc` disabled. Publish the unmodified document in
+  `PokerlostResponse` through `GET /getOpenApi`.
 
-## Business-operation fingerprinting
+## Pokerlost SDK compatibility
 
-- Reuse the focused `application/idempotency` package; do not fork its encoding or comparison
-  behavior in a feature package. Its exact protocol domain is
-  `pokerlost.businessOperationFingerprint.v2` followed by one NUL byte, and semantic field names
-  match ASCII lowerCamelCase `^[a-z][A-Za-z0-9]*$`.
-- A concrete idempotent operation supplies a small explicit field mapping, including an operation
-  discriminator when different operation types share one persistence key namespace. Never use
-  JSON, `repr()`, randomized password hashes, or manually concatenated values as canonical input.
-- Active services require the optional settings secret with `require_secret()`, construct one
-  process-owned `BusinessOperationFingerprinter` at application composition or lifespan, and
-  inject it into handlers. Never instantiate it per request, in a repository, or at import time.
-- Persist only the 32-byte digest and positive key version. Never persist or log canonical
-  plaintext, input fields, secrets, or digests, and never expose them through the API.
-- Do not rotate the active key until all retained idempotency records created with the old key have
-  expired or been deleted. A candidate with a different key version is a conflict.
-- The v2 format is a coordinated pre-production break. Clear disposable records produced by the
-  former format before enabling v2; do not add dual-format comparison or silently claim old
-  replays remain comparable.
-
-## Dependencies
-
-Consume public FastAPI dependencies through PEP 695 aliases:
-
-```python
-type DatabaseSession = Annotated[
-    AsyncSession,
-    Depends(_open_database_session, scope="function"),
-]
-```
-
-Resolver functions are private implementation details. Route signatures use aliases instead of
-repeating inline `Annotated[..., Depends(...)]` declarations. Request middleware, rather than a
-FastAPI `Header` dependency, owns request and correlation context.
-
-The request database dependency owns one SQLAlchemy transaction through its async context manager.
-Do not call context-manager protocol methods directly or translate persistence exceptions inside
-the dependency. Central API handlers map `OperationalError` to availability failure and sanitize
-other `SQLAlchemyError` instances.
-
-## Domain
-
-- Framework-independent value primitives and closed domain or platform categories live in
-  `domain`.
-- `Environment` belongs to `domain.enums`; configuration imports domain categories rather than
-  owning them.
-- `ValueModel` is the strict immutable base for structured internal application and domain values.
-- Public API request and response schemas do not inherit `ValueModel`.
-- SQLAlchemy persistence models do not inherit `ValueModel`.
-- Keep `domain/__init__.py` focused; import `Environment` from `domain.enums` and `ValueModel` from
-  `domain.value_model`.
-
-## Application
-
-- Reuse immutable `Command`, `Query`, and `Result` value bases and the structural asynchronous
-  `Handler` Protocol from `application.ports`.
-- Application contracts are internal typed values, not transport schemas.
-- Handlers orchestrate use cases without depending on FastAPI or owning transaction commit and
-  rollback.
-- Application ports use meaningful `typing.Protocol` contracts and do not expose FastAPI, HTTP,
-  `httpx`, SQLAlchemy sessions, concrete SDK clients, configuration implementations, generic CRUD,
-  service locators, empty marker protocols, or business behavior.
-- Do not add a command bus, mediator, registry, or dependency-injection framework without a
-  concrete requirement.
-
-## Artifact naming
-
-For every concrete artifact, express its category in both the class suffix and the matching
-`snake_case` Python module suffix. The directory identifies the layer or feature; the matching
-suffix identifies the artifact kind.
-
-| Artifact | Concrete class | File |
-| --- | --- | --- |
-| API request | `<SemanticName>Request` | `<semantic_name>_request.py` |
-| API response | `<SemanticName>Response` | `<semantic_name>_response.py` |
-| ORM-backed API response | `<SemanticName>Response` | `<semantic_name>_response.py` |
-| SQLAlchemy ORM entity | `<EntityName>Model` | `<entity_name>_model.py` |
-| Persistence read projection | `<SemanticName>Projection` | `<semantic_name>_projection.py` |
-
-Examples:
+- The current `pypokerlost` public facade and generator are authoritative. Use flat public imports
+  and do not import private modules, generator internals, or removed compatibility paths.
+- Inter-service calls use `PokerlostClient` and generated `PokerlostMethod` classes. Do not add a
+  parallel `httpx`, `requests`, or `aiohttp` transport, URL builder, decoder, or remote DTO copy.
+- A concrete service creates one target-specific client only for a real dependency declared by
+  `SERVICE.md`, owns it in lifespan, stores it in a named `ApplicationResources` field, and closes
+  it on shutdown. The pristine service creates no outbound client.
+- Protected outbound clients compose middleware in this order:
 
 ```text
-CreateAccountRequest
-create_account_request.py
-
-AccountResponse
-account_response.py
-
-AccountDetailsResponse
-account_details_response.py
-
-AccountModel
-account_model.py
-
-AccountSummaryProjection
-account_summary_projection.py
+PokerlostRetryMiddleware
+→ PokerlostAuthorizationMiddleware
+→ transport
 ```
 
-The exceptions are narrow:
+- Authorization middleware owns token acquisition/refresh coordination and body injection. It
+  uses a dedicated auth-target client without authorization middleware, exact method scopes, the
+  target audience, service credentials, and a `PokerlostTokenStore` implementation owned by the
+  consuming service.
+- Public calls bypass the token store and emit only `PokerlostRequest`.
+- Retry remains disabled unless a call passes
+  `PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. Do not expose retry algorithm
+  settings through deployment configuration.
+- The retry policy receives server guidance only from `PokerlostResponse.retry_after`. It never
+  reads transport metadata.
+- Do not automatically replay `401` or `403`. An authentication failure invalidates matching
+  token state for the next independent call; the current call still propagates. Insufficient scope
+  never triggers refresh.
+- Transport retry is not business idempotency. A replayable mutation must reuse the same
+  `business_operation_id`, semantic payload, operation, and target. Middleware never creates or
+  changes business IDs or workflow persistence.
+- Never keep a PostgreSQL transaction open during token acquisition, an outbound call, retry
+  sleep, or another attempt.
 
-- Shared and structural bases retain their established names: `RequestModel`, `ResponseModel`,
-  `ORMResponse`, `Base`, `UUIDModel`, `Projection`, `Command`, `Query`, `Result`, and `Handler`.
-- An operation-oriented package carries its semantic name. For example,
-  `application/accounts/create_account/` may contain `command.py`, `handler.py`, and `result.py`
-  defining `CreateAccountCommand`, `CreateAccountHandler`, and `CreateAccountResult`. Files inside
-  operation packages may remain `command.py`, `query.py`, `handler.py`, and `result.py`; do not add
-  a redundant semantic module prefix such as `create_account_command.py` there.
-- Domain enums live under `domain/enums/` and do not need a redundant `Enum` class suffix, for
-  example `Environment` in `environment.py`.
+## Sensitive data and observability
 
-## Persistence
+- Secret-bearing models must use `hide_input_in_errors=True` and repr-hidden fields.
+- Never capture or log request/response bodies containing `client_secret`, `access_token`,
+  `refresh_token`, passwords, login grants, or private keys.
+- Keep FastAPI instrumentation body capture disabled and HTTP client debug logging disabled.
+- Generate request IDs only on the server. Do not read or return request-correlation transport
+  metadata as a public contract.
 
-- Use SQLAlchemy 2 typed declarative mappings and explicit statements, including `RETURNING` when
-  appropriate.
-- A request owns its session and transaction; routes, handlers, repositories, and query adapters do
-  not call `begin()`, `commit()`, or `rollback()`.
-- Keep repositories focused and keep read projections separate from ORM entities and API
-  responses.
-- Keep driver-level connection availability normalization at the database engine boundary. Target
-  only an observed concrete exception; never classify every `OSError` as a PostgreSQL failure.
-- Import every concrete ORM entity through `persistence.database.models` so Alembic sees common
-  metadata. Do not add a fake model or migration to an otherwise pristine service.
+## Configuration and deployment
 
-## Observability
+- Root and OpenAPI operation settings use `PokerlostOperation`; generated values are `getRoot` and
+  `getOpenApi`.
+- Put deployment policy in typed settings. Keep protocol invariants and business operation IDs in
+  code.
+- Production deployment requires HTTPS/TLS. The generated ClusterIP is an internal target and
+  must remain behind trusted TLS termination; do not expose it as a plaintext production API.
+- Secrets use environment injection or Kubernetes Secret references, never chart values or
+  ConfigMaps.
 
-- Configure Logfire once through `configure_observability()` and keep FastAPI and SQLAlchemy
-  instrumentation in focused modules.
-- Never capture or log passwords, authorization headers, access or refresh tokens, client secrets,
-  private keys, database credentials, or other secrets.
+## Application, domain, and persistence
 
-## Imports and tooling
+- Application values and ports remain transport-independent. Ports do not expose FastAPI,
+  SQLAlchemy sessions, or concrete SDK clients.
+- Reuse `Command`, `Query`, `Result`, and the structural asynchronous `Handler` Protocol.
+- Routes translate API schemas to application values; public models do not double as domain or ORM
+  models.
+- A request-owned SQLAlchemy session owns one transaction. Routes, handlers, repositories, and
+  query adapters do not commit or roll back directly.
+- Keep repositories focused. When a service needs read projections, keep them separate from ORM
+  entities and API responses rather than adding a generic projection framework to the foundation.
+- Do not add a fake model or migration to a pristine service.
 
-- Prefer explicit imports and use a package facade only when it intentionally defines a focused
-  public interface. Do not turn `__init__.py` into an export dump.
-- Use the repository's `Makefile`, `uv`, Ruff, mypy, Alembic, Docker, and Helm conventions.
-- Do not modify CI/CD or add tests unless the task explicitly requests them.
+## Documentation and tooling
+
+- Keep `README.md` as the landing page and `docs/index.md` as the documentation home.
+- Write documentation in English with one H1, repository-root file references, language-tagged
+  fences, and no relative inter-file links.
+- Update `docs/api/public-surface.md` for every implemented operation. Wire changes also update the
+  response, authorization, operation, and OpenAPI pages.
+- Use the repository `Makefile`, `uv`, Ruff, mypy, Alembic, Docker, and Helm conventions.
+- Before handoff, run `make format`, `make check`, `make pre-commit`, and report every unavailable
+  or failed check.

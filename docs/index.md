@@ -1,6 +1,6 @@
 # serviceTemplate documentation
 
-This index links the canonical documentation for maintaining and verifying the PokerLost backend
+This index links the canonical documentation for maintaining and verifying the Pokerlost backend
 service template.
 
 ## Getting started

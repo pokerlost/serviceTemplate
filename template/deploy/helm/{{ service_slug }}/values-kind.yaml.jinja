@@ -10,11 +10,8 @@ environment:
   {{ service_env_prefix }}_LOGFIRE__SEND_TO_LOGFIRE: "false"
   {{ service_env_prefix }}_LOGFIRE__CONSOLE: "true"
   {{ service_env_prefix }}_LOGFIRE__MINIMUM_LEVEL: info
-  {{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION: "1"
 
 secretEnvironment:
-  {{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__SECRET:
-    enabled: false
   {{ service_env_prefix }}_LOGFIRE__TOKEN:
     enabled: false
   {{ service_env_prefix }}_DATABASE__URL:

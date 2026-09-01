@@ -1,67 +1,44 @@
 # Quickstart
 
-This page starts the generated service locally and exercises its two pristine HTTP endpoints.
+Start the generated service locally and inspect its two public infrastructure endpoints.
 
-Complete `docs/getting-started/installation.md`, provide valid PostgreSQL and required base
-operation settings in `.env`, and start the development server:
+## Run
 
 ```bash
+cp .env.example .env
+uv lock
+uv sync --locked
 make run
 ```
 
-The server listens on the configured `http.host` and `http.port`; the example `.env` uses `127.0.0.1:8000`.
+Local development may bind the loopback HTTP server. Production access requires HTTPS/TLS and
+must not expose this development listener directly.
 
-## Service root
-
-Call the service root path:
+## Root
 
 ```bash
 curl --fail-with-body http://127.0.0.1:8000/
 ```
-
-The response is the exact successful `ApplicationResponse[None]` envelope:
 
 ```json
 {
   "ok": true,
   "result": null,
   "error": null,
-  "error_message": null
+  "error_message": null,
+  "retry_after": null
 }
 ```
 
-## OpenAPI document
-
-Retrieve the public OpenAPI document through its system operation path:
+## OpenAPI
 
 ```bash
-curl --fail-with-body http://127.0.0.1:8000/openapi.get
+curl --fail-with-body http://127.0.0.1:8000/getOpenApi
 ```
 
-That path reflects the `.env.example` value
-`{{ service_env_prefix }}_OPENAPI_OPERATION=openapi.get`. If configuration uses
-`contract.getOpenAPI`, request `/contract.getOpenAPI` instead.
+The response wraps the unmodified FastAPI OpenAPI document in `PokerlostResponse`. The document
+contains no project extension or misleading header-oriented security scheme.
 
-The response uses the same four-field envelope. Its `result` is the complete FastAPI-generated OpenAPI object; the object includes the following stable service metadata:
-
-```json
-{
-  "ok": true,
-  "result": {
-    "openapi": "3.1.0",
-    "info": {
-      "title": "{{ service_name }}",
-      "version": "0.1.0"
-    },
-    "x-pokerlost-service": {
-      "id": "{{ service_name }}"
-    }
-  },
-  "error": null,
-  "error_message": null
-}
-```
-
-The displayed `result` focuses on stable metadata; the actual object also contains the generated
-`paths` and schemas. See `docs/api/openapi-and-sdk.md` for publication rules and
-`docs/api/public-surface.md` for the exact pristine endpoints.
+The pristine service exposes no business operation. Before adding one, read
+`docs/api/operation-contract.md`, `docs/api/body-authorization.md`, and
+`docs/api/pokerlost-response.md`.

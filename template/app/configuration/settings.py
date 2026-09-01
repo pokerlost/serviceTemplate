@@ -6,13 +6,12 @@ from typing import Self
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pypokerlost.types import APIOperation
+from pypokerlost.types import PokerlostOperation
 
 from domain.enums import Environment
 from service import SERVICE_ENV_PREFIX
 
 from .application import ApplicationSettings
-from .business_operation_fingerprint import BusinessOperationFingerprintSettings
 from .database import DatabaseSettings
 from .http import HTTPSettings
 from .logfire import LogfireSettings
@@ -33,16 +32,13 @@ class Settings(BaseSettings):
         validate_default=True,
     )
 
-    root_operation: APIOperation = Field(
+    root_operation: PokerlostOperation = Field(
         description="Required API operation ID published for GET /.",
     )
-    openapi_operation: APIOperation = Field(
+    openapi_operation: PokerlostOperation = Field(
         description="Required API operation ID and path for OpenAPI publication.",
     )
     application: ApplicationSettings = Field(default_factory=ApplicationSettings)
-    business_operation_fingerprint: BusinessOperationFingerprintSettings = Field(
-        default_factory=BusinessOperationFingerprintSettings,
-    )
     database: DatabaseSettings
     http: HTTPSettings = Field(default_factory=HTTPSettings)
     logfire: LogfireSettings = Field(default_factory=LogfireSettings)

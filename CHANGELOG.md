@@ -4,51 +4,23 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
 
 ## Unreleased
 
-- Make consuming services own token acquisition, storage, refresh, credentials, scopes, and
-  audience behind application ports and generated-method adapters; keep the SDK boundary limited
-  to transport, shared wire contracts, and canonical retry.
-- Replace configurable retry and outbound authentication middleware guidance with the single
-  explicit per-call `PokerLostRetryPolicy`.
-- Generate functional decorator-based router factories without imperative registration,
-  route-level operation constants, or project-owned OpenAPI extra metadata.
-- Promote the structural asynchronous `Handler` Protocol into `application/ports`.
-- Split business-operation fingerprinting into focused modules and adopt the exact camelCase v2
-  format domain and field grammar without v1 compatibility behavior.
-- Require dot-separated lowerCamelCase OAuth scope identifiers and shared `pypokerlost`
-  authorization contracts.
-- Require settings-driven root and OpenAPI publication operations, register their routes at
-  application composition, and enforce the exact two-segment lowerCamelCase operation contract.
-- Generate the canonical keyed business-operation fingerprint primitive and optional typed key
-  settings, including Helm Secret-reference and key-version configuration foundations.
-- Replace relative inter-file Markdown links with repository-root references in backticks and make
-  the documentation checker enforce that policy in template and generated repositories.
-- Add disposable `template-copy` and `template-check` targets for reproducible structural,
-  documentation, and compile verification of a fresh Copier render.
-- Remove the repository-local disposable template verifier and its Make targets; maintainers now
-  follow the documented Copier copy/update workflow directly when validating generated services.
-- Replace the generated two-page manual with canonical API-service documentation, a universal
-  documentation checker, file-hygiene pre-commit hooks, and self-documenting root/generated
-  Makefile quality workflows.
-- Expand generated Git hygiene rules and restrict Docker build contexts to the files consumed by
-  the generated `Dockerfile`.
-- Stop generating `.python-version`; Python 3.14 remains aligned through project, Ruff, mypy, and
-  Docker configuration.
-- Removed generic OAuth2/scope/OpenAPI authorization mechanics from the base template; concrete
-  services own FastAPI security declarations.
-- Install `pypokerlost` in every generated service from its verified private GitHub SSH source at
-  an immutable revision, including BuildKit SSH forwarding for image builds.
-- Align generated services with Python 3.14 and the current `pypokerlost` operation contract:
-  exact operation/path identity, strict `ApplicationResponse` parity, SDK-compatible wrapped
-  OpenAPI publication, generator/runtime compatibility verification, corrected SDK acronym casing,
-  and generated SDK integration documentation.
-- Use `service_name` as the only user-supplied service identity input.
-- Make PostgreSQL, SQLAlchemy, and Alembic unconditional parts of the generated foundation.
-- Separate shared generated conventions in `AGENTS.md` from the service-owned `SERVICE.md`.
-- Use SQLAlchemy's async transaction context directly, normalize refused connections at the engine
-  boundary, and map database failures by SQLAlchemy type.
-- Add immutable domain value/category foundations and consistent application value bases.
-- Define one generated artifact naming contract with narrow base and package exceptions.
-- Add generated architecture documentation and separate document ownership.
-- Align generated documentation with the wrapped snake_case API contract and Copier update flow.
+- Replace the previous transport contract with the private Pokerlost body-only JSON protocol over
+  HTTPS.
+- Use single lowerCamelCase operation IDs, POST business calls, and flat router modules.
+- Adopt `PokerlostRequest`, `PokerlostAuthorizedRequest`, and the five-field
+  `PokerlostResponse` envelope from the flat SDK facade.
+- Add an empty exact-scope catalog, a transport-independent `PokerlostTokenVerifier` port, and a
+  fail-closed FastAPI body-authorization dependency without a production verifier.
+- Publish unmodified FastAPI OpenAPI without service identity or custom extensions; represent
+  protected calls through their body schema.
+- Replace caller-controlled request correlation with a server-generated internal request ID.
+- Document authorization/retry middleware ordering, body token acquisition and refresh, exact
+  scope verification, body `retry_after`, and the no-replay authentication rule.
+- Remove the obsolete generic business replay helper and its settings, documentation, and
+  deployment configuration.
+- Remove unused ORM/request schema facades, the unused projection/result-reader framework, and the
+  unconsumed entity-repository convenience base.
+- Keep the private SDK source pinned to an immutable pushed revision and update the Copier render
+  regression for the new contract.
 
-No Copier migration exists in v1 because there is no older released generated layout to migrate.
+No compatibility alias or parallel legacy protocol is retained.

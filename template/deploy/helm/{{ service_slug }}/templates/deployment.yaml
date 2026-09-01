@@ -4,8 +4,6 @@ metadata:
   name: {{ include "pokerlost.service.fullname" . }}
   labels:
     {{- include "pokerlost.service.labels" . | nindent 4 }}
-  annotations:
-    pokerlost.com/service-id: {{ .Values.serviceIdentity | quote }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -17,7 +15,6 @@ spec:
         {{- include "pokerlost.service.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
-        pokerlost.com/service-id: {{ .Values.serviceIdentity | quote }}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}

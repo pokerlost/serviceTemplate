@@ -12,7 +12,7 @@ _skip_if_exists:
 
 service_name:
   type: str
-  help: "Canonical PokerLost service name, e.g. authService or virtualMoney."
+  help: "Canonical Pokerlost service name, e.g. authService or virtualMoney."
   validator: >-
     {%- if not service_name -%}
     service_name must not be empty.

@@ -4,8 +4,6 @@ metadata:
   name: {{ include "pokerlost.service.fullname" . }}
   labels:
     {{- include "pokerlost.service.labels" . | nindent 4 }}
-  annotations:
-    pokerlost.com/service-id: {{ .Values.serviceIdentity | quote }}
 spec:
   type: {{ .Values.service.type }}
   selector:

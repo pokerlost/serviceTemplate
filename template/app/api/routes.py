@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from configuration import Settings
 
-from .routers.openapi_document import create_openapi_document_router
+from .routers.openapi import create_openapi_router
 from .routers.root import create_root_router
 
 
@@ -18,7 +18,7 @@ def configure_routes(application: FastAPI, settings: Settings) -> None:
         )
     )
     application.include_router(
-        create_openapi_document_router(
+        create_openapi_router(
             application=application,
             operation=settings.openapi_operation,
         )

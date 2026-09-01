@@ -4,8 +4,6 @@ metadata:
   name: {{ '{{' }} include "pokerlost.service.fullname" . {{ '}}' }}
   labels:
     {{ '{{-' }} include "pokerlost.service.labels" . | nindent 4 {{ '}}' }}
-  annotations:
-    pokerlost.com/service-id: {{ '{{' }} .Values.serviceIdentity | quote {{ '}}' }}
 data:
   {{ service_env_prefix }}_ROOT_OPERATION: {{ '{{' }} required "rootOperation is required" .Values.rootOperation | quote {{ '}}' }}
   {{ service_env_prefix }}_OPENAPI_OPERATION: {{ '{{' }} required "openapiOperation is required" .Values.openapiOperation | quote {{ '}}' }}

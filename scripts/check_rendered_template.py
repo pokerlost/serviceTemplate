@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-_EXPECTED_SDK_REVISION = "dc38c6e69edcd85c73af88efa2c9e226826622d6"
+_EXPECTED_SDK_REVISION = "a10cc8872c5de7e0065b3551e96d23fa2e99958f"
 
 
 def _contract_name(*parts: str) -> str:
@@ -22,18 +22,17 @@ _EXPECTED_PATHS = (
     "README.md",
     "SERVICE.md",
     "app/api/application.py",
-    "app/api/routers/openapi_document/router.py",
+    "app/api/dependencies/authorization.py",
+    "app/api/routers/openapi.py",
     "app/api/routers/root.py",
-    "app/application/idempotency/business_operation_fingerprint.py",
-    "app/application/idempotency/business_operation_fingerprinter.py",
-    "app/application/idempotency/constants.py",
-    "app/application/idempotency/enums.py",
-    "app/application/idempotency/types.py",
+    "app/api/scopes.py",
     "app/application/ports/handler.py",
-    "app/configuration/business_operation_fingerprint.py",
+    "app/application/ports/pokerlost_token_verifier.py",
     "app/configuration/settings.py",
     "deploy/helm/exampleservice/templates/configmap.yaml",
     "deploy/helm/exampleservice/values.yaml",
+    "docs/api/body-authorization.md",
+    "docs/api/pokerlost-response.md",
     "docs/architecture/inter-service-clients.md",
     "docs/index.md",
     "pyproject.toml",
@@ -41,12 +40,34 @@ _EXPECTED_PATHS = (
 )
 
 _OBSOLETE_PATHS = (
+    "app/api/openapi.py",
+    "app/api/routers/openapi_document",
+    "app/api/schemas/orm",
+    "app/api/schemas/requests",
+    "app/api/schemas/responses",
     "app/application/handler.py",
-    _contract_name(
-        "app/application/idempotency/business_operation_",
-        "fingerprinting.py",
-    ),
+    "app/application/idempotency",
+    "app/persistence/database/result_readers",
+    "app/persistence/projections",
+    "docs/api/application-response.md",
 )
+
+_FORBIDDEN_LITERALS = (
+    _contract_name("request.", "headers"),
+    _contract_name("response.", "headers"),
+    _contract_name("Callable[", "[],"),
+)
+
+_FORBIDDEN_PYTHON_LITERALS = (
+    _contract_name("Head", "er("),
+    _contract_name("OAuth2Password", "Bearer"),
+    _contract_name("openapi_", "extra"),
+    _contract_name("request.", "headers"),
+    _contract_name("response.", "headers"),
+    _contract_name("security", "Schemes"),
+)
+
+_RETIRED_PAYLOAD_DIGEST_TERM = _contract_name("finger", "print")
 
 
 def _read_required_file(destination: Path, relative_path: str) -> str:
@@ -63,36 +84,25 @@ def _require_source(source: str, expected: tuple[str, ...], *, label: str) -> No
 
 
 def _check_forbidden_contracts(destination: Path) -> None:
-    forbidden_literals = (
-        _contract_name("AccessToken", "Provider"),
-        _contract_name("BearerToken", "Middleware"),
-        _contract_name("ClientCredentialsToken", "Provider"),
-        _contract_name("Retry", "Middleware"),
-        _contract_name("APIClientRetry", "Settings"),
-        _contract_name("TokenRetry", "Settings"),
-        _contract_name("OperationRetry", "Settings"),
-        _contract_name("add_api_", "route("),
-        _contract_name("openapi_", "extra="),
-        _contract_name("pokerlost.business-operation-", "fingerprint.v1"),
-        _contract_name("auth.internal.provision", "_human"),
-    )
-    operation_constant = re.compile(r"\b[A-Z_]*OPERATION\s*:\s*Final\s*\[\s*APIOperation\s*\]")
-    old_retry_policy = re.compile(_contract_name(r"(?<!PokerLost)\bRetry", r"Policy\b"))
-
+    assertion = re.compile(r"(^|\n)[ \t]*assert[ \t]+")
     for path in destination.rglob("*"):
         if not path.is_file() or path.suffix not in {".md", ".py", ".toml", ".yaml", ".yml"}:
             continue
         source = path.read_text(encoding="utf-8")
-        for forbidden in forbidden_literals:
+        if _RETIRED_PAYLOAD_DIGEST_TERM in source.lower():
+            relative_path = path.relative_to(destination)
+            raise RuntimeError(f"Rendered {relative_path} contains retired payload-digest code")
+        for forbidden in _FORBIDDEN_LITERALS:
             if forbidden in source:
                 relative_path = path.relative_to(destination)
                 raise RuntimeError(f"Rendered {relative_path} contains forbidden {forbidden}")
-        if operation_constant.search(source) is not None:
+        if path.suffix == ".py":
             relative_path = path.relative_to(destination)
-            raise RuntimeError(f"Rendered {relative_path} contains a route operation constant")
-        if old_retry_policy.search(source) is not None:
-            relative_path = path.relative_to(destination)
-            raise RuntimeError(f"Rendered {relative_path} contains the obsolete retry policy")
+            for forbidden in _FORBIDDEN_PYTHON_LITERALS:
+                if forbidden in source:
+                    raise RuntimeError(f"Rendered {relative_path} contains forbidden {forbidden}")
+            if assertion.search(source) is not None:
+                raise RuntimeError(f"Rendered {relative_path} contains a runtime assertion")
 
 
 def _check_rendered_contract(destination: Path) -> None:
@@ -102,14 +112,23 @@ def _check_rendered_contract(destination: Path) -> None:
     for relative_path in _OBSOLETE_PATHS:
         if (destination / relative_path).exists():
             raise RuntimeError(f"Rendered template retains obsolete {relative_path}")
+    router_directories = tuple(
+        path
+        for path in (destination / "app/api/routers").iterdir()
+        if path.is_dir() and path.name != "__pycache__"
+    )
+    if router_directories:
+        rendered = ", ".join(
+            str(path.relative_to(destination)) for path in sorted(router_directories)
+        )
+        raise RuntimeError(f"Rendered template contains nested router directories: {rendered}")
 
     environment = _read_required_file(destination, ".env.example")
     _require_source(
         environment,
         (
-            "EXAMPLESERVICE_ROOT_OPERATION=exampleservice.getRoot",
-            "EXAMPLESERVICE_OPENAPI_OPERATION=openapi.get",
-            "EXAMPLESERVICE_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION=1",
+            "EXAMPLESERVICE_ROOT_OPERATION=getRoot",
+            "EXAMPLESERVICE_OPENAPI_OPERATION=getOpenApi",
         ),
         label=".env.example",
     )
@@ -118,8 +137,8 @@ def _check_rendered_contract(destination: Path) -> None:
     _require_source(
         settings,
         (
-            "root_operation: APIOperation",
-            "openapi_operation: APIOperation",
+            "root_operation: PokerlostOperation",
+            "openapi_operation: PokerlostOperation",
         ),
         label="Settings",
     )
@@ -128,30 +147,27 @@ def _check_rendered_contract(destination: Path) -> None:
     _require_source(
         root_router,
         (
-            "def create_root_router(*, operation: APIOperation) -> APIRouter:",
+            "def create_root_router(*, operation: PokerlostOperation) -> APIRouter:",
             "@router.get(",
             'path="/"',
             "operation_id=operation",
-            "async def get_service_root() -> RootResponse:",
+            "response_model=PokerlostResponse[None]",
+            "async def get_service_root() -> PokerlostResponse[None]:",
         ),
         label="root router",
     )
 
-    openapi_router = _read_required_file(
-        destination,
-        "app/api/routers/openapi_document/router.py",
-    )
+    openapi_router = _read_required_file(destination, "app/api/routers/openapi.py")
     _require_source(
         openapi_router,
         (
-            "def create_openapi_document_router(",
-            "application: FastAPI",
-            "operation: APIOperation",
+            "def create_openapi_router(",
+            "operation: PokerlostOperation",
             "@router.get(",
             'path=f"/{operation}"',
             "operation_id=operation",
-            "async def get_openapi_document() -> OpenAPIResponse:",
-            "result=application.openapi()",
+            "response_model=PokerlostResponse[dict[str, JSONValue]]",
+            "application.openapi()",
         ),
         label="OpenAPI router",
     )
@@ -162,71 +178,90 @@ def _check_rendered_contract(destination: Path) -> None:
         (
             "create_root_router(",
             "operation=settings.root_operation",
-            "create_openapi_document_router(",
+            "create_openapi_router(",
             "application=application",
             "operation=settings.openapi_operation",
         ),
         label="route composition",
     )
 
+    application = _read_required_file(destination, "app/api/application.py")
+    resources = _read_required_file(destination, "app/api/resources.py")
+    _require_source(
+        application,
+        (
+            "token_verifier: PokerlostTokenVerifier | None = None",
+            "token_verifier=token_verifier",
+        ),
+        label="application composition",
+    )
+    _require_source(
+        resources,
+        ("token_verifier: PokerlostTokenVerifier | None",),
+        label="application resources",
+    )
+
+    verifier = _read_required_file(
+        destination,
+        "app/application/ports/pokerlost_token_verifier.py",
+    )
+    _require_source(
+        verifier,
+        (
+            "class PokerlostTokenVerifier(Protocol):",
+            "async def verify(",
+            "token: str",
+            "audience: str",
+            ") -> PokerlostAuthorizationContext:",
+        ),
+        label="token verifier port",
+    )
+
+    scopes = _read_required_file(destination, "app/api/scopes.py")
+    _require_source(scopes, ("class Scope(StrEnum):", "PokerlostScope(value)"), label="scopes")
+
+    authorization = _read_required_file(destination, "app/api/dependencies/authorization.py")
+    _require_source(
+        authorization,
+        (
+            "await request.json()",
+            'body.get("authorization")',
+            "PokerlostAuthorization.model_validate",
+            "await verifier.verify(",
+            "authorization.access_token",
+            "context.audience != SERVICE_NAME",
+            "security_scopes.scopes",
+            "scope not in granted_scopes",
+        ),
+        label="body authorization dependency",
+    )
+    for forbidden in ("role", "httpx", "auth_service", "request.body("):
+        if forbidden in authorization:
+            raise RuntimeError(
+                f"Rendered body authorization dependency contains forbidden {forbidden}"
+            )
+
+    request_context = _read_required_file(destination, "app/api/request_context.py")
+    _require_source(
+        request_context,
+        ("request_id = str(uuid4())", "request.state.request_id = request_id"),
+        label="request context",
+    )
+
     handler = _read_required_file(destination, "app/application/ports/handler.py")
     _require_source(
         handler,
-        (
-            "from typing import Protocol",
-            "class Handler[",
-            "](Protocol):",
-            "async def __call__(",
-        ),
+        ("from typing import Protocol", "class Handler[", "](Protocol):", "async def __call__("),
         label="Handler port",
     )
-
-    constants = _read_required_file(destination, "app/application/idempotency/constants.py")
-    _require_source(
-        constants,
-        (
-            'b"pokerlost.businessOperationFingerprint.v2\\x00"',
-            'r"[a-z][A-Za-z0-9]*"',
-            "MAX_FIELD_COUNT: Final[int] = 65_535",
-            "MAX_FIELD_NAME_BYTES: Final[int] = 65_535",
-        ),
-        label="fingerprint constants",
-    )
-
-    fingerprint = _read_required_file(
-        destination,
-        "app/application/idempotency/business_operation_fingerprint.py",
-    )
-    fingerprinter = _read_required_file(
-        destination,
-        "app/application/idempotency/business_operation_fingerprinter.py",
-    )
-    _require_source(
-        fingerprint,
-        (
-            "hmac.compare_digest",
-            "def compare(",
-        ),
-        label="fingerprint value",
-    )
-    _require_source(
-        fingerprinter,
-        (
-            "digestmod=sha256",
-            "def _encode_field_name",
-            "def _encode_field_value",
-        ),
-        label="fingerprinter",
-    )
-    if "@staticmethod" in fingerprint or "@staticmethod" in fingerprinter:
-        raise RuntimeError("Rendered fingerprint package contains a static method")
 
     values = _read_required_file(destination, "deploy/helm/exampleservice/values.yaml")
     _require_source(
         values,
         (
-            "rootOperation: exampleservice.getRoot",
-            "openapiOperation: openapi.get",
+            "rootOperation: getRoot",
+            "openapiOperation: getOpenApi",
+            "mandatory deployment HTTPS/TLS termination",
         ),
         label="Helm values",
     )
@@ -237,17 +272,12 @@ def _check_rendered_contract(destination: Path) -> None:
     )
     _require_source(
         configmap,
-        (
-            "EXAMPLESERVICE_ROOT_OPERATION:",
-            "EXAMPLESERVICE_OPENAPI_OPERATION:",
-        ),
+        ("EXAMPLESERVICE_ROOT_OPERATION:", "EXAMPLESERVICE_OPENAPI_OPERATION:"),
         label="ConfigMap",
     )
-    if "EXAMPLESERVICE_BUSINESS_OPERATION_FINGERPRINT__SECRET" in configmap:
-        raise RuntimeError("Rendered ConfigMap exposes the fingerprint secret")
 
     pristine_sources = (
-        ("app/api/resources.py", _read_required_file(destination, "app/api/resources.py")),
+        ("app/api/resources.py", resources),
         ("app/api/lifespan.py", _read_required_file(destination, "app/api/lifespan.py")),
         ("app/configuration/settings.py", settings),
         (".env.example", environment),
@@ -259,12 +289,10 @@ def _check_rendered_contract(destination: Path) -> None:
             "AuthServiceSettings",
             "auth_service_client",
             "AUTH_SERVICE__CLIENT_SECRET",
-            "Mapping[str, Client]",
-            _contract_name(
-                "token_",
-                "cache",
-            ),
+            "Mapping[str, PokerlostClient]",
+            "token_cache",
             "token_refresh",
+            "FakeTokenVerifier",
         ):
             if forbidden in source:
                 raise RuntimeError(
@@ -275,15 +303,11 @@ def _check_rendered_contract(destination: Path) -> None:
     _require_source(
         agents,
         (
-            "service-owned application port",
-            "`PokerLostRetryPolicy`",
-            "`RequestOptions(retry=PokerLostRetryPolicy())`",
-            "OAuth scopes use at least two dot-separated lowerCamelCase segments",
-            "functional `create_<feature>_router(...)` factory",
-            "structural asynchronous",
-            "`Handler` Protocol",
-            "pokerlost.businessOperationFingerprint.v2",
-            "`business_operation_id`, semantic payload, and target operation",
+            "private body-only JSON protocol",
+            "PokerlostRetryPolicy",
+            "PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())",
+            "Pokerlost scopes use dot-separated lowerCamelCase segments",
+            "Security(authorize_pokerlost_request, scopes=[...])",
             "Do not automatically replay `401` or `403`",
         ),
         label="AGENTS.md",
@@ -296,22 +320,25 @@ def _check_rendered_contract(destination: Path) -> None:
     _require_source(
         inter_service_clients,
         (
-            "service-owned application port",
-            "service-owned pypokerlost adapter",
-            "generated oauth.token method",
-            "from pypokerlost.client.retry import PokerLostRetryPolicy",
-            "retry=PokerLostRetryPolicy()",
-            "application/x-www-form-urlencoded",
-            "auth.internal.provisionHuman",
-            "do not acquire, cache, refresh, sign, verify, or revoke tokens",
-            "Do not instantiate an authService client",
+            "PokerlostAuthorizationMiddleware",
+            "PokerlostRetryMiddleware",
+            "PokerlostRetryPolicy",
+            "getToken",
+            "refreshToken",
+            "retry_after",
+            "Do not instantiate an authService",
         ),
         label="inter-service client guidance",
     )
 
     documentation_index = _read_required_file(destination, "docs/index.md")
-    if "`docs/architecture/inter-service-clients.md`" not in documentation_index:
-        raise RuntimeError("Rendered docs index omits inter-service client guidance")
+    for page in (
+        "`docs/api/body-authorization.md`",
+        "`docs/api/pokerlost-response.md`",
+        "`docs/architecture/inter-service-clients.md`",
+    ):
+        if page not in documentation_index:
+            raise RuntimeError(f"Rendered docs index omits {page}")
 
     project = _read_required_file(destination, "pyproject.toml")
     sdk_source = re.search(

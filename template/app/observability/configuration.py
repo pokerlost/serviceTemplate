@@ -45,6 +45,7 @@ def configure_observability(settings: Settings) -> None:
                 "credential",
                 "database[._ -]?url",
                 "dsn",
+                "login[._ -]?grant",
                 "password",
                 "private[._ -]?key",
                 "secret",

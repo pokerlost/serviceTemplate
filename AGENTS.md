@@ -1,12 +1,12 @@
 # serviceTemplate
 
-This repository owns the shared Copier foundation for PokerLost backend services.
+This repository owns the shared Copier foundation for Pokerlost backend services.
 
 ## Before every task
 
 1. Read this file, `TEMPLATE.md`, and `copier.yml`.
 2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
-   `ApplicationResponse`, OpenAPI publication, Python support, or SDK integration.
+   `PokerlostResponse`, body authorization, OpenAPI publication, Python support, or SDK integration.
 3. Inspect the current template, documentation, Makefile, pre-commit configuration, and relevant
    generated source before editing.
 4. Inspect the authoritative `pypokerlost` implementation whenever a shared SDK contract changes.
@@ -49,10 +49,10 @@ or pre-release layouts unless the user explicitly requires them.
   `Self`, modern unions, explicit return types, and PEP 695 syntax where it expresses the contract.
 - Use `snake_case` modules/functions/variables, `PascalCase` classes, and `UPPER_SNAKE_CASE`
   constants. Preserve canonical `API`, `HTTP`, `JSON`, `UUID`, `OpenAPI`, and `URL` acronym casing.
-- Use PokerLost in prose. Preserve established public identifiers such as `pypokerlost`,
-  `PokerlostMethod`, and `PokerlostType`.
-- Describe the dotted `namespace.someOperation` mechanism as an API operation, operation contract, method
-  call, or inter-service call.
+- Use Pokerlost consistently in prose and project-owned identifiers. Preserve the distribution
+  name `pypokerlost`.
+- Describe single lowerCamelCase operation names as API operations, method calls, or inter-service
+  calls. Keep dotted lowerCamelCase scope names separate from operation IDs.
 
 ## Documentation
 
@@ -75,8 +75,8 @@ or pre-release layouts unless the user explicitly requires them.
   service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and
   confirm service-owned `SERVICE.md` remains unchanged.
-- Run the complete compatibility probe in `SDK_COMPATIBILITY.md` after
-  changes to the API operation, request/response, OpenAPI, Python, or SDK boundary.
+- Run the complete compatibility probe in `SDK_COMPATIBILITY.md` after changes to API operations,
+  request/response envelopes, body authorization, OpenAPI, Python, or the SDK boundary.
 - Report every unavailable tool, failed command, and external-service limitation.
 
 ## Git hygiene

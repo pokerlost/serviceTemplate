@@ -1,6 +1,5 @@
-serviceIdentity: {{ service_name | to_json }}
-rootOperation: {{ service_slug }}.getRoot
-openapiOperation: openapi.get
+rootOperation: getRoot
+openapiOperation: getOpenApi
 
 replicaCount: 2
 
@@ -25,11 +24,8 @@ environment:
   {{ service_env_prefix }}_DATABASE__MAX_OVERFLOW: "10"
   {{ service_env_prefix }}_DATABASE__POOL_TIMEOUT_SECONDS: "10"
   {{ service_env_prefix }}_DATABASE__COMMAND_TIMEOUT_SECONDS: "30"
-  {{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION: "1"
 
 secretEnvironment:
-  {{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__SECRET:
-    enabled: false
   {{ service_env_prefix }}_LOGFIRE__TOKEN:
     enabled: true
     name: {{ service_slug }}-logfire
@@ -47,6 +43,7 @@ gunicorn:
   forwardedAllowIps: "127.0.0.1"
 
 service:
+  # Keep this ClusterIP behind mandatory deployment HTTPS/TLS termination.
   type: ClusterIP
   port: 80
 

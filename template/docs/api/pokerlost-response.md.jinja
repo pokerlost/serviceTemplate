@@ -1,0 +1,44 @@
+# PokerlostResponse
+
+Every normal API result uses `pypokerlost.types.PokerlostResponse[ResultT]`.
+
+## Success
+
+```json
+{
+  "ok": true,
+  "result": null,
+  "error": null,
+  "error_message": null,
+  "retry_after": null
+}
+```
+
+`result` contains the operation's typed value when one exists. Success is defined by `ok`, so a
+null result is valid. Error metadata and retry guidance must be null.
+
+## Failure
+
+```json
+{
+  "ok": false,
+  "result": null,
+  "error": "SERVICE_TEMPORARILY_UNAVAILABLE",
+  "error_message": "Try again later.",
+  "retry_after": 1.5
+}
+```
+
+Failure requires a stable machine-readable `error` and null result. `error_message` is optional
+sanitized text. `retry_after` is optional finite non-negative seconds and is the only server retry
+guidance used by the SDK.
+
+The strict immutable model rejects extra fields and impossible combinations through Pydantic
+validation. Services do not extend it, wrap it, or create another wire envelope.
+
+## Client behavior
+
+`PokerlostClient` decodes the JSON envelope for both 2xx and non-2xx statuses. A valid failure
+raises the canonical typed API error. Invalid JSON, invalid envelope state, invalid retry delay, or
+an invalid typed result raises a protocol error. Exceptions never retain a raw request or response
+body.

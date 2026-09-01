@@ -1,76 +1,63 @@
 # Operation contract
 
-This page is the canonical wire contract for public PokerLost API operations implemented by
-`{{ service_name }}`.
+Pokerlost business APIs use one private JSON operation protocol over HTTPS.
 
-## System boundary
+## Operations and paths
 
-`GET /` is the sole path exception. Its operation ID comes from the required
-`{{ service_env_prefix }}_ROOT_OPERATION` setting. OpenAPI publication uses the required
-`{{ service_env_prefix }}_OPENAPI_OPERATION` setting for both its operation ID and its
-`"/" + operation_id` path. The generator treats both configured base operations as system
-operations and does not generate callable methods for them.
-
-Every operation ID has exactly two segments and one dot:
+Every business operation matches:
 
 ```text
-operation_id = namespace.someOperation
+operation_id = lowerCamelCase verb name
 path         = "/" + operation_id
+HTTP method  = POST
 ```
 
-The complete accepted operation pattern is:
+The exact identifier pattern is `^[a-z][A-Za-z0-9]*$`. Valid examples include `getMe`,
+`registerAccount`, and `provisionHuman`. Dots, underscores, hyphens, and uppercase initials are
+invalid. The generator validates all source documents together and rejects global operation or
+schema collisions before writing.
 
-```text
-^[a-z][A-Za-z0-9]*\.[a-z][A-Za-z0-9]*$
+`GET /`, `GET /getOpenApi`, and existing health probes are public bodyless infrastructure
+exceptions. Business GET bodies and other business HTTP methods are unsupported.
+
+Each router is one flat module with a factory and decorator. Do not use nested router directories,
+imperative registration, route constants, or post-hoc mutation.
+
+## Requests
+
+A public operation accepts `PokerlostRequest[Payload]`:
+
+```json
+{
+  "payload": {
+    "username": "alice"
+  }
+}
 ```
 
-Each segment starts with a lowercase ASCII letter and otherwise contains only ASCII letters and
-digits. Ordinary lowerCamelCase is expected. Underscores, hyphens, extra dots, missing dots, and
-uppercase initial characters are invalid. `accounts.confirmLogin` is valid;
-`account.confirm_login`, `accounts.self.get`, and `Accounts.get` are invalid.
+A protected operation accepts `PokerlostAuthorizedRequest[Payload]`:
 
-Create each feature router through a factory, define endpoint closures inside it, and register them
-with decorators. Write a stable business operation ID directly in both decorator arguments, for
-example `path="/accounts.confirmLogin"` and `operation_id="accounts.confirmLogin"`. Dynamic root
-and OpenAPI operation IDs enter their factories from validated settings. Do not use imperative
-route registration, mutable module-level routers, route-level operation constants, or post-hoc
-route mutation. The SDK-compatible HTTP methods are `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`;
-use `POST` by default unless semantics require another supported method.
+```json
+{
+  "authorization": {
+    "access_token": "secret-value"
+  },
+  "payload": {}
+}
+```
 
-## Request body
+Payload types are named closed Pydantic models with snake_case wire fields. Requests do not use
+business path/query parameters, cookies, form data, caller-supplied transport metadata, embedded
+anonymous bodies, or manual content negotiation.
 
-Application input is one named, closed, typed JSON object based on `RequestModel`. Its component and
-class name ends in `Request`. Application-owned field names are alias-free `snake_case` and remain
-unchanged during serialization.
+## Responses
 
-Operation input does not use OpenAPI path, query, header, or cookie parameters. Do not use an
-embedded body, an anonymous inline object, or a free-form top-level body. A `GET` operation that
-has input still receives a JSON body. A parameterless operation omits `requestBody` completely
-instead of publishing an empty object.
+Every success and handled failure uses `PokerlostResponse`. Routes publish the typed success model
+and `PokerlostResponse[None]` for expected failures. The five-field invariant is documented in
+`docs/api/pokerlost-response.md`.
 
-## Response schemas
+## Scopes
 
-A successful operation publishes `ApplicationResponse[<SemanticName>Response]`. Every expected
-handled 4xx or 5xx response publishes `ApplicationResponse[None]`; an operation with a request body
-also publishes that model for validation status `422`. All numeric 2xx responses for one operation
-must use compatible JSON schemas.
-
-The envelope fields and invariants belong to `docs/api/application-response.md`, and runtime
-failure mappings belong to `docs/api/errors.md`.
-
-## Service-specific security
-
-When a concrete service requires authorization, declare it through that service's FastAPI security
-dependencies. It must not alter the operation, path, application-input, or response-envelope rules.
-FastAPI-generated security metadata remains service-specific and is preserved by the OpenAPI
-publication described in `docs/api/openapi-and-sdk.md`.
-
-Project-owned OAuth scope identifiers use at least two dot-separated lowerCamelCase segments and
-the shared `pypokerlost.types.OAuthScope` value. Scope identifiers and API operation IDs are
-separate contracts.
-
-## Contract changes
-
-An API change must update `docs/api/public-surface.md`, this page when the operation rules change,
-and the relevant response or publication page. A wire-contract change also requires the
-authoritative `pypokerlost` compatibility workflow.
+Scope IDs are separate from operation IDs. Protected routes declare exact values through FastAPI
+`Security`, while the matching SDK method declares the same `required_scopes` tuple. See
+`docs/api/body-authorization.md`.

@@ -24,9 +24,11 @@ Their exact composition is documented in `docs/development/commands.md`.
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
 - When a concrete outbound integration changes, run an ephemeral probe for final public SDK
-  imports, target settings, lifespan start/stop, bearer enrichment, explicit safe retry,
-  one-attempt default behavior, and the absence of a database transaction around remote I/O. Do
-  not claim or retain that probe as a pristine test suite.
+  imports, target settings, lifespan start/stop, body authorization injection, explicit safe
+  retry, one-attempt default behavior, and the absence of a database transaction around remote
+  I/O. Do not claim or retain that probe as a pristine test suite.
+- Protected-route probes cover missing/malformed body authentication, invalid token/audience,
+  missing exact scope, exact-scope success, and absence of secrets from logs/errors.
 
 Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local
 daemons, credentials, network access, or external checkouts. See

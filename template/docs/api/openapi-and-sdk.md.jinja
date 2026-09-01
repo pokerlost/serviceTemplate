@@ -1,63 +1,35 @@
 # OpenAPI and SDK
 
-This page defines how `{{ service_name }}` publishes its FastAPI contract and how that contract is
-consumed by the authoritative `pypokerlost` tooling.
+`{{ service_name }}` publishes the unmodified FastAPI OpenAPI 3.1 document through
+`GET /getOpenApi` inside `PokerlostResponse`.
 
-## Publication endpoint
+## Publication
 
-`Settings.openapi_operation` supplies both the publication `operation_id` and its
-`"/" + operation_id` path. The generated `.env.example` uses `openapi.get`, so its default example
-path is `GET /openapi.get`. The operation accepts no parameters or request body and returns the
-OpenAPI JSON object as the `result` of `OpenAPIResponse`. `OpenAPIResponse` is an
-`ApplicationResponse` specialization, so publication uses the same success and failure invariants
-as every other operation.
+`Settings.openapi_operation` is validated as `PokerlostOperation`; the generated value is
+`getOpenApi`. Built-in `/openapi.json`, `/docs`, and `/redoc` routes are disabled.
 
-FastAPI's built-in `/openapi.json`, `/docs`, and `/redoc` routes are disabled. The application calls
-FastAPI's `get_openapi()` for its registered routes, caches the resulting OpenAPI 3.1 document, and
-adds exactly this required platform extension:
+The document contains ordinary paths, request schemas, response schemas, summaries, descriptions,
+tags, and status responses. It contains no project extension, service identity, custom Python
+metadata, or misleading header-oriented security scheme.
 
-```yaml
-x-pokerlost-service:
-  id: {{ service_name }}
-```
+Protected operations expose `PokerlostAuthorizedRequest` in `requestBody`, so
+`authorization.access_token` is visible in the schema. OpenAPI cannot express the exact scopes
+required by a body token. Reviewers compare route `Security` metadata with the SDK method's
+`required_scopes` tuple instead of adding a custom extension.
 
-The identifier is the canonical Copier service identity, while API operation namespaces follow the
-separate rules in `docs/api/operation-contract.md`. `info.version` comes from the
-`application.version` setting and remains a semantic version.
+## Generation
 
-Concrete security declarations come from the concrete service's FastAPI dependencies. The wrapper
-preserves FastAPI-generated security metadata without constructing or rewriting it.
+The authoritative generator reads all available service documents together, skips infrastructure
+routes, validates the POST/JSON/envelope contract and global name uniqueness, then writes flat
+method/type modules. It does not depend on service identity metadata and does not infer scopes from
+descriptions.
 
-## Method generation
+Manual future-facing method stubs remain outside the generator manifest unless explicitly owned.
+They perform ordinary SDK calls when their endpoints exist and never return synthetic success.
 
-The authoritative generator reads the wrapped publication, ignores the two system paths, and
-creates typed `PokerlostMethod` and response classes for compatible service operations. The
-pristine service has no business operation, so it intentionally produces no callable service
-method.
+## Calls
 
-Generation is repository-owned development tooling in the authoritative `pypokerlost` checkout;
-it is not an installed command in the runtime SDK distribution. Service mode receives the
-publication operation explicitly through `--openapi-operation`; its default remains `openapi.get`.
-When the wire contract changes, run the compatibility workflow against the current SDK source and
-verify both service-mode and saved-file generation. The exact operation, request, response, and
-supported-schema requirements are documented in `docs/api/operation-contract.md` and
-`docs/api/application-response.md`.
-
-## Inter-service calls
-
-PokerLost services call one another only through `pypokerlost.Client` and generated methods and
-response types. A concrete service creates a client only for a target declared by its
-`SERVICE.md`, owns that client in application lifespan, reuses it across requests, and closes it on
-shutdown. It does not create a parallel HTTP client, URL builder, response decoder, or local copy
-of a remote service DTO.
-
-The SDK owns transport, generated methods, shared authorization models, generic request headers,
-canonical exceptions, and `PokerLostRetryPolicy`; it does not own token acquisition, credentials,
-storage, refresh, or bearer injection. A consuming service calls the generated `oauth.token`
-method through a service-owned adapter when its application use case requires a token. Retry
-remains disabled until a verified replay-safe call passes
-`RequestOptions(retry=PokerLostRetryPolicy())`. The exact extension pattern is documented in
+Inter-service calls use `PokerlostClient` and generated `PokerlostMethod` classes. Public calls
+serialize `PokerlostRequest`; protected calls pass through retry then authorization middleware and
+serialize `PokerlostAuthorizedRequest`. The complete lifecycle is in
 `docs/architecture/inter-service-clients.md`.
-
-The current pristine endpoints and their publication models are listed in
-`docs/api/public-surface.md`.

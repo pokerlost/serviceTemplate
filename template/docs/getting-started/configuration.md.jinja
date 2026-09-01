@@ -17,10 +17,10 @@ override values from `.env` according to Pydantic Settings behavior.
 
 | Field | Environment variable | Required | Example |
 | --- | --- | --- | --- |
-| `root_operation` | `{{ service_env_prefix }}_ROOT_OPERATION` | Yes | `{{ service_slug }}.getRoot` |
-| `openapi_operation` | `{{ service_env_prefix }}_OPENAPI_OPERATION` | Yes | `openapi.get` |
+| `root_operation` | `{{ service_env_prefix }}_ROOT_OPERATION` | Yes | `getRoot` |
+| `openapi_operation` | `{{ service_env_prefix }}_OPENAPI_OPERATION` | Yes | `getOpenApi` |
 
-Both fields use `pypokerlost.types.APIOperation`, so invalid startup values fail validation. The
+Both fields use `pypokerlost.types.PokerlostOperation`, so invalid startup values fail validation. The
 root operation controls only the operation ID for `GET /`; the HTTP path remains `/`. The OpenAPI
 operation controls both its operation ID and its `"/" + operation_id` path. Business operation IDs
 remain source-defined stable contracts rather than environment settings.
@@ -66,26 +66,8 @@ The database URL must include a username, password, host, and database. It is tr
 | `minimum_level` | `{{ service_env_prefix }}_LOGFIRE__MINIMUM_LEVEL` | Minimum recorded level. |
 | `token` | `{{ service_env_prefix }}_LOGFIRE__TOKEN` | Optional write token, required when remote delivery is enabled. |
 
-## `business_operation_fingerprint`
-
-| Field | Environment variable | Default | Secret? |
-| --- | --- | --- | --- |
-| `secret` | `{{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__SECRET` | Not configured in a pristine service | Yes |
-| `key_version` | `{{ service_env_prefix }}_BUSINESS_OPERATION_FINGERPRINT__KEY_VERSION` | `1` | No |
-
-A configured secret must contain at least 32 UTF-8 bytes. The generic pristine service leaves it
-optional because it has no concrete idempotent mutation. A concrete service with active
-fingerprinting calls `require_secret()` during application composition so a missing secret fails
-startup. Kubernetes supplies the secret only through a Secret reference; the key version belongs
-in the ConfigMap.
-
-The active-key rotation policy is intentionally simple: do not rotate the fingerprint key until
-every retained idempotency record created with the old key has expired or been deleted.
-The persisted digest and key version remain together, and a candidate with another version is a
-conflict. Removing an old secret does not preserve replay comparison for records created with it.
-
-Keep the fingerprint secret, Logfire token, and database URL outside source control. Kubernetes
-supplies them through Secret references rather than the chart ConfigMap; see
+Keep the Logfire token and database URL outside source control. Kubernetes supplies them through
+Secret references rather than the chart ConfigMap; see
 `docs/development/containers-and-kubernetes.md`.
 
 ## Concrete outbound targets
@@ -97,6 +79,6 @@ request timeout are deployment configuration. Token credentials, storage, refres
 scopes, and audience remain service-owned and are added only when the implemented use case needs
 them.
 
-Do not expose `PokerLostRetryPolicy` values as settings; its transport algorithm is fixed by the
+Do not expose `PokerlostRetryPolicy` values as settings; its transport algorithm is fixed by the
 SDK. Do not automatically add authService configuration to every service. The complete ownership
 pattern is in `docs/architecture/inter-service-clients.md`.

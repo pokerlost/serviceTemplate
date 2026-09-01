@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from fastapi.responses import JSONResponse
-
-from api.schemas.responses import ApplicationResponse
+from pypokerlost.types import PokerlostResponse
 
 
 def error_response(
@@ -13,8 +12,8 @@ def error_response(
     error: str,
     error_message: str,
 ) -> JSONResponse:
-    """Serialize one validated ApplicationResponse failure."""
-    response = ApplicationResponse[None](
+    """Serialize one validated PokerlostResponse failure."""
+    response = PokerlostResponse[None](
         ok=False,
         error=error,
         error_message=error_message,

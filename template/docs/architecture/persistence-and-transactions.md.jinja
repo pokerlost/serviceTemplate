@@ -24,11 +24,12 @@ session. Routes, application handlers, repositories, and query adapters do not c
 
 Repositories and query adapters receive the request session and execute explicit SQLAlchemy 2
 statements. They do not create engines or sessions and do not complete the transaction. ORM
-entities, persistence projections, and public API response models remain separate artifacts.
+entities and public API response models remain separate artifacts. A service that needs a read
+projection defines that focused type in its persistence layer and translates it explicitly.
 
-The pristine template supplies metadata, repository, result-reader, and projection foundations but
-no concrete table or business repository. Concrete adapters are added only for responsibilities
-defined in `SERVICE.md`.
+The pristine template supplies metadata and a narrow repository execution base but no generic
+result-reader wrapper, projection framework, concrete table, or business repository. Concrete
+adapters are added only for responsibilities defined in `SERVICE.md`.
 
 ## Remote calls
 
@@ -38,14 +39,14 @@ workflow so remote I/O and a short local persistence phase have explicit orderin
 semantics, without treating either side as a distributed commit participant.
 
 The prohibited span includes service-owned token acquisition, the first target attempt,
-`Retry-After` or jitter backoff sleep, and every later attempt. End the request-owned transaction
+server-directed or jitter backoff sleep, and every later attempt. End the request-owned transaction
 before entering that outbound phase. Reuse the service's existing workflow or reconciliation seam
 for an ambiguous remote outcome; do not introduce an unowned transaction, hold a session idle, or
 treat transport retry as durable business reconciliation.
 
 Mutation retry is allowed only when the target contract persists idempotency and every attempt
 uses the same `business_operation_id` and the same semantic payload. The SDK neither creates that
-key nor persists fingerprint, workflow, outbox, or reconciliation state. Detailed client and retry
+key nor persists workflow, outbox, or reconciliation state. Detailed client and retry
 composition is documented in `docs/architecture/inter-service-clients.md`.
 
 ## Failure mapping

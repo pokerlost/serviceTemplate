@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from .base import SQLAlchemyEntityRepository, SQLAlchemyRepository
+from .base import SQLAlchemyRepository
 
-__all__ = (
-    "SQLAlchemyEntityRepository",
-    "SQLAlchemyRepository",
-)
+__all__ = ("SQLAlchemyRepository",)

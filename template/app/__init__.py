@@ -1,3 +1,3 @@
-"""PokerLost backend service package."""
+"""Pokerlost backend service package."""
 
 from __future__ import annotations
