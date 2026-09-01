@@ -8,8 +8,8 @@ server foundation.
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
 distribution version: 0.2.0
-current dependency:   a10cc8872c5de7e0065b3551e96d23fa2e99958f
-foundation pin:       a10cc8872c5de7e0065b3551e96d23fa2e99958f
+current dependency:   3433a6667c92043f7b3ca479e386878d98a57868
+foundation pin:       3433a6667c92043f7b3ca479e386878d98a57868
 Python:               >=3.14
 ```
 

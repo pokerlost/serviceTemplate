@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-_EXPECTED_SDK_REVISION = "a10cc8872c5de7e0065b3551e96d23fa2e99958f"
+_EXPECTED_SDK_REVISION = "3433a6667c92043f7b3ca479e386878d98a57868"
 
 
 def _contract_name(*parts: str) -> str:
