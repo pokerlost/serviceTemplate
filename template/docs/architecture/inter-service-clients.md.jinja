@@ -12,7 +12,7 @@ The SDK and consuming service own different responsibilities:
 | --- | --- |
 | HTTP transport, target description, request construction, serialization, generated methods, response decoding, and canonical exceptions | `pypokerlost` |
 | Shared OAuth scope, token response, access-token claims, authorization context, and cross-service authorization enums | `pypokerlost` |
-| Connection, timeout, retryable HTTP classification, full-jitter backoff, and `Retry-After` execution | `pypokerlost.PokerLostRetryPolicy` |
+| Connection, timeout, retryable HTTP classification, full-jitter backoff, and `Retry-After` execution | `pypokerlost.client.retry.PokerLostRetryPolicy` |
 | Credentials, requested scopes, audience, token acquisition timing, storage, refresh, and invalidation | The consuming service |
 | Business replay safety, operation fingerprint, workflow state, and reconciliation | The consuming service and target operation contract |
 

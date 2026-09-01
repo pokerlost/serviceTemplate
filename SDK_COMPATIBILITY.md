@@ -11,8 +11,8 @@ The generated dependency uses the published and verified unified foundation SDK 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
 distribution version: 0.2.0
-current dependency:   f2de9e11e66c52685d7324b0d70d747358a8d6e1
-foundation pin:       f2de9e11e66c52685d7324b0d70d747358a8d6e1
+current dependency:   dc38c6e69edcd85c73af88efa2c9e226826622d6
+foundation pin:       dc38c6e69edcd85c73af88efa2c9e226826622d6
 Python:               >=3.14
 ```
 
