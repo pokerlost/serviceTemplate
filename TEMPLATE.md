@@ -13,170 +13,161 @@ Every generated service pins the private `pypokerlost` Git source to one full co
 published on `origin/main`. Builds may forward an SSH agent and trusted GitHub host keys only while
 the builder resolves dependencies. Repository credentials never enter the runtime image or chart.
 
-## Private JSON protocol
+## JSON and HTTP protocol
 
-Pokerlost services use a private body-only JSON operation protocol over HTTPS. The wire contract is
-not standard OAuth2 and does not imitate a header-oriented security scheme.
-
-The only public infrastructure exceptions are:
-
-```text
-GET /
-GET /getOpenApi
-existing liveness/readiness GET probes
-```
-
-They accept neither a business body nor authentication. Every business/API operation follows:
+Every business/API operation uses:
 
 ```text
 POST /<operationId>
-request  = PokerlostRequest[Payload] or PokerlostAuthorizedRequest[Payload]
+Content-Type: application/json
+request  = PokerlostRequest[Payload]
 response = PokerlostResponse[Result]
 ```
 
-Operation IDs match `^[a-z][A-Za-z0-9]*$`, start with a verb, and use one lowerCamelCase segment.
-Business paths equal `"/" + operationId`. Inputs do not use path, query, cookie, form, generic
-transport metadata, or GET bodies. Project code sends ordinary JSON and does not construct framing
-metadata manually.
+Operation IDs match `^[a-z][A-Za-z0-9]*$`, start with a verb, and use one globally unique
+lowerCamelCase segment. Business paths equal `"/" + operationId`.
 
-Public requests contain only `payload`. Protected requests contain `authorization.access_token`
-and `payload`; a token has no type prefix. Client credentials are fields of the `getToken` payload,
-and refresh credentials are fields of the `refreshToken` payload.
+The infrastructure exceptions are `GET /`, `GET /getOpenApi`, and existing health probes. They
+accept neither a business body nor authentication. Business inputs do not use path, query, cookie,
+form, generic transport metadata, or GET bodies.
+
+Protected operations receive an access token only through:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+The request body never contains authorization, access tokens, generic headers, request options, or
+middleware state. Client credentials remain typed fields of `getToken`; refresh credentials remain
+typed fields of `refreshToken`.
 
 ## Response and error contract
 
-`pypokerlost.types.PokerlostResponse[ResultT]` is the only API envelope. Its fields are:
+`pypokerlost.types.PokerlostResponse[ResultT]` is the only API envelope. Its fields are `ok`,
+`result`, `error`, `error_message`, and `retry_after`. Success has no error metadata or retry delay.
+Failure has a stable code, null result, an optional sanitized message, and an optional finite
+non-negative delay in seconds.
+
+Normal endpoints declare the canonical `PokerlostResponse[ResultT]` as their FastAPI
+`response_model`, return plain mappings/data, and let FastAPI validate and serialize successes.
+Application handlers return focused application results and do not know about FastAPI or response
+envelopes. Central handlers alone construct handled failure envelopes, including authentication and
+authorization errors. They never emit FastAPI `detail`, echo submitted values or raw bodies, or
+retain secrets. `error_response()` is the only manual envelope serialization helper and carries
+`retry_after` solely in the body.
+
+The shared platform authentication codes are:
 
 ```text
-ok
-result
-error
-error_message
-retry_after
+POKERLOST_AUTHENTICATION_REQUIRED
+POKERLOST_ACCESS_TOKEN_INVALID
+POKERLOST_ACCESS_TOKEN_EXPIRED
+POKERLOST_INSUFFICIENT_SCOPE
 ```
 
-Success has no error metadata or retry delay. Failure has a stable error code, null result, an
-optional sanitized message, and an optional finite non-negative delay in seconds. Server retry
-guidance exists only in this JSON field. Central handlers create validated envelopes and never
-echo submitted values, raw bodies, traces, SQL details, or secrets.
+## Standard OAuth2 authorization
 
-Local `RequestModel` and `ResponseModel` remain bases for operation payload/result schemas. They
-are not alternate request or response envelopes. Routes translate persistence values into public
-results explicitly instead of relying on an ORM-backed response base.
-
-## Body authorization foundation
-
-The template provides a reusable seam without implementing production token verification:
+The generated foundation provides:
 
 ```text
-app/api/scopes.py
+app/domain/enums/scopes.py
 app/api/dependencies/authorization.py
 app/application/ports/pokerlost_token_verifier.py
 ```
 
-The pristine `Scope` catalog is empty. Concrete services add exact dot-separated lowerCamelCase
-values, validated through `PokerlostScope`. Wildcards are invalid.
+`Scopes` is the service-owned `StrEnum`. Values contain dotted lowerCamelCase capability segments;
+underscores, hyphens, wildcards, and duplicate values are invalid. The focused
+`scope_descriptions()` function is the only OpenAPI description mapping.
 
-`PokerlostTokenVerifier` is a transport-independent local verifier port. `create_app()` accepts an
-optional concrete verifier and stores it in `ApplicationResources`; protected composition without
-one fails closed. The template does not create a fake verifier, JWT implementation, target client,
-credentials, or token store.
+The authorization dependency owns one FastAPI `OAuth2` scheme named `PokerlostOAuth2`, with a
+client-credentials flow, `/getToken`, the complete local scope catalog, and `auto_error=False`.
+FastAPI emits its ordinary OpenAPI `securitySchemes` component and exact per-operation `security`
+requirement without extensions or mutation.
 
-`authorize_pokerlost_request` reads Starlette's cached JSON value, validates only the authorization
-object, verifies the token locally for the service audience, compares the returned audience, and
-requires every exact `SecurityScopes` value. It never uses a role as authorization and never calls
-authService per request.
-
-Concrete routes compose authorization through ordinary FastAPI `Security`:
+A public route omits the dependency. A protected route uses a non-empty exact list:
 
 ```python
 authorization: Annotated[
     PokerlostAuthorizationContext,
     Security(
         authorize_pokerlost_request,
-        scopes=[Scope.READ_SELF],
+        scopes=[Scopes.ACCOUNTS_SELF_GET_ME],
     ),
 ]
 ```
 
-Public routes omit that dependency and use `PokerlostRequest`. Protected routes use
-`PokerlostAuthorizedRequest`.
+The dependency rejects missing/malformed headers, invokes the local verifier with a `SecretStr`
+and exact `SERVICE_NAME` audience, distinguishes invalid and expired tokens, compares audience, and
+checks `required scopes <= verified scopes`. It never checks roles or calls authService per request.
 
-## OpenAPI and routers
+Expired-token rejection occurs before the endpoint handler and business effects. Calling the
+dependency with no scopes is a programming error, not authenticated access without scopes.
 
-FastAPI produces the unmodified OpenAPI 3.1 document. The template adds no project extension,
-service identity, Python import metadata, or custom authorization metadata. It does not publish a
-misleading OAuth2, API-key, or other header-oriented security scheme.
+## OpenAPI and generation
 
-Body authentication appears honestly in the protected request schema. OpenAPI cannot express the
-exact scopes required by a body token, so maintainers compare two canonical sources: the route
-`Security(..., scopes=[...])` declaration and the generated SDK method's `required_scopes` tuple.
+FastAPI produces the unmodified OpenAPI 3.1 document; `GET /getOpenApi` returns that document
+directly. Built-in schema and documentation URLs remain disabled.
 
-Built-in schema and documentation URLs remain disabled. `GET /getOpenApi` returns the ordinary
-document inside `PokerlostResponse`.
+The SDK generator validates all service documents together. `PokerlostScopes` is the explicit
+SDK-owned shared catalog. Standard OAuth2 metadata supplies each implemented protected operation's
+exact scopes, and the generator requires every extracted value to exist in that catalog. A document
+with no protected operation may omit `components.securitySchemes`; its public methods use
+`__scopes__ = None`. Once an operation is protected, the supported standard OAuth2 scheme and a
+non-empty exact scope list are mandatory. Empty scope requirements, unknown schemes/scopes, mixed
+alternatives, or global operation collisions fail generation.
 
-Routers are flat modules such as `app/api/routers/root.py`, `app/api/routers/openapi.py`, and
-`app/api/routers/get_me.py`. Each module owns one factory and one primary decorated endpoint. There
-are no one-directory-per-router packages, imperative route registration, route operation
-constants, or post-hoc mutation.
+Routers remain flat modules with one module-level `router = APIRouter(...)` and module-level
+decorated endpoints. Static router factories and nested endpoints are forbidden. Generated and
+handwritten SDK methods and types remain flat; SDK-owned enums form an explicit flat catalog.
 
 ## Outbound SDK boundary
 
-The SDK owns HTTP transport, generated methods, request envelopes, response decoding, canonical
-errors, authorization middleware, retry middleware, and token lifecycle coordination. A concrete
-consumer supplies target configuration, client credentials, a token store implementation, and a
-dedicated auth-target `PokerlostClient` without authorization middleware.
+The SDK owns HTTP transport, generated contracts, canonical response decoding/errors, retry,
+bearer injection, and the protocol boundary for one reactive refresh. It does not store client
+credentials, call `GetToken` automatically, persist state, run background refresh, or own service
+scope policy.
 
-Protected client composition is:
+A consuming service explicitly acquires the initial token, then persists encrypted token state
+with an absolute timezone-aware UTC expiration and positive version. Its injected token store uses
+compare-and-swap semantics. Its injected refresher owns distributed lease/CAS coordination and
+invokes `RefreshToken` through a dedicated auth client without holding a PostgreSQL transaction
+during network I/O.
 
-```text
-PokerlostRetryMiddleware
-→ PokerlostAuthorizationMiddleware
-→ transport
-```
+For `method.__scopes__ is None`, middleware bypasses token state and sends no Authorization header.
+For a non-empty tuple, it loads the exact client/audience/scope key. Missing metadata, an empty
+tuple, or missing state fails locally.
 
-Retry is explicit per call through
-`PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. The shared immutable policy uses at
-most three attempts including the first, full jitter, a five-second logical budget, and body
-`retry_after`. Authentication failures invalidate token state for a later independent call but do
-not replay the current call. Insufficient scope never refreshes or retries.
+Local expiration metadata does not trigger refresh by itself. Exactly
+`POKERLOST_ACCESS_TOKEN_EXPIRED` may trigger one refresh and one identical replay. Invalid token,
+insufficient scope, or a second expiration never triggers another refresh.
 
-Transport retry does not create business idempotency. A replayable mutation must reuse its own
-business operation ID, semantic payload, operation, and target. No PostgreSQL transaction remains
-open during token acquisition, remote calls, retry sleep, or later attempts.
+Retry remains explicit through `PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`.
+Body `retry_after` is the only server delay input. Transport retry is not business idempotency; a
+replayable mutation must preserve its business operation ID and semantic payload.
 
-## Privacy and observability
+## Privacy, persistence, and deployment
 
-Pydantic request/settings models hide validation input where secrets may appear. Secret fields are
-repr-hidden. FastAPI instrumentation disables header and body capture; Logfire argument inspection
-is disabled and focused scrubbing covers authentication and credential terms. Central validation
-and unexpected-error responses are sanitized.
+Secret fields are repr-hidden and Pydantic input hiding is enabled. FastAPI instrumentation captures
+neither headers nor bodies. Central errors and logs retain no credentials, tokens, Authorization
+headers, or raw payloads.
 
-Request IDs are generated only by the server and stored in request state/telemetry. The template
-does not read caller correlation metadata or return request identifiers as a public transport
-contract.
+PostgreSQL remains the source of truth for generated-service persistence. One request owns one
+transaction. No transaction spans token acquisition, refresh, remote calls, or retry sleep.
 
-## Generated architecture and deployment
-
-The source tree separates `api`, `application`, `domain`, `configuration`, `observability`,
-`persistence`, and `cli`. The application foundation includes immutable `Command`, `Query`, and
-`Result` values plus the structural asynchronous `Handler` port. Persistence provides reusable
-SQLAlchemy metadata, narrow repository execution, and one request-owned transaction, without a
-concrete model, read-projection framework, or migration.
-
-Production deployment requires HTTPS/TLS. The generated Helm service is an internal ClusterIP that
-must remain behind trusted TLS termination; it is not a plaintext production edge. Secrets enter
-through Kubernetes Secret references rather than chart values or ConfigMaps.
+Production deployment requires HTTPS/TLS. The generated Helm service is an internal ClusterIP
+behind trusted TLS termination. Secrets enter through Kubernetes Secret references, not chart
+values or ConfigMaps.
 
 ## Ownership and intentional omissions
 
-Copier owns the reusable scaffold. Generated services own `SERVICE.md`, their domain, handlers,
-persistence entities, migrations, scopes, concrete verifier, and implemented routes. Copier
-updates must preserve those files and service meaning.
+Copier owns the reusable scaffold. Generated services own `SERVICE.md`, domain behavior, handlers,
+persistence entities, migrations, concrete domain enums and scopes, verifier, token
+persistence/refresher adapters, and implemented routes. Copier updates preserve service meaning
+and service-owned files.
 
 The pristine template intentionally contains no business operation, concrete entity, fake
-migration, login flow, token grant, refresh persistence, JWKS implementation, production verifier,
-outbound client, credential, token store, role policy, worker, gateway, or workflow framework.
+migration, production verifier, outbound client, credential, token store, crypto primitive, role
+policy, worker, gateway, or workflow framework.
 
 The release history is in `CHANGELOG.md`; copy/update steps are in `CREATE_SERVICE.md`; the exact
 SDK compatibility procedure is in `SDK_COMPATIBILITY.md`.

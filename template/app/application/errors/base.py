@@ -12,3 +12,8 @@ class ApplicationError(Exception):
 
     error_code: ClassVar[str] = f"{SERVICE_ERROR_PREFIX}_APPLICATION_ERROR"
     public_message: ClassVar[str] = "Application operation failed."
+
+    @property
+    def retry_after(self) -> float | None:
+        """Return safe retry guidance only for explicitly retryable failures."""
+        return None

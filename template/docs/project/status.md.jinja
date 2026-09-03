@@ -11,7 +11,7 @@ PostgreSQL transaction ownership, Alembic, Docker, Helm, and the locked quality 
 The two base endpoints are ready with the `.env.example` values:
 
 - `GET /` returns the service root envelope;
-- `GET /getOpenApi` publishes the wrapped FastAPI OpenAPI document.
+- `GET /getOpenApi` publishes the raw FastAPI OpenAPI document.
 
 Their operation IDs are `getRoot` and `getOpenApi`; the root HTTP path is always `/`.
 
@@ -21,13 +21,15 @@ Their exact contract is listed in `docs/api/public-surface.md`.
 
 Business functionality is absent by design. The pristine repository defines no concrete business
 operation, entity, table, migration, remote-service client, concrete token verifier, credential,
-token store, or service-specific retry configuration. The empty scope catalog, verifier port, and
-fail-closed body dependency are reusable foundation rather than business policy.
+token store, or service-specific retry configuration. The empty domain scope catalog, OAuth2
+dependency, verifier port, and fail-closed bearer behavior are reusable foundation rather than
+business policy. Because no route is protected, the production OpenAPI document need not publish
+an unused security scheme.
 
 The SDK transport/middleware boundary and explicit `PokerlostRetryPolicy` opt-in are documented in
 `docs/architecture/inter-service-clients.md`. These are extension points, not default runtime
 resources: a pristine service has no target URL, client ID, client secret, scope bundle, token
-cache, or unused client.
+state, refresher, or unused client.
 
 `SERVICE.md` must define the concrete service purpose, responsibilities, and service-specific rules
 before those capabilities are added. Future domain documentation should describe only

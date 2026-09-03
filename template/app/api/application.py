@@ -38,6 +38,6 @@ def create_app(
 
     configure_request_context(application)
     configure_exception_handlers(application)
-    configure_routes(application, resolved_settings)
+    configure_routes(application)
     instrument_fastapi(application, resolved_settings)
     return application

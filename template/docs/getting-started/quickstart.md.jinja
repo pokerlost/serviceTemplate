@@ -36,9 +36,10 @@ curl --fail-with-body http://127.0.0.1:8000/
 curl --fail-with-body http://127.0.0.1:8000/getOpenApi
 ```
 
-The response wraps the unmodified FastAPI OpenAPI document in `PokerlostResponse`. The document
-contains no project extension or misleading header-oriented security scheme.
+The response is the unmodified FastAPI OpenAPI document. When a concrete service has protected
+operations, the document contains their standard OAuth2 security metadata. With no protected
+operation, an unused security scheme may be absent.
 
 The pristine service exposes no business operation. Before adding one, read
-`docs/api/operation-contract.md`, `docs/api/body-authorization.md`, and
+`docs/api/operation-contract.md`, `docs/api/header-authorization.md`, and
 `docs/api/pokerlost-response.md`.

@@ -6,7 +6,7 @@ This repository owns the shared Copier foundation for Pokerlost backend services
 
 1. Read this file, `TEMPLATE.md`, and `copier.yml`.
 2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
-   `PokerlostResponse`, body authorization, OpenAPI publication, Python support, or SDK integration.
+   `PokerlostResponse`, header authorization, OpenAPI publication, Python support, or SDK integration.
 3. Inspect the current template, documentation, Makefile, pre-commit configuration, and relevant
    generated source before editing.
 4. Inspect the authoritative `pypokerlost` implementation whenever a shared SDK contract changes.
@@ -75,9 +75,11 @@ or pre-release layouts unless the user explicitly requires them.
   service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and
   confirm service-owned `SERVICE.md` remains unchanged.
-- Run the complete compatibility probe in `SDK_COMPATIBILITY.md` after changes to API operations,
-  request/response envelopes, body authorization, OpenAPI, Python, or the SDK boundary.
+- Run the manual compatibility verification in `SDK_COMPATIBILITY.md` after changes to API operations,
+  request/response envelopes, header authorization, OpenAPI, Python, or the SDK boundary.
 - Report every unavailable tool, failed command, and external-service limitation.
+- Do not add or modify tests unless the user explicitly requests them. Do not add rendered-template
+  checkers, `scripts/check_*.py`, architecture checker scripts, or hidden equivalents.
 
 ## Git hygiene
 

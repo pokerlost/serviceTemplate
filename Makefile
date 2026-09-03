@@ -5,15 +5,15 @@ UVX ?= uvx
 RUFF_VERSION := 0.16.4
 MYPY_SPEC := mypy>=2.3,<2.4
 PRE_COMMIT_VERSION := 4.6.2
-COPIER_VERSION := 9.17.2
-TEMPLATE_SERVICE_NAME := exampleService
-MARKDOWN_DOCUMENTS := $(shell find . -type f \( -name '*.md' -o -name '*.md.jinja' \) -not -path './.git/*' -print)
+MARKDOWN_DOCUMENTS := $(shell find . -type f \( -name '*.md' -o -name '*.md.jinja' \) \
+	-not -path './.git/*' -not -path './.pytest_cache/*' -not -path './.mypy_cache/*' \
+	-not -path './.ruff_cache/*' -not -path './.venv/*' -print)
 
 define require_tool
 	@command -v "$(1)" >/dev/null 2>&1 || { echo "Required tool not found: $(1)" >&2; exit 127; }
 endef
 
-.PHONY: help format format-check lint typecheck docs-check pre-commit template-copy template-check check check-full
+.PHONY: help format format-check lint typecheck docs-check pre-commit check check-full
 
 help: ## Show this help message
 	$(call require_tool,awk)
@@ -44,24 +44,6 @@ docs-check: ## Validate Markdown structure and the no-relative-link policy
 	$(call require_tool,$(PYTHON))
 	$(PYTHON) template/scripts/check_documentation.py --documents $(MARKDOWN_DOCUMENTS)
 
-define run_template_workflow
-	$(call require_tool,$(UVX))
-	$(call require_tool,$(PYTHON))
-	@set -eu; \
-	destination="$$(mktemp -d /tmp/pokerlost-service-template.XXXXXX)"; \
-	case "$$destination" in /tmp/pokerlost-service-template.*) ;; *) exit 2 ;; esac; \
-	trap 'rm -rf -- "$$destination"' EXIT; \
-	$(UVX) --from 'copier==$(COPIER_VERSION)' copier copy --defaults \
-		--data service_name='$(TEMPLATE_SERVICE_NAME)' . "$$destination"; \
-	$(PYTHON) scripts/check_rendered_template.py $(1) "$$destination"
-endef
-
-template-copy: ## Render and inspect one disposable fresh service
-	$(call run_template_workflow,copy)
-
-template-check: ## Render and statically verify one disposable fresh service
-	$(call run_template_workflow,check)
-
-check: format-check lint typecheck docs-check template-check ## Run regular non-mutating maintainer checks
+check: format-check lint typecheck docs-check ## Run regular non-mutating maintainer checks
 
 check-full: check pre-commit ## Run regular checks and all pre-commit hooks

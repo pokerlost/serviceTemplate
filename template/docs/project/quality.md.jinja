@@ -8,7 +8,8 @@ This page describes the independent checks available in the generated service an
 - Ruff lint checks enforce the selected rules in `pyproject.toml`.
 - Strict mypy checks the project-owned application and documentation-checker source with Python
   3.14 semantics.
-- `compileall` checks that application modules, the Alembic entry point, and documentation checker compile.
+- `compileall` checks that application modules, the Alembic entry point, and product-tool source
+  compile.
 - Pre-commit applies standard file hygiene and runs project Ruff, mypy, and documentation hooks through the locked environment.
 - The documentation audit rejects relative inter-file links and checks the index inventory,
   same-document anchors, H1 ownership, opening paragraphs, fenced-block languages, and prohibited
@@ -23,12 +24,13 @@ Their exact composition is documented in `docs/development/commands.md`.
 - Docker build and an explicit runtime `GET /` smoke check packaging and process startup when that environment-dependent workflow is run.
 - `helm lint` and `helm template` check chart structure and rendered Kubernetes resources.
 - The authoritative OpenAPI generator and installed-SDK end-to-end probe check `pypokerlost` compatibility when an API wire contract changes.
-- When a concrete outbound integration changes, run an ephemeral probe for final public SDK
-  imports, target settings, lifespan start/stop, body authorization injection, explicit safe
-  retry, one-attempt default behavior, and the absence of a database transaction around remote
-  I/O. Do not claim or retain that probe as a pristine test suite.
-- Protected-route probes cover missing/malformed body authentication, invalid token/audience,
-  missing exact scope, exact-scope success, and absence of secrets from logs/errors.
+- When a concrete outbound integration changes, verify final public SDK imports, target settings,
+  lifespan start/stop, bearer injection, one reactive expired-token refresh/replay, explicit safe
+  retry, and the absence of a database transaction around remote I/O using the checks authorized
+  by that task.
+- Protected-route verification covers missing/malformed bearer authentication, invalid/expired
+  token, audience mismatch, missing exact scope, exact-scope success, and absence of secrets from
+  logs/errors when the task requests that work.
 
 Docker, Helm, PostgreSQL, and SDK/OpenAPI workflows remain explicit because they can require local
 daemons, credentials, network access, or external checkouts. See
@@ -39,4 +41,6 @@ daemons, credentials, network access, or external checkouts. See
 
 These checks detect specific formatting, typing, syntax, documentation, metadata, packaging, rendering, and compatibility failures. They are not proof of business correctness, production readiness, or security.
 
-The pristine template does not claim unit or integration tests, coverage, a security audit, performance measurements, or CI/CD. Do not add or publish such claims unless the corresponding maintained workflow exists and its current result was actually verified.
+The pristine template intentionally ships no permanent tests or task-specific architecture checker.
+Add tests only when a user task explicitly requests them. The checks above do not prove business
+correctness, production readiness, coverage, a security audit, performance, or CI/CD.

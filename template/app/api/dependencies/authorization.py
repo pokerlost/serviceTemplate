@@ -1,18 +1,17 @@
-"""Body-only Pokerlost request authorization dependency."""
+"""OAuth2 bearer authorization for protected Pokerlost operations."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import Depends, Request
-from fastapi.security import SecurityScopes
-from pydantic import ValidationError
+from fastapi import Security
+from fastapi.openapi.models import OAuthFlowClientCredentials, OAuthFlows
+from fastapi.security import OAuth2, SecurityScopes
+from fastapi.security.utils import get_authorization_scheme_param
+from pydantic import SecretStr
 from pypokerlost.types import (
-    JSONValue,
-    PokerlostAuthorization,
+    PokerlostAudience,
     PokerlostAuthorizationContext,
-    PokerlostScope,
 )
 
 from application.errors import (
@@ -21,59 +20,79 @@ from application.errors import (
     InvalidAccessTokenError,
 )
 from application.ports import PokerlostTokenVerifier
+from domain.enums import Scopes, scope_descriptions
 from service import SERVICE_NAME
 
 from .resources import ApplicationResourcesDep
 
 
-def _resolve_pokerlost_token_verifier(
-    resources: ApplicationResourcesDep,
-) -> PokerlostTokenVerifier:
+def _resolve_pokerlost_token_verifier(resources: ApplicationResourcesDep) -> PokerlostTokenVerifier:
     verifier = resources.token_verifier
     if verifier is None:
         raise RuntimeError("Pokerlost token verifier is not configured")
     return verifier
 
 
-type PokerlostTokenVerifierDep = Annotated[
-    PokerlostTokenVerifier,
-    Depends(_resolve_pokerlost_token_verifier),
+_SERVICE_AUDIENCE = PokerlostAudience(SERVICE_NAME)
+_pokerlost_oauth2_scheme = OAuth2(
+    flows=OAuthFlows(
+        clientCredentials=OAuthFlowClientCredentials(
+            tokenUrl="/getToken",
+            scopes=scope_descriptions(),
+        ),
+    ),
+    scheme_name="PokerlostOAuth2",
+    description="Pokerlost service access token with exact capability scopes.",
+    auto_error=False,
+)
+
+type PokerlostAuthorizationHeader = Annotated[
+    str | None,
+    Security(_pokerlost_oauth2_scheme),
 ]
 
 
-async def _read_authorization(request: Request) -> PokerlostAuthorization:
-    """Validate only the authorization object from Starlette's cached JSON value."""
+def _parse_route_scopes(security_scopes: SecurityScopes) -> tuple[Scopes, ...]:
+    """Validate the protected-route scope declaration before token verification."""
+    if not security_scopes.scopes:
+        raise RuntimeError("Protected Pokerlost operations require at least one exact scope")
     try:
-        body = cast(JSONValue, await request.json())
-    except UnicodeDecodeError, ValueError:
-        raise AuthenticationRequiredError from None
-    if not isinstance(body, Mapping):
+        route_scopes = tuple(Scopes(scope) for scope in security_scopes.scopes)
+    except ValueError:
+        raise RuntimeError("Protected Pokerlost operation declares an unknown scope") from None
+    if len(frozenset(route_scopes)) != len(route_scopes):
+        raise RuntimeError("Protected Pokerlost operation declares duplicate scopes")
+    return route_scopes
+
+
+def _read_bearer_token(authorization_header: str | None) -> SecretStr:
+    """Extract one non-empty bearer credential without exposing it in errors."""
+    if authorization_header is None:
         raise AuthenticationRequiredError
-    try:
-        return PokerlostAuthorization.model_validate(body.get("authorization"))
-    except ValidationError:
-        raise AuthenticationRequiredError from None
+    scheme, token = get_authorization_scheme_param(authorization_header)
+    if (
+        scheme.casefold() != "bearer"
+        or not token
+        or any(character.isspace() for character in token)
+    ):
+        raise AuthenticationRequiredError
+    return SecretStr(token)
 
 
 async def authorize_pokerlost_request(
-    request: Request,
     security_scopes: SecurityScopes,
-    verifier: PokerlostTokenVerifierDep,
+    authorization_header: PokerlostAuthorizationHeader,
+    resources: ApplicationResourcesDep,
 ) -> PokerlostAuthorizationContext:
-    """Verify body authentication, audience, and every exact required scope."""
-    authorization = await _read_authorization(request)
-    try:
-        context = await verifier.verify(
-            authorization.access_token,
-            audience=SERVICE_NAME,
-        )
-    except InvalidAccessTokenError:
-        raise
-    if context.audience != SERVICE_NAME:
+    """Verify bearer authentication, audience, and every exact required scope."""
+    route_scopes = _parse_route_scopes(security_scopes)
+    token = _read_bearer_token(authorization_header)
+    verifier = _resolve_pokerlost_token_verifier(resources)
+    context = await verifier.verify(token, audience=_SERVICE_AUDIENCE)
+    if context.audience != _SERVICE_AUDIENCE:
         raise InvalidAccessTokenError
 
-    required_scopes = tuple(PokerlostScope(scope) for scope in security_scopes.scopes)
-    granted_scopes = frozenset(context.scopes)
-    if any(scope not in granted_scopes for scope in required_scopes):
+    granted_scope_values = frozenset(scope.value for scope in context.scopes)
+    if any(scope.value not in granted_scope_values for scope in route_scopes):
         raise InsufficientScopeError
     return context

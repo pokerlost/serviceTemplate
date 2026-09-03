@@ -5,7 +5,7 @@ This is the endpoint manifest for a pristine generated `{{ service_name }}` serv
 | Method and path | `operation_id` | Request | Response |
 | --- | --- | --- | --- |
 | `GET /` | `getRoot` | No body or authentication | `PokerlostResponse[None]` |
-| `GET /getOpenApi` | `getOpenApi` | No body or authentication | `PokerlostResponse[dict[str, JSONValue]]` |
+| `GET /getOpenApi` | `getOpenApi` | No body or authentication | OpenAPI JSON document |
 
 The root response is:
 
@@ -23,5 +23,5 @@ Neither endpoint proves database readiness or contains business behavior. Livene
 use `/` only as process availability.
 
 A concrete service records every implemented business route here with its exact POST path,
-operation ID, public/protected envelope, typed result, statuses, and required scopes. Planned SDK
-stubs are not documented as active server endpoints.
+operation ID, typed body/result, statuses, and exact required scopes. Planned SDK stubs are not
+documented as active server endpoints.

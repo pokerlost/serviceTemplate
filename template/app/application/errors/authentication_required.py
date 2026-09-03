@@ -8,7 +8,7 @@ from .base import ApplicationError
 
 
 class AuthenticationRequiredError(ApplicationError):
-    """The request omitted or malformed its body authorization object."""
+    """The request omitted or malformed its bearer authorization header."""
 
-    error_code: ClassVar[str] = "AUTHENTICATION_REQUIRED"
+    error_code: ClassVar[str] = "POKERLOST_AUTHENTICATION_REQUIRED"
     public_message: ClassVar[str] = "Authentication is required."

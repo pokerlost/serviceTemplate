@@ -2,38 +2,18 @@
 
 from __future__ import annotations
 
-from typing import cast
+from fastapi import APIRouter, Request, status
 
-from fastapi import APIRouter, FastAPI, status
-from pypokerlost.types import PokerlostOperation, PokerlostResponse
-
-from api.schemas.json import JSONValue
+router = APIRouter(tags=["openapi"])
 
 
-def create_openapi_router(
-    *,
-    application: FastAPI,
-    operation: PokerlostOperation,
-) -> APIRouter:
-    """Create the bodyless OpenAPI publication router."""
-    router = APIRouter(tags=["openapi"])
-
-    @router.get(
-        path=f"/{operation}",
-        operation_id=operation,
-        response_model=PokerlostResponse[dict[str, JSONValue]],
-        status_code=status.HTTP_200_OK,
-        summary="Get the OpenAPI JSON document",
-        description="Return the generated service contract in the canonical response envelope.",
-        responses={
-            status.HTTP_500_INTERNAL_SERVER_ERROR: {
-                "model": PokerlostResponse[None],
-            },
-        },
-    )
-    async def get_openapi_document() -> PokerlostResponse[dict[str, JSONValue]]:
-        """Return the unmodified FastAPI OpenAPI document."""
-        document = cast(dict[str, JSONValue], application.openapi())
-        return PokerlostResponse[dict[str, JSONValue]](ok=True, result=document)
-
-    return router
+@router.get(
+    path="/getOpenApi",
+    operation_id="getOpenApi",
+    status_code=status.HTTP_200_OK,
+    summary="Get the OpenAPI JSON document",
+    description="Return the unmodified generated service contract.",
+)
+async def get_open_api(request: Request) -> dict[str, object]:
+    """Return the unmodified FastAPI OpenAPI document."""
+    return request.app.openapi()

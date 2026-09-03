@@ -5,8 +5,6 @@ metadata:
   labels:
     {{ '{{-' }} include "pokerlost.service.labels" . | nindent 4 {{ '}}' }}
 data:
-  {{ service_env_prefix }}_ROOT_OPERATION: {{ '{{' }} required "rootOperation is required" .Values.rootOperation | quote {{ '}}' }}
-  {{ service_env_prefix }}_OPENAPI_OPERATION: {{ '{{' }} required "openapiOperation is required" .Values.openapiOperation | quote {{ '}}' }}
   {{ '{{-' }} range $name, $value := .Values.environment {{ '}}' }}
   {{ '{{' }} $name {{ '}}' }}: {{ '{{' }} $value | quote {{ '}}' }}
   {{ '{{-' }} end {{ '}}' }}

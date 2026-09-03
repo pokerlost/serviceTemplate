@@ -24,7 +24,7 @@ def configure_request_context(application: FastAPI) -> None:
     @application.middleware("http")
     async def request_context_middleware(
         request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
+        call_next: Callable[..., Awaitable[Response]],
     ) -> Response:
         request_id = str(uuid4())
         request.state.request_id = request_id

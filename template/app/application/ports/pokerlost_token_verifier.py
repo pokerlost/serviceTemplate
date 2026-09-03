@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from pypokerlost.types import PokerlostAuthorizationContext
+from pydantic import SecretStr
+from pypokerlost.types import PokerlostAudience, PokerlostAuthorizationContext
 
 
 class PokerlostTokenVerifier(Protocol):
@@ -12,9 +13,9 @@ class PokerlostTokenVerifier(Protocol):
 
     async def verify(
         self,
-        token: str,
+        token: SecretStr,
         *,
-        audience: str,
+        audience: PokerlostAudience,
     ) -> PokerlostAuthorizationContext:
-        """Return immutable verified claims or raise InvalidAccessTokenError."""
+        """Return verified claims or raise an invalid/expired token application error."""
         ...

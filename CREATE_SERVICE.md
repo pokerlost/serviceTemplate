@@ -22,9 +22,9 @@ uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
 
 ## Fresh-copy verification
 
-Confirm the generated repository contains the flat root/OpenAPI routers, body-authorization
-dependency, empty scope catalog, verifier port, complete docs tree, Makefile, Helm chart, and
-Copier answers. Then run:
+Confirm the generated repository contains the flat root/OpenAPI routers, standard OAuth2 bearer
+dependency, empty local domain `Scopes` catalog, verifier port, complete docs tree, Makefile, Helm
+chart, and Copier answers. Then run the available non-test checks:
 
 ```bash
 cd <destination>
@@ -36,9 +36,12 @@ uv sync --locked
 uv lock --check
 uv run --locked python -c "import pypokerlost; print(pypokerlost.__version__)"
 make help
-make check
+make format
+make format-check
+make lint
+make typecheck
+make docs-check
 make pre-commit
-make check-full
 python -m compileall -q app alembic/env.py scripts
 git diff --check
 ```
@@ -47,9 +50,11 @@ Verify the pristine endpoints through the real lifespan:
 
 - `GET /` has operation ID `getRoot`, no body, and returns `PokerlostResponse[None]`;
 - `GET /getOpenApi` has operation ID `getOpenApi`, no body, and returns the unmodified FastAPI
-  document inside `PokerlostResponse`;
+  document directly;
 - built-in schema/documentation routes are disabled;
-- no project OpenAPI extension, service identity, or misleading security scheme exists;
+- no project OpenAPI extension or service identity exists;
+- the pristine document has no security requirement or empty OAuth2 scheme because it has no
+  protected route; a real protected route publishes the complete standard scheme when implemented;
 - no response or request correlation metadata is exposed as a public transport contract.
 
 Inspect runtime composition and confirm it contains no fake verifier, outbound client, credentials,
@@ -60,7 +65,7 @@ Inspect `pyproject.toml` and `uv.lock`: `pypokerlost` must resolve from the priv
 the immutable revision documented in `SDK_COMPATIBILITY.md`. Neither file may contain a sibling
 path, local file source, credential, or floating branch.
 
-For the body protocol, generator, middleware, scope, OpenAPI, privacy, and negative probes, follow
+For the header protocol, generator, middleware, scope, OpenAPI, privacy, and negative probes, follow
 the complete procedure in `SDK_COMPATIBILITY.md`. Temporary protected routes and disposable local
 verifiers must be removed after verification.
 
@@ -97,15 +102,10 @@ For every managed-file change:
 3. update from the new template revision;
 4. confirm template-owned files update and obsolete unchanged files disappear;
 5. confirm `SERVICE.md`, service behavior, migrations, and service scope values remain unchanged;
-6. confirm the flat router/body-auth foundation is present;
+6. confirm the flat router/header-auth foundation is present;
 7. repeat documentation, compile, quality, OpenAPI, and SDK compatibility checks.
 
-The repository provides source-only disposable smoke targets:
-
-```bash
-make template-copy
-make template-check
-```
-
-They do not replace dependency-backed SDK or runtime verification. Report every unavailable tool,
-failed command, and environment limitation.
+Use a temporary destination for one fresh render, inspect its paths and imports with ordinary shell
+commands, then delete it. Do not commit permanent tests, rendered-template checkers, or equivalent
+hidden validation logic unless a later task explicitly requests tests. Report every unavailable
+tool, failed command, and environment limitation.

@@ -1,22 +1,21 @@
 # serviceTemplate ↔ pypokerlost compatibility
 
-This is the canonical maintainer contract and verification procedure for the generated Pokerlost
-server foundation.
+This document defines the generated server foundation's public SDK boundary and its maintained
+cross-repository verification procedure.
 
 ## Authoritative SDK revision
 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
 distribution version: 0.2.0
-current dependency:   3433a6667c92043f7b3ca479e386878d98a57868
-foundation pin:       3433a6667c92043f7b3ca479e386878d98a57868
+current dependency:   8652cc850ccef8a00538ba6ff0b545ff7f3d38af
+foundation pin:       8652cc850ccef8a00538ba6ff0b545ff7f3d38af
 Python:               >=3.14
 ```
 
-Replace the revision in this document, `template/pyproject.toml.jinja`, and
-`scripts/check_rendered_template.py` only with the exact full SDK SHA confirmed on
-`origin/main`. Lock generated services to that same revision. Never use a sibling path, local file
-source, embedded credential, unverified index, or floating branch.
+Replace the revision in this document and `template/pyproject.toml.jinja` only with the exact full
+SDK SHA confirmed on `origin/main`. Lock generated services to that same revision. Never use a
+sibling path, local file source, embedded credential, unverified index, or floating branch.
 
 ## Public compatibility boundary
 
@@ -24,220 +23,153 @@ The generated foundation relies on these flat SDK imports:
 
 ```python
 from pypokerlost import PokerlostClient, PokerlostMethod, PokerlostRequestOptions
+from pypokerlost.enums import PokerlostScopes
 from pypokerlost.middleware import (
-    PokerlostAuthorizationMiddleware,
-    PokerlostMiddleware,
+    PokerlostAuthenticationMiddleware,
     PokerlostRetryMiddleware,
     PokerlostRetryPolicy,
+    PokerlostTokenRefresher,
     PokerlostTokenStore,
 )
 from pypokerlost.types import (
     PokerlostAccessTokenClaims,
-    PokerlostAuthorization,
+    PokerlostAudience,
     PokerlostAuthorizationContext,
-    PokerlostAuthorizedRequest,
-    PokerlostClientCredentials,
     PokerlostOperation,
     PokerlostRequest,
     PokerlostResponse,
-    PokerlostScope,
+    PokerlostStoredToken,
     PokerlostToken,
-    PokerlostTokenState,
+    PokerlostTokenKey,
 )
 ```
 
-Generated operation imports are flat under `pypokerlost.methods`; generated wire/value types are
-flat under `pypokerlost.types`. No service directories or contracts compatibility package are part
-of the boundary.
+Generated and handwritten methods and types are flat. SDK-owned enums form an explicit flat catalog
+under `pypokerlost/enums/`; there are no service subdirectories or contracts compatibility package.
 
 ## Operation protocol
 
-Pokerlost APIs use a private JSON protocol over HTTPS. It is not standard OAuth2 and is not bearer
-wire-compatible.
+Every generated business method uses `POST /<operationId>`, an `application/json`
+`PokerlostRequest[Payload]`, and `PokerlostResponse[Result]`. Operation names are globally unique
+single lowerCamelCase verbs matching `^[a-z][A-Za-z0-9]*$`.
 
-Every generated business method is:
-
-```text
-HTTP method: POST
-path:        /<operationId>
-operation:   ^[a-z][A-Za-z0-9]*$
-request:     application/json
-response:    PokerlostResponse[Result]
-```
-
-`GET /`, `GET /getOpenApi`, and existing health endpoints are public bodyless infrastructure
-exceptions and are skipped by method generation where the generator already treats them as
-system routes.
-
-Public and token operations accept:
-
-```json
-{
-  "payload": {}
-}
-```
-
-Protected operations accept:
-
-```json
-{
-  "authorization": {
-    "access_token": "secret-value"
-  },
-  "payload": {}
-}
-```
-
-There is no public generic transport-metadata option. Project code supplies only the JSON value to
-the HTTP library.
-
-## Token operations
-
-`getToken` and `refreshToken` are ordinary public generated calls. Service credentials and refresh
-credentials are serialized inside their respective JSON payloads. Neither operation requires an
-access token.
-
-`PokerlostToken` contains access token, optional refresh token, positive expiry seconds, exact
-immutable scopes, and audience. It contains no token-type or transport representation and performs
-no network or storage work. Secret-bearing fields are repr-hidden and validation-input-hidden.
-
-Future authService stages may add separate typed grant operations. The template and generator do
-not collapse them into a loose string-driven endpoint.
-
-## Response contract
-
-`PokerlostResponse[ResultT]` has exactly five fields:
+Protected calls add only:
 
 ```text
-ok
-result
-error
-error_message
-retry_after
+Authorization: Bearer <access-token>
 ```
 
-For success, result may be null and all failure metadata is null. For failure, result is null,
-`error` is a stable code, `error_message` is optional sanitized text, and `retry_after` is optional
-finite non-negative seconds. Invalid combinations are rejected through validation, never runtime
-assertions.
+The access token does not appear in the request body. There is no public generic headers option or
+generic internal headers map.
 
-The client decodes this envelope for both 2xx and non-2xx responses. A valid failed envelope raises
-the canonical typed API error; malformed JSON/envelope/result raises a protocol error. Exceptions
-never retain raw bodies, authentication material, or client credentials.
+## Method scope metadata
 
-## Body authorization and scopes
-
-`PokerlostScope` accepts at least two lowerCamelCase segments separated by dots:
-
-```text
-^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$
-```
-
-Operation IDs and scopes are independent. A generated method declares an exact immutable
-`required_scopes` tuple; an empty tuple means public at transport level.
-
-The server uses `PokerlostAuthorizedRequest[Payload]` and an ordinary FastAPI
-`Security(authorize_pokerlost_request, scopes=[...])` dependency. OpenAPI represents the body
-authorization schema but cannot encode exact body-token scopes. Compatibility therefore compares
-the route dependency metadata with the generated method tuple for every implemented operation.
-
-The template-owned `PokerlostTokenVerifier` port verifies locally and returns
-`PokerlostAuthorizationContext`. It has no FastAPI, SQLAlchemy, or concrete JWT dependency. The
-template does not provide a production verifier or call authService per inbound request.
-
-## Middleware and retry
-
-The canonical protected client flow is:
-
-```text
-PokerlostRetryMiddleware
-→ PokerlostAuthorizationMiddleware
-→ transport
-```
-
-Authorization middleware uses method `required_scopes`, audience, client credentials, a dedicated
-auth-target client without authorization middleware, and a caller-supplied `PokerlostTokenStore`.
-It reuses a token only beyond refresh skew, performs single-flight refresh/acquisition per audience
-and exact scope set, and injects only `authorization.access_token` into an immutable authorized
-request. Public methods bypass token lifecycle completely.
-
-Retry is disabled unless the call supplies:
+Every concrete method explicitly declares:
 
 ```python
-options = PokerlostRequestOptions(
-    retry_policy=PokerlostRetryPolicy(),
-)
+__scopes__: ClassVar[tuple[PokerlostScopes, ...] | None]
 ```
 
-The immutable policy has three attempts including the first, initial delay `0.2`, maximum delay
-`2.0`, multiplier `2.0`, full jitter, and a `5.0` second logical budget. Retryable statuses are
-`408`, `425`, `429`, `500`, `502`, `503`, and `504`; canonical connection and timeout failures are
-also retryable. Server delay comes only from body `retry_after` and must fit the remaining budget.
-Exhaustion re-raises the last canonical error.
+`None` means the operation has no access-token scope requirement. A non-empty unique tuple is the
+exact requirement. Missing metadata and an empty tuple are configuration errors before network
+I/O; they are never normalized to public access.
 
-Authentication failure invalidates matching token state but never replays the current call.
-Insufficient scope does not refresh or retry. Cancellation and protocol errors propagate.
+`GetToken`, `RefreshToken`, and other access-token-public operations may still carry typed request
+credentials. Their `__scopes__` remains `None`.
 
-Transport retry is distinct from business idempotency. Mutation replay requires the same business
-operation ID, semantic payload, operation, and target. Middleware does not generate those values or
-own workflow persistence.
+## Standard OAuth2 OpenAPI source
 
-## OpenAPI and generation
+Each service owns one `app/domain/enums/scopes.py` `Scopes` enum and description catalog. One
+standard FastAPI OAuth2 client-credentials dependency can publish that catalog, using `/getToken`
+and `auto_error=False`. Protected routes use one non-empty exact `Security` requirement.
 
-FastAPI emits the standard OpenAPI 3.1 document without project extensions, service identity, or a
-misleading header security scheme. The generator validates all source documents together before
-writing:
+`pypokerlost/enums/pokerlost_scopes.py` is the explicit SDK-owned cross-service catalog. The
+generator reads all service OpenAPI documents in one invocation and derives only each implemented
+method's `__scopes__`. A document with zero protected operations may omit
+`components.securitySchemes`. If an operation is protected, the generator requires the supported
+standard scheme and rejects empty requirements, unknown or mixed schemes, scopes absent from the
+SDK catalog, operation collisions, and incompatible handwritten stubs. It uses no scope map,
+vendor extension, body-shape inference, or handwritten fallback.
+
+## Responses and errors
+
+`PokerlostResponse[ResultT]` has exactly `ok`, `result`, `error`, `error_message`, and
+`retry_after`. Both 2xx and non-2xx responses use it. `retry_after` is finite, non-negative, and
+present only on a retryable failure; it travels only in the response body.
+
+Inbound authentication failures use:
 
 ```text
-single lowerCamelCase operation ID
-path equals /<operationId>
-POST business operation
-application/json request
-canonical request envelope
-canonical response envelope
-global operation and schema uniqueness
-flat method/type output
+POKERLOST_AUTHENTICATION_REQUIRED
+POKERLOST_ACCESS_TOKEN_INVALID
+POKERLOST_ACCESS_TOKEN_EXPIRED
+POKERLOST_INSUFFICIENT_SCOPE
 ```
 
-The generator never derives exact scopes from prose. Implemented handwritten method metadata or an
-explicit checked input outside OpenAPI remains the scope source. Manual future-facing SDK stubs are
-not generator-owned unless the manifest says otherwise.
+Missing/malformed header, invalid token, expiration, audience mismatch, and insufficient scope are
+rejected by dependencies before the endpoint handler. Central handlers return the envelope and
+never leak FastAPI `detail`.
 
-## Mandatory compatibility probe
+The client raises typed safe errors without retaining raw bodies, headers, access/refresh tokens,
+or credentials. A malformed response retains only safe HTTP status metadata so retry middleware
+can retry malformed `502`, `503`, and `504`, but not malformed ordinary `2xx`.
 
-Use Copier 9.17.2, a disposable generated service, and the authoritative SDK environment:
+## Token ownership and reactive refresh
 
-1. Render `exampleService`, resolve the pinned SDK dependency, and run generated checks.
-2. Confirm `GET /` is `getRoot` and `GET /getOpenApi` is `getOpenApi`, both bodyless and public.
-3. Confirm no OpenAPI extension or security scheme is added by the template.
-4. Add a disposable public `POST /echoMessage` route using `PokerlostRequest` and
-   `PokerlostResponse`; generate and call its flat SDK method.
-5. Add a disposable protected `POST /getMe` route using `PokerlostAuthorizedRequest` and
-   `Security(..., scopes=[Scope.READ_SELF])`.
-6. Supply a disposable local verifier and probe missing authorization, malformed authorization,
-   invalid token, wrong audience, missing scope, and exact-scope success.
-7. Confirm the published protected request schema requires `authorization.access_token`, while the
-   public schema has no authorization field.
-8. Compare route scopes with the generated method `required_scopes` tuple.
-9. Probe public middleware bypass, cached-token use, body token acquisition, body refresh,
-   single-flight acquisition, `401` invalidation without replay, and `403` propagation.
-10. Probe retry disabled, connection/timeout retry, retryable/non-retryable status handling, body
-    `retry_after`, budget enforcement, cancellation, and final-error preservation.
-11. Confirm no request/response body, token, password, client secret, or private key appears in
-    reprs, validation errors, logs, spans, or SDK exceptions.
-12. Run negatives for dotted, snake_case, hyphenated, and uppercase operation IDs; invalid scope
-    segments; path mismatch; unsupported methods/media; and global collisions.
-13. Generate from the final auth/accounts OpenAPI sources until a second run produces no diff.
-14. Remove every disposable route, verifier, generated file, captured document, bytecode file, and
-    process.
+The SDK has no client-credential storage, automatic `GetToken`, process cache, background refresh,
+or persistence implementation. A service explicitly acquires initial state and supplies minimal
+`PokerlostTokenStore` and `PokerlostTokenRefresher` ports.
 
-## Copier regression
+Stored state uses a timezone-aware UTC `expires_at` and positive version. Its key includes client
+identity, exact audience, and canonical exact scopes. Production storage is shared, encrypted at
+rest, and updated with compare-and-swap semantics. The service-owned refresher coordinates across
+processes with a bounded lease or equivalent CAS design and holds no database transaction during
+network I/O.
 
-Every compatibility change requires a fresh render and an update from the exact prior template
-commit. Confirm service-owned `SERVICE.md`, concrete handlers, migrations, and scope values remain
-unchanged; obsolete unchanged template-owned files disappear; the new flat routers and body-auth
-foundation appear; and `.copier-answers.yml` remains valid.
+Public methods bypass token storage. Protected methods load state and inject the bearer header. No
+state raises `PokerlostAuthenticationStateError`; middleware never calls `GetToken`.
+
+Local expiration metadata does not call the refresher by itself. Exactly
+`POKERLOST_ACCESS_TOKEN_EXPIRED` may invalidate/compare the observed version, refresh once, and
+replay the identical call once. Invalid token, insufficient scope, arbitrary `401`, or a second
+expiration never refreshes. This narrow replay depends on the server rejecting expiration before
+handler execution.
+
+## Retry
+
+Retry is disabled unless the call supplies
+`PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. The immutable policy has three
+attempts including the first, initial delay `0.2`, maximum delay `2.0`, multiplier `2.0`, full
+jitter, and a `5.0` second logical budget. Retryable statuses are `408`, `425`, `429`, `500`,
+`502`, `503`, and `504`; canonical connection and timeout failures are also retryable.
+
+Authentication replay is separate from generic retry attempts. Cancellation propagates
+immediately. Transport retry does not create business idempotency.
+
+## Manual compatibility verification
+
+Use Copier 9.17.2, disposable temporary storage, and the authoritative SDK:
+
+1. Render `exampleService` and inspect its flat routers, domain enums, dependency imports, and
+   generated documentation directly.
+2. Confirm `GET /` uses its canonical response envelope and `GET /getOpenApi` returns the raw,
+   unmodified OpenAPI document.
+3. Generate from the actual production service OpenAPI documents. A public-only document may omit
+   `securitySchemes`, and its methods use `__scopes__ is None`.
+4. When an actual protected route exists, confirm its standard `PokerlostOAuth2` requirement has a
+   non-empty exact scope list represented in the explicit SDK catalog.
+5. Run the repository's non-test formatting, lint, type, documentation, compile, and generator
+   checks, then remove every disposable artifact.
+
+## Copier propagation
+
+Render and inspect one fresh service in disposable temporary storage with the pinned Copier CLI.
+Do not commit a rendered-template test or checker script.
+
+For an update, render from the exact prior template revision, preserve a modified `SERVICE.md`,
+representative handlers/migrations, and service scope values, then update to the new revision.
+Confirm obsolete unchanged managed files disappear and service-owned content remains intact.
 
 The pristine settings, resources, environment example, and Helm chart contain no outbound target,
-credential, token store, retry tuning, or fake verifier. Production deployment remains behind
-mandatory HTTPS/TLS termination.
+credential, token store, retry tuning, encryption secret, or fake verifier. Production deployment
+remains behind mandatory HTTPS/TLS termination.

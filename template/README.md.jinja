@@ -1,8 +1,8 @@
 # {{ service_name }}
 
-`{{ service_name }}` is a generated Pokerlost FastAPI service foundation with PostgreSQL, the
-private body-only JSON protocol, observability, Docker, and Helm. Business behavior is absent until
-defined in `SERVICE.md`.
+`{{ service_name }}` is a generated Pokerlost FastAPI service foundation with PostgreSQL, standard
+bearer header authorization, the canonical JSON envelope, observability, Docker, and Helm. Business
+behavior is absent until defined in `SERVICE.md`.
 
 Read `docs/index.md` for the complete guide and `AGENTS.md` for normative engineering rules. Python
 3.14 or newer is required.
@@ -32,15 +32,15 @@ make run
 | method | path | operation_id | response |
 | --- | --- | --- | --- |
 | `GET` | `/` | `getRoot` | `PokerlostResponse[None]` |
-| `GET` | `/getOpenApi` | `getOpenApi` | `PokerlostResponse[dict[str, JSONValue]]` |
+| `GET` | `/getOpenApi` | `getOpenApi` | OpenAPI JSON document |
 
 These public infrastructure endpoints accept no body or authentication. Every business operation
-uses `POST /<operationId>` and a typed JSON body. Public calls use `PokerlostRequest`; protected
-calls use `PokerlostAuthorizedRequest` with the token only in `authorization.access_token`.
+uses `POST /<operationId>` and a typed `PokerlostRequest` JSON body. Protected calls add only the
+standard `Authorization: Bearer <access-token>` header.
 
 The pristine service includes an empty exact-scope catalog and a local-verifier port, but no fake
 verifier, outbound client, credential, token store, or retry configuration. See
-`docs/api/body-authorization.md` and `docs/architecture/inter-service-clients.md`.
+`docs/api/header-authorization.md` and `docs/architecture/inter-service-clients.md`.
 
 ## Development and deployment
 

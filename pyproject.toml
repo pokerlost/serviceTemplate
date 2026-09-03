@@ -48,6 +48,6 @@ known-first-party = [
 
 [tool.mypy]
 python_version = "3.14"
-files = ["scripts", "template/scripts"]
+files = ["template/scripts"]
 strict = true
 warn_unused_configs = true

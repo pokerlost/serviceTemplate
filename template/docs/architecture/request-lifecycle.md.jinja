@@ -22,20 +22,26 @@ FastAPI
 → flat route
 → application handler
 → persistence adapter
-→ PokerlostResponse
+→ plain success mapping
+→ FastAPI response_model
 ```
 
 The request ID is generated server-side and exists only in request state and telemetry. No caller
 correlation value is accepted or returned as a transport contract.
 
-A public route receives `PokerlostRequest[Payload]`. A protected route receives
-`PokerlostAuthorizedRequest[Payload]` and declares exact scopes through `Security`. The dependency
-validates the cached JSON authorization object, invokes the local verifier for the service
-audience, and checks every scope before the route executes.
+Every business route receives the pure JSON `PokerlostRequest[Payload]`. A protected route also
+declares a non-empty exact scope set through `Security`. The standard OAuth2 dependency parses the
+bearer header, invokes the local verifier for the exact service audience, and checks every scope
+before the route executes.
 
-Routes translate payloads into application commands/queries and translate results into typed
-`PokerlostResponse` values. Central handlers normalize validation, application, database,
-authentication, authorization, and unexpected failures without exposing submitted input.
+Routes translate Pydantic-validated payloads into application commands/queries and translate
+application results into plain response mappings. FastAPI validates and serializes normal
+successes through `response_model`. Central handlers alone build failure envelopes while
+normalizing validation, application, database, authentication, authorization, and unexpected
+failures without exposing submitted input.
+
+An expired token is rejected before entering the endpoint handler or beginning business effects.
+That ordering is the safety invariant for the SDK's one permitted reactive refresh and replay.
 
 ## Transactions and outbound calls
 

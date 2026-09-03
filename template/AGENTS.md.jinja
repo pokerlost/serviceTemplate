@@ -28,8 +28,8 @@ latest direct user requirement
 
 ## Pokerlost JSON protocol
 
-- Pokerlost service calls use a private body-only JSON protocol over HTTPS. Do not describe the
-  wire protocol as standard OAuth2 or a bearer-compatible API.
+- Pokerlost service calls use the canonical JSON envelopes over HTTPS. Protected calls carry the
+  access token only as `Authorization: Bearer <access-token>`.
 - `GET /`, `GET /getOpenApi`, and existing health probes are the only public infrastructure
   exceptions. They accept no business body or authentication material.
 - Every business/API operation uses `POST /<operationId>` with one JSON request body and one JSON
@@ -38,65 +38,78 @@ latest direct user requirement
   `getMe`, `registerAccount`, or `provisionHuman`.
 - Do not use business path parameters, query parameters, cookies, caller-supplied transport
   metadata, GET bodies, form data, content negotiation, or manual content-type construction.
-- Public operations accept `PokerlostRequest[Payload]`. Protected operations accept
-  `PokerlostAuthorizedRequest[Payload]`; the access token exists only at
-  `authorization.access_token`.
+- Every business operation accepts the pure JSON `PokerlostRequest[Payload]`. It contains no
+  authorization, access token, generic headers, options, or middleware state.
 - Client credentials belong only in the `getToken` JSON payload. A refresh token belongs only in
   the `refreshToken` JSON payload. Do not prepend a token type string.
-- Build every route in one flat `app/api/routers/<operation>.py` module through a
-  `create_<operation>_router(...)` factory and decorators. Do not create one-directory-per-router,
-  route constants, imperative registration, or post-hoc route mutation.
+- Each static route module owns exactly one module-level `router = APIRouter(...)`; declare every
+  endpoint at module level with that router's decorator. Do not use router factories, nested
+  endpoints, one-directory-per-router layouts, one-use route constants, imperative registration,
+  or post-hoc route mutation.
+- Primitive wire parsing and validation belong to typed Pydantic request models. Route modules do
+  not define `_parse_*` or `_validate_*` helpers for UUIDs, enums, audiences, or other basic input.
 
 ## Responses and errors
 
-- Every normal response uses `pypokerlost.types.PokerlostResponse[ResultT]` with exactly `ok`,
-  `result`, `error`, `error_message`, and `retry_after`.
+- Every normal route declares `pypokerlost.types.PokerlostResponse[ResultT]` as its
+  `response_model`, returns a plain mapping or data value, and lets FastAPI validate and serialize
+  the wire response. It does not instantiate `PokerlostResponse` or `JSONResponse` itself.
 - Success requires null error metadata and null `retry_after`. Failure requires a stable error
   code, null result, an optional safe message, and an optional finite non-negative retry delay.
 - Do not create a parallel service response envelope or an application-layer Result wrapper with
   the same wire shape.
-- Central handlers return sanitized failures and never echo request input, response bodies,
-  tracebacks, SQL details, credentials, or tokens.
+- Application handlers return focused transport-independent results and never import FastAPI,
+  HTTP status codes, `JSONResponse`, or `PokerlostResponse`.
+- Only centralized exception/error code manually constructs `PokerlostResponse[None]` before
+  producing `JSONResponse`. Central handlers never echo request input, response bodies, tracebacks,
+  SQL details, credentials, or tokens.
 - Use Pydantic validation, `ValueError`/`TypeError`, application errors, or focused Pokerlost SDK
   errors. Project-owned runtime Python must not use assertions for validation or protocol state.
 
-## Body authorization and scopes
+## Header authorization and scopes
 
 - Pokerlost scopes use dot-separated lowerCamelCase segments and match
   `^[a-z][A-Za-z0-9]*(\.[a-z][A-Za-z0-9]*)+$`. Wildcards and role-based bypasses are forbidden.
-- Keep the service-owned catalog in the flat `app/api/scopes.py` module. Every member is validated
-  through `PokerlostScope`; a pristine service keeps the catalog empty.
-- A protected route declares every exact scope through
-  `Security(authorize_pokerlost_request, scopes=[...])` and accepts a
-  `PokerlostAuthorizedRequest` body. A public route has neither dependency nor authorization body.
+- Keep every service-owned enum under `app/domain/enums/`. The scope catalog is exactly one local
+  `Scopes` `StrEnum` in `app/domain/enums/scopes.py`, with its OpenAPI description mapping in the
+  same module. A pristine service keeps the catalog empty. Shared SDK/wire enums remain under
+  `pypokerlost/enums/`.
+- A protected route declares one or more exact scopes through
+  `Security(authorize_pokerlost_request, scopes=[...])`. Empty protected scope lists are invalid.
+  A public route omits the dependency and has no OpenAPI security requirement.
 - `PokerlostTokenVerifier` is the transport-independent application port for local verification.
   A concrete service supplies a real verifier at composition only when its implemented stage
   protects a route. The template does not provide a fake verifier or remote verification call.
-- The body dependency reads Starlette's cached JSON value, validates only `authorization` through
-  `PokerlostAuthorization`, verifies locally for `SERVICE_NAME`, compares the returned audience,
-  and requires every exact route scope.
-- Missing or malformed body authentication fails with `AUTHENTICATION_REQUIRED`; an invalid token
-  or audience fails with `INVALID_ACCESS_TOKEN`; missing scope fails with `INSUFFICIENT_SCOPE`.
+- The dependency uses one standard FastAPI OAuth2 client-credentials scheme with
+  `tokenUrl=/getToken` and `auto_error=False`, parses a non-empty bearer header, verifies locally
+  for the exact `SERVICE_NAME` audience, and requires every exact route scope.
+- Missing or malformed authentication fails with `POKERLOST_AUTHENTICATION_REQUIRED`; invalid
+  token/audience with `POKERLOST_ACCESS_TOKEN_INVALID`; expiration with
+  `POKERLOST_ACCESS_TOKEN_EXPIRED`; missing scope with `POKERLOST_INSUFFICIENT_SCOPE`.
+- Authentication and expiration rejection must happen before the endpoint handler and business
+  effects. Only the exact expired code permits one reactive SDK refresh and one replay.
 - A role name never grants scope. Do not call authService for every protected request.
 - Protected composition without a configured verifier must fail closed.
 
 ## OpenAPI
 
-- Use FastAPI's ordinary OpenAPI generation and request/response models without project-owned
-  extensions or service-identity metadata.
-- Do not publish a misleading OAuth2, API-key, or other header-oriented security scheme. Body
-  authentication is represented by `PokerlostAuthorizedRequest` in the request schema.
-- OpenAPI cannot express the exact required body-token scopes. Inspect both canonical sources:
-  the route's `Security(..., scopes=[...])` declaration and the matching SDK method's
-  `required_scopes` tuple.
-- Keep built-in `/openapi.json`, `/docs`, and `/redoc` disabled. Publish the unmodified document in
-  `PokerlostResponse` through `GET /getOpenApi`.
+- Use FastAPI's standard OAuth2 OpenAPI model and request/response models without project-owned
+  extensions, service-identity metadata, route mutation, or post-processing.
+- The local `Scopes` catalog populates the client-credentials scheme. Each protected operation has
+  one non-empty exact security requirement; the generator derives method `__scopes__` from it.
+- A method without access-token security declares `__scopes__ is None`. An empty tuple is invalid
+  and must never mean public access.
+- A service with no protected production operation may omit `components.securitySchemes`; that is
+  a valid public-only document. Do not add fake routes, empty `Security` dependencies, schema
+  injection, `openapi_extra`, custom `x-*` fields, route mutation, or handwritten scope maps.
+- Keep built-in `/openapi.json`, `/docs`, and `/redoc` disabled. Publish the raw, unmodified document
+  through `GET /getOpenApi`; this infrastructure endpoint is not a `PokerlostResponse` envelope.
 
 ## Pokerlost SDK compatibility
 
 - The current `pypokerlost` public facade and generator are authoritative. Use flat public imports
   and do not import private modules, generator internals, or removed compatibility paths.
-- Inter-service calls use `PokerlostClient` and generated `PokerlostMethod` classes. Do not add a
+- Inter-service calls use `PokerlostClient` and concrete `PokerlostMethod` classes. Do not add a
   parallel `httpx`, `requests`, or `aiohttp` transport, URL builder, decoder, or remote DTO copy.
 - A concrete service creates one target-specific client only for a real dependency declared by
   `SERVICE.md`, owns it in lifespan, stores it in a named `ApplicationResources` field, and closes
@@ -105,23 +118,26 @@ latest direct user requirement
 
 ```text
 PokerlostRetryMiddleware
-→ PokerlostAuthorizationMiddleware
+→ PokerlostAuthenticationMiddleware
 → transport
 ```
 
-- Authorization middleware owns token acquisition/refresh coordination and body injection. It
-  uses a dedicated auth-target client without authorization middleware, exact method scopes, the
-  target audience, service credentials, and a `PokerlostTokenStore` implementation owned by the
-  consuming service.
-- Public calls bypass the token store and emit only `PokerlostRequest`.
+- The SDK never stores client credentials or calls `GetToken` automatically. The service explicitly
+  acquires initial state and persists encrypted tokens with UTC expiration and versioning.
+- Authentication middleware reads exact method `__scopes__`; `None` bypasses token state and emits
+  no Authorization header, while a non-empty tuple loads state and injects the bearer header.
+- The injected service-owned refresher provides distributed coordination and persistence. Only
+  exact `POKERLOST_ACCESS_TOKEN_EXPIRED` may refresh once and replay the identical call once. Local
+  expiration metadata, invalid token, and insufficient scope never trigger refresh.
+- Missing method metadata or an empty tuple fails locally before network I/O. Missing state raises
+  `PokerlostAuthenticationStateError`; middleware never falls back to `GetToken`.
 - Retry remains disabled unless a call passes
   `PokerlostRequestOptions(retry_policy=PokerlostRetryPolicy())`. Do not expose retry algorithm
   settings through deployment configuration.
 - The retry policy receives server guidance only from `PokerlostResponse.retry_after`. It never
   reads transport metadata.
-- Do not automatically replay `401` or `403`. An authentication failure invalidates matching
-  token state for the next independent call; the current call still propagates. Insufficient scope
-  never triggers refresh.
+- Persistent refresh coordination must be cross-process safe and must not hold a PostgreSQL
+  transaction during network I/O. Never persist monotonic time or plaintext tokens.
 - Transport retry is not business idempotency. A replayable mutation must reuse the same
   `business_operation_id`, semantic payload, operation, and target. Middleware never creates or
   changes business IDs or workflow persistence.
@@ -139,10 +155,9 @@ PokerlostRetryMiddleware
 
 ## Configuration and deployment
 
-- Root and OpenAPI operation settings use `PokerlostOperation`; generated values are `getRoot` and
-  `getOpenApi`.
-- Put deployment policy in typed settings. Keep protocol invariants and business operation IDs in
-  code.
+- `getRoot` and `getOpenApi` are stable source-defined operation IDs, not settings, environment
+  variables, Helm values, or ConfigMap entries.
+- Put deployment policy in typed settings. Keep protocol invariants and every operation ID in code.
 - Production deployment requires HTTPS/TLS. The generated ClusterIP is an internal target and
   must remain behind trusted TLS termination; do not expose it as a plaintext production API.
 - Secrets use environment injection or Kubernetes Secret references, never chart values or
@@ -169,5 +184,7 @@ PokerlostRetryMiddleware
 - Update `docs/api/public-surface.md` for every implemented operation. Wire changes also update the
   response, authorization, operation, and OpenAPI pages.
 - Use the repository `Makefile`, `uv`, Ruff, mypy, Alembic, Docker, and Helm conventions.
-- Before handoff, run `make format`, `make check`, `make pre-commit`, and report every unavailable
-  or failed check.
+- Do not add or modify tests unless the user explicitly requests tests. Do not add
+  `scripts/check_*.py`, rendered-template checkers, architecture checkers, or renamed/hidden
+  equivalents.
+- Before handoff, run the requested non-test checks and report every unavailable or failed check.
