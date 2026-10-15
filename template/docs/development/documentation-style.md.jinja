@@ -10,7 +10,7 @@ This page defines the technical documentation standard for `{{ service_name }}`.
 
 ## Tone
 
-Use concise, professional, direct prose. Prefer short paragraphs and state only verified current behavior. Do not include chat transcripts, profanity, emojis, conversational filler, marketing exaggeration, unsupported guarantees, or invented quality claims.
+Use concise, professional, direct prose. Prefer short paragraphs and state only verified current behavior. Restrained emoji in navigation headings are allowed. Do not include chat transcripts, profanity, conversational filler, marketing exaggeration, unsupported guarantees, or invented quality claims.
 
 ## Page structure
 
@@ -40,12 +40,12 @@ Examples must use the current public contract, avoid secret values, and be minim
 
 ## Links and navigation
 
-- Do not use relative inter-file Markdown links.
-- Reference repository files as repository-root paths in backticks, such as
-  `docs/api/operation-contract.md` or `SERVICE.md`.
+- Use relative inter-file Markdown links and verify the target and anchor.
+- Reference repository files as repository-root paths in backticks when discussing ownership or
+  command arguments, such as `docs/api/operation-contract.md` or `SERVICE.md`.
 - List every page under `docs/` in `docs/index.md`; do not leave orphan pages.
-- Markdown link destinations may use only `http://`, `https://`, `mailto:`, or a
-  same-document `#anchor`.
+- Markdown link destinations may be a verified relative path, `http://`, `https://`, `mailto:`,
+  or a same-document `#anchor`.
 - Do not replace internal links with private GitHub blob URLs or absolute local filesystem paths.
 - Update repository-root references and same-document anchors when a file or heading is renamed.
 - Refer to the canonical explanation instead of copying it into another page.
@@ -81,5 +81,5 @@ make pre-commit
 ```
 
 Also review headings, opening paragraphs, terminology, file references, anchors, examples,
-commands, and canonical ownership manually. The checker rejects inter-file Markdown links and
-enforces structural rules, but it does not prove that prose is semantically correct.
+commands, and canonical ownership manually. The checker verifies local link targets and anchors
+and enforces structural rules, but it does not prove that prose is semantically correct.

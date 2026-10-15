@@ -47,8 +47,9 @@ or pre-release layouts unless the user explicitly requires them.
   `from __future__ import annotations`.
 - Use a 100-character Python line length, strict mypy, built-in generics, `collections.abc`,
   `Self`, modern unions, explicit return types, and PEP 695 syntax where it expresses the contract.
-- Use `snake_case` modules/functions/variables, `PascalCase` classes, and `UPPER_SNAKE_CASE`
-  constants. Preserve canonical `API`, `HTTP`, `JSON`, `UUID`, `OpenAPI`, and `URL` acronym casing.
+- Use lowerCamelCase for new project-owned private names where no existing import or protocol
+  fixes the spelling, `PascalCase` classes, and `UPPER_SNAKE_CASE` constants. Keep published
+  imports, generated paths, framework hooks, and canonical external acronym casing.
 - Use Pokerlost consistently in prose and project-owned identifiers. Preserve the distribution
   name `pypokerlost`.
 - Describe single lowerCamelCase operation names as API operations, method calls, or inter-service
@@ -59,8 +60,8 @@ or pre-release layouts unless the user explicitly requires them.
 - Keep `README.md` concise and `docs/index.md` as the navigation hub.
 - Write repository documentation in English with exactly one H1, a short opening paragraph,
   repository-root file references in backticks, and language-tagged code fences.
-- Do not use relative inter-file Markdown links. Only `http://`, `https://`, `mailto:`, and
-  same-document `#anchor` link destinations are allowed.
+- Use relative inter-file Markdown links and verify their targets and anchors. HTTP(S), `mailto:`,
+  and same-document anchors are also allowed. Use restrained emoji in navigation headings.
 - Use `bash`, `python`, `toml`, `yaml`, `json`, `text`, `cpp`, or `cmake` fences as appropriate.
 - Do not record prompts, chat notes, temporary plans, absolute local checkout paths, stale commands,
   invented verification, or unsupported guarantees.

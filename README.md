@@ -29,7 +29,7 @@ Trusted execution is not required. After generation, follow the generated `READM
 
 ## Documentation
 
-- `docs/index.md` is the repository documentation home.
+- [Documentation index](docs/index.md) is the repository documentation home.
 - `TEMPLATE.md` is the canonical contract for generated content and omissions.
 - `CREATE_SERVICE.md` contains the Copier copy, update, and verification
   workflow.

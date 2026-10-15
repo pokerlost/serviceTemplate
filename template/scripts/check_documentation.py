@@ -8,7 +8,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 _FENCE_PATTERN = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
 _HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
@@ -378,7 +378,7 @@ def _plain_heading_text(value: str) -> str:
 def _github_slug(value: str) -> str:
     plain = _plain_heading_text(value).casefold()
     characters = [character for character in plain if character.isalnum() or character in " _-"]
-    return re.sub(r"\s", "-", "".join(characters))
+    return re.sub(r"\s", "-", "".join(characters)).strip("-")
 
 
 def _heading_anchors(path: Path, cache: dict[Path, set[str]]) -> set[str]:
@@ -438,10 +438,26 @@ def _check_links(
             if destination.casefold().startswith(_ALLOWED_LINK_PREFIXES):
                 continue
 
-            errors.append(
-                f"{display}: inter-file Markdown link is forbidden; use a repository-root "
-                f"path in backticks instead: {destination}"
+            parsed = urlsplit(destination)
+            if parsed.scheme or parsed.netloc or parsed.query or parsed.path.startswith("/"):
+                errors.append(f"{display}: unsupported local link: {destination}")
+                continue
+            target = (
+                (source.parent / unquote(parsed.path)).resolve()
+                if parsed.path
+                else source.resolve()
             )
+            if source.suffix == ".jinja" and not target.is_file():
+                target = target.with_name(target.name + ".jinja")
+            if not target.is_relative_to(repository_root) or not target.is_file():
+                errors.append(f"{display}: local link target is missing: {destination}")
+                continue
+            if parsed.fragment:
+                fragment = unquote(parsed.fragment).casefold()
+                if ".md" not in target.suffixes or fragment not in {
+                    anchor.casefold() for anchor in _heading_anchors(target, anchor_cache)
+                }:
+                    errors.append(f"{display}: local link anchor does not exist: {destination}")
 
 
 def _check_index_inventory(
