@@ -25,6 +25,9 @@ latest direct user requirement
 - PostgreSQL remains the primary persistence layer.
 - Validate critical settings at startup and fail closed.
 - Do not commit or log secrets.
+- New project-owned private files, variables, and functions use lowerCamelCase; types use PascalCase
+  and constants use UPPER_SNAKE_CASE. Preserve generated paths, framework hooks, published imports,
+  wire/SQL fields, environment names, and override signatures.
 
 ## Pokerlost JSON protocol
 
