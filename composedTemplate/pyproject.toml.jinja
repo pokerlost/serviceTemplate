@@ -8,5 +8,4 @@ requires-python = ">=3.14"
 dependencies = ["fastapi>=0.121,<1", "uvicorn>=0.38,<1", "pydantic-settings>=2.12,<3", "pypokerlost"{% if withPersistence %}, "sqlalchemy[asyncio]>=2.0.44,<3", "asyncpg>=0.31,<1", "alembic>=1.17,<2"{% endif %}]
 {% endblock %}
 {% block extraConfiguration %}[tool.uv.sources]
-pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "8652cc850ccef8a00538ba6ff0b545ff7f3d38af" }
-{% endblock %}
+pypokerlost = { git = "ssh://git@github.com/pokerlost/pypokerlost.git", rev = "8652cc850ccef8a00538ba6ff0b545ff7f3d38af" }{% endblock %}
