@@ -22,7 +22,7 @@ jobs:
           version: "0.12.15"
           enable-cache: true
       - run: uv python install 3.14
-      - run: make check
+      - run: uv run --no-project --python 3.14 make check
       - name: Generated service status
         run: |
           echo 'NOT_CONFIGURED: private SDK access is required for a dependency-backed render'
