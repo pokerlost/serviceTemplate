@@ -1,0 +1,15 @@
+# {{ service_name }}
+
+A local Pokerlost FastAPI foundation. It provides health, canonical root/OpenAPI infrastructure, and fail-closed authorization support; no business operation is implemented.
+
+## 🚀 Run
+
+Python 3.14+ and access to the pinned private `pypokerlost` source are required to install. No database URL or outbound credential is needed for this default render.
+
+```bash
+uv lock
+uv sync --locked
+uv run --locked uvicorn {{ packageName }}.app:createApp --factory --host 127.0.0.1 --port 8000
+```
+
+`GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. No new test or CI suite is installed in this Pokerlost render.

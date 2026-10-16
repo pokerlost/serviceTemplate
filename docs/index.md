@@ -5,7 +5,8 @@ service template.
 
 ## Getting started
 
-- `CREATE_SERVICE.md` — create and update a service.
+- [Create and update a service](../CREATE_SERVICE.md).
+- [Migrate a flat-layout service](migrationGuide.md).
 
 ## API and SDK
 

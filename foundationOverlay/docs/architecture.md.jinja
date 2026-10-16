@@ -1,0 +1,7 @@
+# {{ service_name }} architecture
+
+The process lifecycle, settings, resources, health endpoints, and optional PostgreSQL transaction boundary come from the pinned generic FastAPI source. This specialization adds only the Pokerlost root/OpenAPI protocol, SDK dependency, and fail-closed authorization boundary. No business route is registered.
+
+`GET /` returns `PokerlostResponse[None]`; `GET /getOpenApi` publishes the actual OpenAPI document. Future operations use one lower camelCase `POST /<operationId>` with typed `PokerlostRequest` and `PokerlostResponse`. A protected operation requires exact local capability scopes and a real local verifier. The pristine verifier is absent and fails closed. No SDK generator contract is inferred from missing business routes.
+
+The generated project owns `SERVICE.md`, `PROJECT.md`, concrete routes, scopes, adapters, and migrations. Review template updates against those owners. Historical migrations can create historical tables in a new database; changing this code foundation does not clean storage.

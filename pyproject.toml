@@ -18,7 +18,8 @@ package = false
 [tool.ruff]
 target-version = "py314"
 line-length = 100
-src = ["scripts", "template"]
+src = ["tools"]
+extend-exclude = ["_sources"]
 
 [tool.ruff.lint]
 select = ["B", "E4", "E7", "E9", "F", "I", "RUF", "SIM", "UP"]
@@ -35,19 +36,8 @@ known-third-party = [
     "typer",
     "uvicorn",
 ]
-known-first-party = [
-    "api",
-    "application",
-    "cli",
-    "configuration",
-    "domain",
-    "observability",
-    "persistence",
-    "service",
-]
-
 [tool.mypy]
 python_version = "3.14"
-files = ["template/scripts"]
+files = ["tools/check_documentation.py"]
 strict = true
 warn_unused_configs = true

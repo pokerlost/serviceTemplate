@@ -7,7 +7,8 @@ This repository owns the shared Copier foundation for Pokerlost backend services
 1. Read this file, `TEMPLATE.md`, and `copier.yml`.
 2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
    `PokerlostResponse`, header authorization, OpenAPI publication, Python support, or SDK integration.
-3. Inspect the current template, documentation, Makefile, pre-commit configuration, and relevant
+3. Inspect `composition.toml`, `foundationOverlay/`, `composedTemplate/`, documentation, Makefile,
+   pre-commit configuration, and relevant
    generated source before editing.
 4. Inspect the authoritative `pypokerlost` implementation whenever a shared SDK contract changes.
 5. Preserve existing user changes and keep every change focused on the requested responsibility.
@@ -31,7 +32,8 @@ or pre-release layouts unless the user explicitly requires them.
 
 - Keep this repository a Copier template, not a deployable business service or shared runtime
   package.
-- Keep PostgreSQL, SQLAlchemy, Alembic, FastAPI, Docker, and Helm in the generated foundation.
+- Keep optional PostgreSQL/SQLAlchemy/Alembic wiring in the inherited generic foundation. New
+  default renders have no mandatory database, remote telemetry, Helm, or Docker setting.
 - Keep generated services free of business/domain implementation, concrete persistence entities,
   credentials, authentication policy, and authorization policy.
 - Keep `service_name` as the only user-supplied service identity unless generation genuinely needs
@@ -70,8 +72,9 @@ or pre-release layouts unless the user explicitly requires them.
 
 ## Verification
 
-- Use the root `Makefile` as the canonical command interface.
-- Run `make format`, then `make check` and `make pre-commit` before handoff.
+- The root `Makefile` checks maintainer sources and documentation; use `CREATE_SERVICE.md` and the
+  derivative composition command for the active source.
+- Do not run broad mutating format or legacy checks just to validate a small source change.
 - After Copier structure changes, render into a disposable destination and run the generated
   service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and

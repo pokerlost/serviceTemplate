@@ -1,40 +1,89 @@
 _min_copier_version: "9.17.2"
-_subdirectory: template
+_subdirectory: composedTemplate
 _answers_file: .copier-answers.yml
 _templates_suffix: .jinja
 _envops:
   undefined: jinja2.StrictUndefined
-
-# SERVICE.md belongs to the generated service after the initial copy.
-# Template updates must not overwrite service-specific architecture/rules.
 _skip_if_exists:
+  - PROJECT.md
   - SERVICE.md
-
+  - "src/*/scopes.py"
+  - "src/*/settings.py"
+  - "migrations/**"
+_exclude:
+  - "_base"
+  - "_base/**"
+  # Keep prior flat-layout application data visible for a reviewed migration.
+  # Copier applies new exclusions while reconstructing the old revision.
+  - "app/**"
+  - "alembic/**"
+  - "deploy/**"
+  - ".github/workflows"
+  - ".github/workflows/**"
+  - "{% if not (withPersistence | default(false)) %}alembic.ini{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}migrations{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}migrations/**{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}src/*/persistence.py{% endif %}"
 service_name:
   type: str
-  help: "Canonical Pokerlost service name, e.g. authService or virtualMoney."
+  help: "Canonical Pokerlost service name, such as pokerService."
   validator: >-
-    {%- if not service_name -%}
-    service_name must not be empty.
-    {%- elif not service_name.isascii() -%}
-    service_name must contain ASCII characters only.
-    {%- elif not service_name[0].isalpha() -%}
-    service_name must start with an ASCII letter.
-    {%- elif not service_name.isalnum() -%}
-    service_name must contain letters and digits only; spaces and _, -, ., / are not allowed.
+    {%- if not service_name or not service_name.isascii() or not service_name[0].islower() or not service_name.isalnum() -%}
+    Use ASCII lower camelCase, starting with a lowercase letter.
     {%- endif -%}
-
 service_slug:
   type: str
   default: "{{ service_name | lower }}"
   when: false
-
 service_env_prefix:
   type: str
   default: "{{ service_name | upper }}"
   when: false
-
 database_name:
   type: str
   default: "{{ service_name | lower }}"
+  when: false
+projectName:
+  type: str
+  default: "{{ service_name }}"
+  when: false
+packageName:
+  type: str
+  default: "{{ service_name }}"
+  when: false
+projectDescription:
+  type: str
+  default: "Pokerlost {{ service_name }} foundation"
+  when: false
+pythonMinimum:
+  type: str
+  default: "3.14"
+  when: false
+ruffTarget:
+  type: str
+  default: py314
+  when: false
+basePyprojectTemplate:
+  type: str
+  default: "composedTemplate/_base/pyproject.toml.jinja"
+  when: false
+profile:
+  type: str
+  default: library
+  when: false
+withPersistence:
+  type: bool
+  default: false
+  help: "Include PostgreSQL lifecycle without subject schema."
+withTesting:
+  type: bool
+  default: false
+  when: false
+withCi:
+  type: bool
+  default: false
+  when: false
+withDocker:
+  type: bool
+  default: false
   when: false

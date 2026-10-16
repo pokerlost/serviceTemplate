@@ -5,7 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        exclude: (^|/).*\.jinja$|^template/deploy/helm/.*/templates/
+        exclude: (^|/).*\.jinja$
       - id: check-toml
         exclude: (^|/).*\.jinja$
       - id: check-json
@@ -35,11 +35,11 @@ repos:
         entry: uvx --from 'mypy>=2.3,<2.4' mypy
         language: system
         pass_filenames: false
-        files: ^(scripts|template/scripts)/.*\.py$
+        files: ^tools/check_documentation\.py$
 
       - id: root-documentation
         name: Root documentation contract
         entry: make docs-check
         language: system
         pass_filenames: false
-        files: ^(.*\.md(?:\.jinja)?|template/scripts/check_documentation\.py)$
+        files: ^(.*\.md(?:\.jinja)?|tools/check_documentation\.py)$

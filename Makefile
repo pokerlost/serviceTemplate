@@ -7,7 +7,8 @@ MYPY_SPEC := mypy>=2.3,<2.4
 PRE_COMMIT_VERSION := 4.6.2
 MARKDOWN_DOCUMENTS := $(shell find . -type f \( -name '*.md' -o -name '*.md.jinja' \) \
 	-not -path './.git/*' -not -path './.pytest_cache/*' -not -path './.mypy_cache/*' \
-	-not -path './.ruff_cache/*' -not -path './.venv/*' -print)
+	-not -path './.ruff_cache/*' -not -path './.venv/*' \
+	-not -path '*/.github/*' -print)
 
 define require_tool
 	@command -v "$(1)" >/dev/null 2>&1 || { echo "Required tool not found: $(1)" >&2; exit 127; }
@@ -42,7 +43,7 @@ pre-commit: ## Run template-maintenance hooks against all files
 
 docs-check: ## Validate Markdown structure and the no-relative-link policy
 	$(call require_tool,$(PYTHON))
-	$(PYTHON) template/scripts/check_documentation.py --documents $(MARKDOWN_DOCUMENTS)
+	$(PYTHON) tools/check_documentation.py --documents $(MARKDOWN_DOCUMENTS)
 
 check: format-check lint typecheck docs-check ## Run regular non-mutating maintainer checks
 

@@ -1,0 +1,108 @@
+"""Fail-closed local bearer verification for future protected operations."""
+
+from __future__ import annotations
+
+from typing import Annotated, Protocol
+
+from fastapi import FastAPI, Request, Security
+from fastapi.openapi.models import OAuthFlowClientCredentials, OAuthFlows
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2, SecurityScopes
+from fastapi.security.utils import get_authorization_scheme_param
+from pydantic import SecretStr
+from pypokerlost.types import (
+    PokerlostAudience,
+    PokerlostAuthorizationContext,
+    PokerlostResponse,
+)
+
+from {{ packageName }}.scopes import Scopes, scopeDescriptions
+
+_AUDIENCE = PokerlostAudience("{{ service_name }}")
+
+
+class PokerlostTokenVerifier(Protocol):
+    """A service-owned local verifier, supplied only after real authorization design."""
+
+    async def verify(
+        self, token: SecretStr, *, audience: PokerlostAudience
+    ) -> PokerlostAuthorizationContext: ...
+
+
+class AuthorizationFailure(Exception):
+    """A safe, canonical authentication or authorization failure."""
+
+    def __init__(self, code: str, statusCode: int, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.statusCode = statusCode
+        self.message = message
+
+
+OAUTH2 = OAuth2(
+    flows=OAuthFlows(
+        clientCredentials=OAuthFlowClientCredentials(
+            tokenUrl="/getToken", scopes=scopeDescriptions()
+        )
+    ),
+    scheme_name="PokerlostOAuth2",
+    auto_error=False,
+)
+AuthorizationHeader = Annotated[str | None, Security(OAUTH2)]
+
+
+async def authorizePokerlostRequest(
+    securityScopes: SecurityScopes,
+    authorizationHeader: AuthorizationHeader,
+    request: Request,
+) -> PokerlostAuthorizationContext:
+    """Require exact route scopes, bearer token, audience, and local verification."""
+    if not securityScopes.scopes:
+        raise RuntimeError("Protected operations require at least one exact scope")
+    try:
+        required = tuple(Scopes(value) for value in securityScopes.scopes)
+    except ValueError:
+        raise RuntimeError("Protected operation declares an unknown scope") from None
+    if len(set(required)) != len(required):
+        raise RuntimeError("Protected operation declares duplicate scopes")
+    if authorizationHeader is None:
+        raise AuthorizationFailure(
+            "POKERLOST_AUTHENTICATION_REQUIRED", 401, "Authentication is required."
+        )
+    scheme, tokenValue = get_authorization_scheme_param(authorizationHeader)
+    if (
+        scheme.casefold() != "bearer"
+        or not tokenValue
+        or any(character.isspace() for character in tokenValue)
+    ):
+        raise AuthorizationFailure(
+            "POKERLOST_AUTHENTICATION_REQUIRED", 401, "Authentication is required."
+        )
+    verifier = getattr(request.app.state, "tokenVerifier", None)
+    if verifier is None:
+        raise RuntimeError("Pokerlost token verifier is not configured")
+    context: PokerlostAuthorizationContext = await verifier.verify(
+        SecretStr(tokenValue), audience=_AUDIENCE
+    )
+    if context.audience != _AUDIENCE:
+        raise AuthorizationFailure(
+            "POKERLOST_ACCESS_TOKEN_INVALID", 401, "Access token is invalid."
+        )
+    granted = frozenset(scope.value for scope in context.scopes)
+    if any(scope.value not in granted for scope in required):
+        raise AuthorizationFailure(
+            "POKERLOST_INSUFFICIENT_SCOPE", 403, "Required scope is missing."
+        )
+    return context
+
+
+def configureAuthorizationErrors(application: FastAPI) -> None:
+    """Publish safe SDK envelopes for the authorization boundary."""
+
+    @application.exception_handler(AuthorizationFailure)
+    async def handleAuthorizationFailure(
+        request: Request, error: AuthorizationFailure
+    ) -> JSONResponse:
+        del request
+        response = PokerlostResponse[None](ok=False, error=error.code, error_message=error.message)
+        return JSONResponse(status_code=error.statusCode, content=response.model_dump(mode="json"))

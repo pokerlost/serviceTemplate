@@ -1,111 +1,29 @@
-# Create and Update a Pokerlost Service
+# Create and update a Pokerlost service
 
-This document defines the Copier copy, update, and verification workflow. The generated-content
-contract is in `TEMPLATE.md`.
+Read `AGENTS.md`, [TEMPLATE.md](TEMPLATE.md), and [SDK_COMPATIBILITY.md](SDK_COMPATIBILITY.md) before generation. The active Copier source is the root `copier.yml` with `composedTemplate/`.
 
-## Fresh copy
-
-1. Read `AGENTS.md`, `TEMPLATE.md`, `SDK_COMPATIBILITY.md`, and `copier.yml`.
-2. Resolve the destination and the only answer, `service_name`.
-3. Run pinned Copier without trusted template execution:
+## 🚀 Fresh copy
 
 ```bash
-uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
-  -d service_name=<SERVICE_NAME>
-```
-
-4. Inspect `.copier-answers.yml`; do not edit it manually.
-5. Read generated `AGENTS.md`, `SERVICE.md`, and `README.md`. Replace only authoritative
-   service-specific `SERVICE.md` sections.
-6. Confirm normal GitHub SSH access can read the private `pypokerlost` repository. Never place a
-   private key or access credential in the generated repository.
-
-## Fresh-copy verification
-
-Confirm the generated repository contains the flat root/OpenAPI routers, standard OAuth2 bearer
-dependency, empty local domain `Scopes` catalog, verifier port, complete docs tree, Makefile, Helm
-chart, and Copier answers. Then run the available non-test checks:
-
-```bash
-cd <destination>
-cp .env.example .env
-ssh-add -l
-ssh -T git@github.com
+uv run --no-project --with 'copier==9.17.2' copier copy \
+  --vcs-ref=<reviewed-service-template-commit> /path/to/serviceTemplate \
+  /path/to/newService -d service_name=newService
+cd /path/to/newService
 uv lock
 uv sync --locked
-uv lock --check
-uv run --locked python -c "import pypokerlost; print(pypokerlost.__version__)"
-make help
-make format
-make format-check
-make lint
-make typecheck
-make docs-check
-make pre-commit
-python -m compileall -q app alembic/env.py scripts
-git diff --check
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked mypy
+uv build
+uv run --locked uvicorn newService.app:createApp --factory --host 127.0.0.1 --port 8000
 ```
 
-Verify the pristine endpoints through the real lifespan:
+The private SDK is pinned by full Git commit in `foundationOverlay/pyproject.toml.jinja`. Normal Git SSH read access is needed for lock/install; never copy a key or source checkout into the generated app. The default needs no `.env` or database. `SERVICE.md` and `PROJECT.md` must be replaced with actual service boundaries before product behavior. No test/CI/checker files are generated.
 
-- `GET /` has operation ID `getRoot`, no body, and returns `PokerlostResponse[None]`;
-- `GET /getOpenApi` has operation ID `getOpenApi`, no body, and returns the unmodified FastAPI
-  document directly;
-- built-in schema/documentation routes are disabled;
-- no project OpenAPI extension or service identity exists;
-- the pristine document has no security requirement or empty OAuth2 scheme because it has no
-  protected route; a real protected route publishes the complete standard scheme when implemented;
-- no response or request correlation metadata is exposed as a public transport contract.
+## 🔁 Reviewed update
 
-Inspect runtime composition and confirm it contains no fake verifier, outbound client, credentials,
-token store, retry tuning, or business operation. `ApplicationResources.token_verifier` is null in
-the pristine application and a protected route would therefore fail closed.
+Update the parent Python source, refresh the FastAPI snapshot and derivative, then refresh this template's FastAPI snapshot and derivative. Record content SHA-256 provenance at each step. Review answer migration (`service_name` to derived Python names), managed paths, optional persistence, and SDK compatibility. A dirty local template is a worktree snapshot, not a release. The three-layer propagation and historical flat-source update were verified with actual local Git refs in disposable repositories. Select the actual reviewed commit with `git rev-parse HEAD`; neither a content hash nor an unreleased template version is a Copier Git ref.
 
-Inspect `pyproject.toml` and `uv.lock`: `pypokerlost` must resolve from the private SSH Git source at
-the immutable revision documented in `SDK_COMPATIBILITY.md`. Neither file may contain a sibling
-path, local file source, credential, or floating branch.
+In an existing service, preserve `SERVICE.md`, `PROJECT.md`, code, scopes, settings, and migrations. Back up dirty tracked and required untracked content before update. Commit a reviewed foundation baseline where authorized, rehearse the update on an isolated copy, then run `copier update` from the service root with the reviewed template commit. Inspect every `UU` conflict and proposed deletion, then port intended flat-layout code explicitly. For an existing database-backed service, pass `-d withPersistence=true`; the new default is false. The [migration guide](docs/migrationGuide.md) records the verified behavior and recovery boundary. Do not alter live DB revisions or use a template update as a schema downgrade.
 
-For the header protocol, generator, middleware, scope, OpenAPI, privacy, and negative probes, follow
-the complete procedure in `SDK_COMPATIBILITY.md`. Temporary protected routes and disposable local
-verifiers must be removed after verification.
-
-When Docker is available, verify the private dependency build:
-
-```bash
-ssh-add -l
-ssh-keygen -F github.com
-docker build \
-  --ssh default \
-  --secret id=github_known_hosts,src="$HOME/.ssh/known_hosts" \
-  -t pokerlost-sdk-template-probe:local \
-  .
-docker run --rm pokerlost-sdk-template-probe:local \
-  python -c "import pypokerlost; print(pypokerlost.__version__)"
-```
-
-The runtime image must contain no SSH material or build-only Git tooling. The generated ClusterIP
-is internal and must remain behind mandatory production HTTPS/TLS termination.
-
-## Template update
-
-Run updates from a generated repository with valid Copier metadata:
-
-```bash
-uvx --from 'copier==9.17.2' copier check-update
-uvx --from 'copier==9.17.2' copier update
-```
-
-For every managed-file change:
-
-1. render a service from the exact prior template commit;
-2. modify its service-owned `SERVICE.md` and retain representative service handlers/migrations;
-3. update from the new template revision;
-4. confirm template-owned files update and obsolete unchanged files disappear;
-5. confirm `SERVICE.md`, service behavior, migrations, and service scope values remain unchanged;
-6. confirm the flat router/header-auth foundation is present;
-7. repeat documentation, compile, quality, OpenAPI, and SDK compatibility checks.
-
-Use a temporary destination for one fresh render, inspect its paths and imports with ordinary shell
-commands, then delete it. Do not commit permanent tests, rendered-template checkers, or equivalent
-hidden validation logic unless a later task explicitly requests tests. Report every unavailable
-tool, failed command, and environment limitation.
+Use a disposable render for HTTP/lifespan checks. `GET /` must use `PokerlostResponse[None]`, `GET /getOpenApi` must return the actual OpenAPI document, and no protected or business route exists in a pristine service. A DB readiness check requires a disposable PostgreSQL instance. Empty pytest collection is `notConfigured`, not a passing suite.
