@@ -1,14 +1,13 @@
 {% extends "composedTemplate/_base/fastApiApp.py.jinja" %}
-{% block packageImports %}from {{ packageName }}.authorization import configureAuthorizationErrors
-from {{ packageName }}.errors import configureErrorHandlers
-{% if withPersistence %}from {{ packageName }}.persistence import createEngine, sessionFactory
-{% endif %}from {{ packageName }}.resources import ApplicationResources, getResources
+{% block packageImports %}from {{ packageName }}.authorization import configure_authorization_errors
+from {{ packageName }}.errors import configure_error_handlers
+{% if withPersistence %}from {{ packageName }}.persistence import create_engine, session_factory
+{% endif %}from {{ packageName }}.resources import ApplicationResources
 from {{ packageName }}.routers import openapi, root
 from {{ packageName }}.settings import ServiceSettings
-
 {% endblock %}
 {% block configureApplication %}    application.include_router(root.router)
     application.include_router(openapi.router)
-    application.state.tokenVerifier = None
-    configureAuthorizationErrors(application)
+    application.state.token_verifier = None
+    configure_authorization_errors(application)
 {% endblock %}

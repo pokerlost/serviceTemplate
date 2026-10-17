@@ -23,6 +23,7 @@ jobs:
           enable-cache: true
       - run: uv python install 3.14
       - run: uv run --no-project --python 3.14 make check
-      - name: Generated service status
-        run: |
-          echo 'NOT_CONFIGURED: private SDK access is required for a dependency-backed render'
+      - name: Verify pinned FastAPI source and render
+        run: uv run --no-project --python 3.14 --with 'copier==9.17.2' python _sources/fastApiTemplate/tools/compose_template.py --repo . --smoke
+      - name: Copier update regression
+        run: uv run --no-project --python 3.14 --with 'copier==9.17.2' --with 'pytest>=9,<10' pytest -q tests

@@ -62,7 +62,8 @@ def _read_text(path: Path, errors: list[str], repository_root: Path) -> str | No
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exception:
         errors.append(
-            f"{_relative_display(path, repository_root)}: cannot read UTF-8 Markdown: {exception}",
+            f"{_relative_display(path, repository_root)}: "
+            f"cannot read UTF-8 Markdown: {exception}",
         )
         return None
 
@@ -79,7 +80,9 @@ def _without_html_comments(text: str) -> str:
             run_length = end - position
             if code_ticks == run_length:
                 code_ticks = None
-            elif code_ticks is None and _has_closing_backtick_run(text, end, run_length):
+            elif code_ticks is None and _has_closing_backtick_run(
+                text, end, run_length
+            ):
                 code_ticks = run_length
             position = end
             continue
@@ -153,7 +156,8 @@ def _prose_lines(
 
     if active_fence is not None:
         errors.append(
-            f"{_relative_display(path, repository_root)}: fenced code block is not closed",
+            f"{_relative_display(path, repository_root)}: "
+            "fenced code block is not closed",
         )
     return _without_html_comments("\n".join(prose)).split("\n")
 
@@ -203,12 +207,16 @@ def _check_page_structure(
         None,
     )
     if opening_line is None or not _is_opening_paragraph(opening_line):
-        errors.append(f"{display}: H1 must be followed by a non-empty opening paragraph")
+        errors.append(
+            f"{display}: H1 must be followed by a non-empty opening paragraph"
+        )
 
     lowered = text.casefold()
     for marker in _TEMPORARY_MARKERS:
         if marker in lowered:
-            errors.append(f"{display}: contains temporary prompt/chat marker {marker!r}")
+            errors.append(
+                f"{display}: contains temporary prompt/chat marker {marker!r}"
+            )
 
     for pattern in _ABSOLUTE_LOCAL_PATH_PATTERNS:
         for match in pattern.finditer(text):
@@ -297,11 +305,17 @@ def _parenthesized_destination(text: str, opening: int) -> tuple[str, int] | Non
 def _inline_link_destinations(text: str) -> list[tuple[str, bool, tuple[int, int]]]:
     destinations: list[tuple[str, bool, tuple[int, int]]] = []
     for position, character in enumerate(text):
-        is_image = character == "!" and position + 1 < len(text) and text[position + 1] == "["
+        is_image = (
+            character == "!" and position + 1 < len(text) and text[position + 1] == "["
+        )
         if is_image:
             bracket = position + 1
         elif character == "[":
-            if position > 0 and text[position - 1] == "!" and not _is_escaped(text, position - 1):
+            if (
+                position > 0
+                and text[position - 1] == "!"
+                and not _is_escaped(text, position - 1)
+            ):
                 continue
             bracket = position
         else:
@@ -353,7 +367,9 @@ def _link_destinations(prose: list[str]) -> list[tuple[str, bool]]:
             continue
         label = _reference_label(match.group(1))
         if label in definitions:
-            used_references[label] = used_references.get(label, False) or not match.group(
+            used_references[label] = used_references.get(
+                label, False
+            ) or not match.group(
                 0,
             ).startswith("!")
 
@@ -377,7 +393,9 @@ def _plain_heading_text(value: str) -> str:
 
 def _github_slug(value: str) -> str:
     plain = _plain_heading_text(value).casefold()
-    characters = [character for character in plain if character.isalnum() or character in " _-"]
+    characters = [
+        character for character in plain if character.isalnum() or character in " _-"
+    ]
     return re.sub(r"\s", "-", "".join(characters)).strip("-")
 
 
@@ -432,14 +450,21 @@ def _check_links(
                 if not fragment or fragment.casefold() not in {
                     anchor.casefold() for anchor in anchors
                 }:
-                    errors.append(f"{display}: same-document anchor does not exist: {destination}")
+                    errors.append(
+                        f"{display}: same-document anchor does not exist: {destination}"
+                    )
                 continue
 
             if destination.casefold().startswith(_ALLOWED_LINK_PREFIXES):
                 continue
 
             parsed = urlsplit(destination)
-            if parsed.scheme or parsed.netloc or parsed.query or parsed.path.startswith("/"):
+            if (
+                parsed.scheme
+                or parsed.netloc
+                or parsed.query
+                or parsed.path.startswith("/")
+            ):
                 errors.append(f"{display}: unsupported local link: {destination}")
                 continue
             target = (
@@ -455,9 +480,12 @@ def _check_links(
             if parsed.fragment:
                 fragment = unquote(parsed.fragment).casefold()
                 if ".md" not in target.suffixes or fragment not in {
-                    anchor.casefold() for anchor in _heading_anchors(target, anchor_cache)
+                    anchor.casefold()
+                    for anchor in _heading_anchors(target, anchor_cache)
                 }:
-                    errors.append(f"{display}: local link anchor does not exist: {destination}")
+                    errors.append(
+                        f"{display}: local link anchor does not exist: {destination}"
+                    )
 
 
 def _check_index_inventory(
@@ -474,7 +502,8 @@ def _check_index_inventory(
         reference = f"`{_relative_display(page, repository_root)}`"
         if reference not in index_text:
             errors.append(
-                f"{_relative_display(page, repository_root)}: page is not listed by its "
+                f"{_relative_display(page, repository_root)}: "
+                "page is not listed by its "
                 f"repository-root path in {_relative_display(index, repository_root)}"
             )
 
@@ -534,7 +563,8 @@ def main() -> int:
         )
         if not index.is_file():
             errors.append(
-                f"{_relative_display(index, repository_root)}: documentation index is missing",
+                f"{_relative_display(index, repository_root)}: "
+                "documentation index is missing",
             )
         document_paths = sorted(
             path
@@ -543,14 +573,16 @@ def main() -> int:
         )
         if not document_paths:
             errors.append(
-                f"{_relative_display(docs_directory, repository_root)}: no Markdown pages found",
+                f"{_relative_display(docs_directory, repository_root)}: "
+                "no Markdown pages found",
             )
 
     pages: dict[Path, list[str]] = {}
     for path in document_paths:
         if not path.is_file():
             errors.append(
-                f"{_relative_display(path, repository_root)}: Markdown document is missing",
+                f"{_relative_display(path, repository_root)}: "
+                "Markdown document is missing",
             )
             continue
         text = _read_text(path, errors, repository_root)

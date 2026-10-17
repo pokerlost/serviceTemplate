@@ -9,7 +9,7 @@ Python 3.14+ and access to the pinned private `pypokerlost` source are required 
 ```bash
 uv lock
 uv sync --locked
-uv run --locked uvicorn {{ packageName }}.app:createApp --factory --host 127.0.0.1 --port 8000
+uv run --locked uvicorn {{ packageName }}.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-`GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. {% if withCi %}Technical CI checks source without a secret on PRs; the pinned private SDK build is enabled only after repository-scoped access is approved. No subject test suite is installed.{% else %}No new test or CI suite is installed in this Pokerlost render.{% endif %}
+`GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. {% if withTesting %}Run `uv run --locked pytest` for the generated technical suite.{% endif %} {% if withCi %}CI checks source without a secret on PRs; a private SDK build requires a reviewed SHA and an approved, narrowly scoped App installation.{% endif %}

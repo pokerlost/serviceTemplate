@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1.7
+FROM python:3.14.7-slim-trixie AS build
+WORKDIR /app
+RUN python -m pip install --no-cache-dir uv==0.12.15
+COPY pyproject.toml uv.lock README.md ./
+COPY src ./src
+COPY --chmod=0755 docker/sdk_askpass.sh /usr/local/bin/sdk_askpass
+{% if withPersistence %}COPY alembic.ini ./
+COPY migrations ./migrations
+{% endif %}RUN --mount=type=secret,id=sdk_token,required=true \
+    GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \
+    GIT_CONFIG_VALUE_0=ssh://git@github.com/pokerlost/pypokerlost.git \
+    GIT_ASKPASS=/usr/local/bin/sdk_askpass \
+    GIT_TERMINAL_PROMPT=0 \
+    UV_NO_GITHUB_FAST_PATH=1 \
+    uv sync --locked --no-dev --no-editable
+
+FROM python:3.14.7-slim-trixie
+WORKDIR /app
+COPY --from=build /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
+USER 65532:65532
+CMD ["uvicorn", "{{ packageName }}.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

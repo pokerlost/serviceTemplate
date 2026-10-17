@@ -13,12 +13,16 @@ include = [
   "CONTRIBUTING.md.jinja",
   "PROJECT.md.jinja",
   "README.md.jinja",
+  "Dockerfile.jinja",
+  ".dockerignore",
   "SERVICE.md.jinja",
   "pyproject.toml.jinja",
   "_base/pyproject.toml.jinja",
   "docs/architecture.md.jinja",
   "src/{{ packageName }}/__init__.py.jinja",
   "src/{{ packageName }}/py.typed",
+  "src/{{ packageName }}/api/__init__.py",
+  "src/{{ packageName }}/api/health.py.jinja",
   "src/{{ packageName }}/app.py.jinja",
   "src/{{ packageName }}/errors.py.jinja",
   "src/{{ packageName }}/resources.py.jinja",
@@ -27,6 +31,8 @@ include = [
   "alembic.ini.jinja",
   "migrations/env.py.jinja",
   "migrations/versions/.gitkeep",
+  "tests/test_http.py.jinja",
+  "tests/database_integration.py.jinja",
 ]
 allowOverride = [
   "AGENTS.md.jinja",
@@ -37,6 +43,9 @@ allowOverride = [
   ".github/workflows/ci.yml.jinja",
   "src/{{ packageName }}/app.py.jinja",
   "src/{{ packageName }}/errors.py.jinja",
+  "tests/test_http.py.jinja",
+  "Dockerfile.jinja",
+  ".dockerignore",
 ]
 retainBase = { "pyproject.toml.jinja" = "_base/fastApiPyproject.toml.jinja", "src/{{ packageName }}/app.py.jinja" = "_base/fastApiApp.py.jinja", "src/{{ packageName }}/errors.py.jinja" = "_base/fastApiErrors.py.jinja" }
 smokeAnswers = { service_name = "sampleService" }

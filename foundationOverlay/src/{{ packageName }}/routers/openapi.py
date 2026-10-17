@@ -8,7 +8,7 @@ router = APIRouter(tags=["openapi"])
 
 
 @router.get("/getOpenApi", operation_id="getOpenApi")
-async def getOpenApi(request: Request) -> dict[str, object]:
+async def get_open_api(request: Request) -> dict[str, object]:
     """Return FastAPI's actual OpenAPI 3.1 document."""
     document: dict[str, object] = request.app.openapi()
     return document

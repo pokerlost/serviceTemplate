@@ -14,7 +14,9 @@ class Scopes(StrEnum):
 
     def __new__(cls, value: str) -> Scopes:
         if _SCOPE_PATTERN.fullmatch(value) is None:
-            raise ValueError("Scopes require dotted lower camelCase capability segments")
+            raise ValueError(
+                "Scopes require dotted lower camelCase capability segments"
+            )
         member = str.__new__(cls, value)
         member._value_ = value
         return member
@@ -23,9 +25,11 @@ class Scopes(StrEnum):
 SCOPE_DESCRIPTIONS: dict[Scopes, str] = {}
 
 
-def scopeDescriptions() -> dict[str, str]:
+def scope_descriptions() -> dict[str, str]:
     if frozenset(SCOPE_DESCRIPTIONS) != frozenset(Scopes):
         raise RuntimeError("Every declared scope needs one description")
     if any(not value.strip() for value in SCOPE_DESCRIPTIONS.values()):
         raise RuntimeError("Scope descriptions must not be empty")
-    return {scope.value: description for scope, description in SCOPE_DESCRIPTIONS.items()}
+    return {
+        scope.value: description for scope, description in SCOPE_DESCRIPTIONS.items()
+    }

@@ -16,7 +16,7 @@ from pypokerlost.types import (
     PokerlostResponse,
 )
 
-from {{ packageName }}.scopes import Scopes, scopeDescriptions
+from {{ packageName }}.scopes import Scopes, scope_descriptions
 
 _AUDIENCE = PokerlostAudience("{{ service_name }}")
 
@@ -29,20 +29,20 @@ class PokerlostTokenVerifier(Protocol):
     ) -> PokerlostAuthorizationContext: ...
 
 
-class AuthorizationFailure(Exception):
+class AuthorizationError(Exception):
     """A safe, canonical authentication or authorization failure."""
 
-    def __init__(self, code: str, statusCode: int, message: str) -> None:
+    def __init__(self, code: str, status_code: int, message: str) -> None:
         super().__init__(message)
         self.code = code
-        self.statusCode = statusCode
+        self.status_code = status_code
         self.message = message
 
 
 OAUTH2 = OAuth2(
     flows=OAuthFlows(
         clientCredentials=OAuthFlowClientCredentials(
-            tokenUrl="/getToken", scopes=scopeDescriptions()
+            tokenUrl="/getToken", scopes=scope_descriptions()
         )
     ),
     scheme_name="PokerlostOAuth2",
@@ -51,58 +51,62 @@ OAUTH2 = OAuth2(
 AuthorizationHeader = Annotated[str | None, Security(OAUTH2)]
 
 
-async def authorizePokerlostRequest(
-    securityScopes: SecurityScopes,
-    authorizationHeader: AuthorizationHeader,
+async def authorize_pokerlost_request(
+    security_scopes: SecurityScopes,
+    authorization_header: AuthorizationHeader,
     request: Request,
 ) -> PokerlostAuthorizationContext:
     """Require exact route scopes, bearer token, audience, and local verification."""
-    if not securityScopes.scopes:
+    if not security_scopes.scopes:
         raise RuntimeError("Protected operations require at least one exact scope")
     try:
-        required = tuple(Scopes(value) for value in securityScopes.scopes)
+        required = tuple(Scopes(value) for value in security_scopes.scopes)
     except ValueError:
         raise RuntimeError("Protected operation declares an unknown scope") from None
     if len(set(required)) != len(required):
         raise RuntimeError("Protected operation declares duplicate scopes")
-    if authorizationHeader is None:
-        raise AuthorizationFailure(
+    if authorization_header is None:
+        raise AuthorizationError(
             "POKERLOST_AUTHENTICATION_REQUIRED", 401, "Authentication is required."
         )
-    scheme, tokenValue = get_authorization_scheme_param(authorizationHeader)
+    scheme, token_value = get_authorization_scheme_param(authorization_header)
     if (
         scheme.casefold() != "bearer"
-        or not tokenValue
-        or any(character.isspace() for character in tokenValue)
+        or not token_value
+        or any(character.isspace() for character in token_value)
     ):
-        raise AuthorizationFailure(
+        raise AuthorizationError(
             "POKERLOST_AUTHENTICATION_REQUIRED", 401, "Authentication is required."
         )
-    verifier = getattr(request.app.state, "tokenVerifier", None)
+    verifier = getattr(request.app.state, "token_verifier", None)
     if verifier is None:
         raise RuntimeError("Pokerlost token verifier is not configured")
     context: PokerlostAuthorizationContext = await verifier.verify(
-        SecretStr(tokenValue), audience=_AUDIENCE
+        SecretStr(token_value), audience=_AUDIENCE
     )
     if context.audience != _AUDIENCE:
-        raise AuthorizationFailure(
+        raise AuthorizationError(
             "POKERLOST_ACCESS_TOKEN_INVALID", 401, "Access token is invalid."
         )
     granted = frozenset(scope.value for scope in context.scopes)
     if any(scope.value not in granted for scope in required):
-        raise AuthorizationFailure(
+        raise AuthorizationError(
             "POKERLOST_INSUFFICIENT_SCOPE", 403, "Required scope is missing."
         )
     return context
 
 
-def configureAuthorizationErrors(application: FastAPI) -> None:
+def configure_authorization_errors(application: FastAPI) -> None:
     """Publish safe SDK envelopes for the authorization boundary."""
 
-    @application.exception_handler(AuthorizationFailure)
-    async def handleAuthorizationFailure(
-        request: Request, error: AuthorizationFailure
+    @application.exception_handler(AuthorizationError)
+    async def handle_authorization_error(
+        request: Request, error: AuthorizationError
     ) -> JSONResponse:
         del request
-        response = PokerlostResponse[None](ok=False, error=error.code, error_message=error.message)
-        return JSONResponse(status_code=error.statusCode, content=response.model_dump(mode="json"))
+        response = PokerlostResponse[None](
+            ok=False, error=error.code, error_message=error.message
+        )
+        return JSONResponse(
+            status_code=error.status_code, content=response.model_dump(mode="json")
+        )

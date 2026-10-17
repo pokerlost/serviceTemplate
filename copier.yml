@@ -24,6 +24,13 @@ _exclude:
   - "{% if not (withPersistence | default(false)) %}migrations{% endif %}"
   - "{% if not (withPersistence | default(false)) %}migrations/**{% endif %}"
   - "{% if not (withPersistence | default(false)) %}src/*/persistence.py{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}tests/database_integration.py{% endif %}"
+  - "{% if not (withTesting | default(true)) %}tests/**{% endif %}"
+  - "{% if not (withTesting | default(true)) %}tests{% endif %}"
+  - "{% if not (withDocker | default(true)) %}Dockerfile{% endif %}"
+  - "{% if not (withDocker | default(true)) %}.dockerignore{% endif %}"
+  - "{% if not (withDocker | default(true)) %}docker/**{% endif %}"
+  - "{% if not (withDocker | default(true)) %}docker{% endif %}"
 service_name:
   type: str
   help: "Canonical Pokerlost service name, such as pokerService."
@@ -49,7 +56,7 @@ projectName:
   when: false
 packageName:
   type: str
-  default: "{{ service_name }}"
+  default: "{{ service_name | lower }}"
   when: false
 projectDescription:
   type: str
@@ -77,13 +84,13 @@ withPersistence:
   help: "Include PostgreSQL lifecycle without subject schema."
 withTesting:
   type: bool
-  default: false
+  default: true
   when: false
 withCi:
   type: bool
-  default: false
-  help: "Include opt-in technical CI. Private SDK build requires separately approved read access."
+  default: true
+  help: "Include technical CI. Private SDK build requires separately approved read access."
 withDocker:
   type: bool
-  default: false
+  default: true
   when: false

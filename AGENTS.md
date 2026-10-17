@@ -47,10 +47,10 @@ or pre-release layouts unless the user explicitly requires them.
 - Target Python 3.14 for template-maintenance scripts and generated services.
 - Begin project-owned Python modules with a focused module docstring followed immediately by
   `from __future__ import annotations`.
-- Use a 100-character Python line length, strict mypy, built-in generics, `collections.abc`,
+- Use an 88-character Python line length, strict mypy, built-in generics, `collections.abc`,
   `Self`, modern unions, explicit return types, and PEP 695 syntax where it expresses the contract.
-- Use lowerCamelCase for new project-owned private names where no existing import or protocol
-  fixes the spelling, `PascalCase` classes, and `UPPER_SNAKE_CASE` constants. Keep published
+- Use `snake_case` for owned Python modules, functions, methods, variables, and internal fields,
+  `CapWords` classes, and `UPPER_SNAKE_CASE` constants. Keep published
   imports, generated paths, framework hooks, and canonical external acronym casing.
 - Use Pokerlost consistently in prose and project-owned identifiers. Preserve the distribution
   name `pypokerlost`.
@@ -82,8 +82,8 @@ or pre-release layouts unless the user explicitly requires them.
 - Run the manual compatibility verification in `SDK_COMPATIBILITY.md` after changes to API operations,
   request/response envelopes, header authorization, OpenAPI, Python, or the SDK boundary.
 - Report every unavailable tool, failed command, and external-service limitation.
-- Do not add or modify tests unless the user explicitly requests them. Do not add rendered-template
-  checkers, `scripts/check_*.py`, architecture checker scripts, or hidden equivalents.
+- Add focused technical and regression tests for changed template composition, lifecycle,
+  HTTP, configuration, packaging, and update behavior. Do not build a parallel checker framework.
 
 ## Git hygiene
 
