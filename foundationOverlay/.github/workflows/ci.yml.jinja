@@ -49,7 +49,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: sdk-build
-    steps:
+{% if withPersistence %}    services:
+      postgres:
+        image: postgres:17.11-trixie
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+{% endif %}    steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
@@ -80,7 +94,9 @@ jobs:
       - name: Locked private SDK build and installed-wheel startup
         env:
           SDK_APP_TOKEN: {% raw %}${{ steps.sdkToken.outputs.token }}{% endraw %}
-        run: |
+{% if withPersistence %}          DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
+          TEST_DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
+{% endif %}        run: |
           set -euo pipefail
           umask 077
           container=""
@@ -109,6 +125,9 @@ jobs:
           uv run --locked ruff format --check src
           uv run --locked mypy
 {% if withTesting %}          uv run --locked pytest -q
+{% if withPersistence %}          uv run --locked alembic upgrade head
+          uv run --locked pytest -q tests/database_integration.py
+{% endif %}
 {% endif %}
           uv build
           uv export --locked --no-dev --no-emit-project --output-file "$RUNNER_TEMP/runtimeRequirements.txt"
@@ -116,9 +135,11 @@ jobs:
           uv pip install --python "$RUNNER_TEMP/wheelCheck/bin/python" --requirement "$RUNNER_TEMP/runtimeRequirements.txt"
           uv pip install --no-deps --python "$RUNNER_TEMP/wheelCheck/bin/python" dist/*.whl
 {% if withDocker %}          DOCKER_BUILDKIT=1 docker build --secret id=sdk_token,env=SDK_APP_TOKEN --tag {{ packageName | lower }}:reviewed .
-          container="$(docker run --detach --rm --publish 127.0.0.1::8000 --env DATABASE_URL=postgresql+asyncpg://ci:ci@127.0.0.1:1/ci {{ packageName | lower }}:reviewed)"
+{% if withPersistence %}          container="$(docker run --detach --rm --network host --env DATABASE_URL="$DATABASE_URL" {{ packageName | lower }}:reviewed)"
+          port=8000
+{% else %}          container="$(docker run --detach --rm --publish 127.0.0.1::8000 {{ packageName | lower }}:reviewed)"
           port="$(docker port "$container" 8000/tcp | tail -n 1 | cut -d: -f2)"
-          ready=false
+{% endif %}          ready=false
           for attempt in $(seq 1 20); do
             if curl --fail --silent "http://127.0.0.1:$port/health/live"; then ready=true; break; fi
             sleep 1
