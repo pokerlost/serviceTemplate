@@ -7,7 +7,7 @@
     ".editorconfig": "29f683ebf0458a834f255c97a6193962c542de802079b42800fd592723f7ff3c",
     ".github/PULL_REQUEST_TEMPLATE.md.jinja": "1dcf2b9f54f99b0fa4f9a4ac6063585816d9bf326f7173b330017d2075686d6c",
     ".gitignore": "79222be882f924e4dee23f3fa3823ccc09583713c1c20e6d58de0bd9aa4331fa",
-    ".template-source.json": "f20c72f171ca5b01a0837ab14be31cfa7b54037d5ecb5a9727f6fa908b11e80d",
+    ".template-source.json": "2b8da6f69eb7eadbc5650a9db16ba83597fa1acff06988d69eaca0d383a952c5",
     "AGENTS.md.jinja": "617fa5201731e3e996d81eeabcaea085ede813e3ccaeb8b1e80f8ac16ed30fc1",
     "CONTRIBUTING.md.jinja": "e863d2c510d4aea692d1ffbf84653fe4447e14d3b9d725f80b984fc641416377",
     "PROJECT.md.jinja": "d5bc786f311f73282d02270a5b97682a10559dc590c37d3dadec29975c84ee90",
@@ -69,8 +69,8 @@
     "src/{{ packageName }}/scopes.py.jinja": "overlay",
     "src/{{ packageName }}/settings.py.jinja": "parent"
   },
-  "parentContentSha256": "1f75d465f895a54f4da5bac2b4df522e865bac610c78cc406caa8bfbb4a13175",
+  "parentContentSha256": "f1ede1da78133ce0947aa83aa2cb8b7c9265ec5ef2aaa28c35bdcb9e23ae03cd",
   "schema": 1,
-  "sourceContentSha256": "fe15caa7579f812d405f6e001ccb94b4e859f307b94ab779a309b86c220b4302",
+  "sourceContentSha256": "76f95b2343ec991de19938d54cf01a308526763b2565e8c048b546f6cf4cb5eb",
   "templateVersion": "0.1.0.dev0"
 }

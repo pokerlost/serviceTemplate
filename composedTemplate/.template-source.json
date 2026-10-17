@@ -3,8 +3,8 @@
   "configurationSha256": "d0a743eb64d1480b90d916b957ae9470ec132c8f77e9d70d8e92c883afa46816",
   "copierConfigurationSha256": "c979fd25345768e73890349005adf2ed631ef61e21fa9aef23a22b1312ad995e",
   "overlayContentSha256": "45aba97f6ff61e6b48fe8da3a58bee2ab56635586b209a9960fcba083ac0b58b",
-  "parentContentSha256": "1f75d465f895a54f4da5bac2b4df522e865bac610c78cc406caa8bfbb4a13175",
+  "parentContentSha256": "f1ede1da78133ce0947aa83aa2cb8b7c9265ec5ef2aaa28c35bdcb9e23ae03cd",
   "publication": "local composition; release status must be checked separately",
-  "sourceContentSha256": "fe15caa7579f812d405f6e001ccb94b4e859f307b94ab779a309b86c220b4302",
+  "sourceContentSha256": "76f95b2343ec991de19938d54cf01a308526763b2565e8c048b546f6cf4cb5eb",
   "templateVersion": "0.1.0.dev0"
 }
