@@ -18,8 +18,8 @@ _exclude:
   - "app/**"
   - "alembic/**"
   - "deploy/**"
-  - ".github/workflows"
-  - ".github/workflows/**"
+  - "{% if not (withCi | default(false)) %}.github/workflows{% endif %}"
+  - "{% if not (withCi | default(false)) %}.github/workflows/**{% endif %}"
   - "{% if not (withPersistence | default(false)) %}alembic.ini{% endif %}"
   - "{% if not (withPersistence | default(false)) %}migrations{% endif %}"
   - "{% if not (withPersistence | default(false)) %}migrations/**{% endif %}"
@@ -82,7 +82,7 @@ withTesting:
 withCi:
   type: bool
   default: false
-  when: false
+  help: "Include opt-in technical CI. Private SDK build requires separately approved read access."
 withDocker:
   type: bool
   default: false

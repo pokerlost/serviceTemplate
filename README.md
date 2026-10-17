@@ -16,7 +16,7 @@ uv sync --locked
 uv run --locked uvicorn exampleService.app:createApp --factory --host 127.0.0.1 --port 8000
 ```
 
-The default has no DSN or outbound credential. It has only root, OpenAPI, liveness, and readiness infrastructure routes; no business operation or local token verifier is configured. Installing the pinned private `pypokerlost` dependency needs normal Git SSH read access. New Pokerlost renders omit test dependencies, fixtures, CI, and checker scripts.
+The default has no DSN or outbound credential. It has only root, OpenAPI, liveness, and readiness infrastructure routes; no business operation or local token verifier is configured. Local installation of the pinned private `pypokerlost` runtime dependency needs Git SSH read access. New Pokerlost renders omit test dependencies, fixtures, CI, and checker scripts by default. `-d withCi=true` opts into technical CI without subject tests; its private SDK build job requires the narrow GitHub App access documented in [creation and update](CREATE_SERVICE.md).
 
 ## 🧭 Maintenance
 
