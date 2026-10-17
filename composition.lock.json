@@ -9,10 +9,10 @@
     ".github/PULL_REQUEST_TEMPLATE.md.jinja": "1dcf2b9f54f99b0fa4f9a4ac6063585816d9bf326f7173b330017d2075686d6c",
     ".github/workflows/ci.yml.jinja": "e21bbafe812e38e5dcb4210a7032129a2915c905efcdc3f2fdcc946a86865556",
     ".gitignore": "79222be882f924e4dee23f3fa3823ccc09583713c1c20e6d58de0bd9aa4331fa",
-    ".template-source.json": "8cd5309536c5f135d43d3d667503be1833a52218009bdbaec9909258e7028a72",
+    ".template-source.json": "c774920919bfcfab8f2d96108cf8e13bec40f2ac6f8dac013b53d8d24e304cab",
     "AGENTS.md.jinja": "1659fffd10f8627c39b63646205c762d199f3013c391934b60a4d6e40c07f89d",
     "CONTRIBUTING.md.jinja": "509b36ec7bf61f7ee9ceec9c4970202518bf55d5128205cc9a9a9850ade5bf13",
-    "Dockerfile.jinja": "dafb51aadae374a88c17acdf6083cfacf6af568a90c55b4be29502589e651294",
+    "Dockerfile.jinja": "29270d013723931809ce5f81a0f69f98fa3de2efbe1aef7af7092d0651ca58d0",
     "PROJECT.md.jinja": "d5bc786f311f73282d02270a5b97682a10559dc590c37d3dadec29975c84ee90",
     "README.md.jinja": "40de2c8f2db31d7417aea6469a8cda41b469892353011dcdd40b29a9e79e51cc",
     "SERVICE.md.jinja": "b757a10e1c94ef59a3503ff978d97d249b7b983ab6583410f743b15712011ee7",
@@ -43,7 +43,7 @@
     "tests/database_integration.py.jinja": "0c507d6e338589bdd41845a64b51fe7a885e1d9530381f694ef625b1a189c057",
     "tests/test_http.py.jinja": "bb3e10c4e803d6c8a2cbb87cc536e3d86f7a48c81a183687bd33038e6d3a4de2"
   },
-  "overlayContentSha256": "889b959a5005156410ed889fbb6a7d02d2a4f9ef9568c1e41cb1ea8ae8a0f4cf",
+  "overlayContentSha256": "5482c117682476f21519cb4c456334fa9aec223dcfd9fce235d717211e71b920",
   "owners": {
     ".copier-answers.yml.jinja": "parent",
     ".dockerignore": "overlay",
@@ -87,6 +87,6 @@
   },
   "parentContentSha256": "b319b943cfc48548561669a7bee3c08e6b8b5b5d670f2d2a1f50a76ac1a451b2",
   "schema": 1,
-  "sourceContentSha256": "6b2babc708219668662f694e7803ff700b7d44c385c8f4f5390ef749f4b4eedf",
+  "sourceContentSha256": "cc16bdcd21b2a9160180cae67afcc9d47bf770a5a6866db9e007d455dd41c341",
   "templateVersion": "0.1.0.dev0"
 }

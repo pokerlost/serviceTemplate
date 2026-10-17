@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1.7
 FROM python:3.14.7-slim-trixie AS build
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 RUN python -m pip install --no-cache-dir uv==0.12.15
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
