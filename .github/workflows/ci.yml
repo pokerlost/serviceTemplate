@@ -3,6 +3,12 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: Full reviewed candidate SHA; SDK admission remains separately required
+        required: true
+        type: string
 
 permissions:
   contents: read
