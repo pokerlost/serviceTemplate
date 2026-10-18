@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-PYTHON ?= python3
+PYTHON ?= $(CURDIR)/.venv/bin/python
 UV ?= uv
 UVX ?= uvx
 PRE_COMMIT_VERSION := 4.6.2

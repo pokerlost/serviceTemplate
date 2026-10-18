@@ -101,7 +101,7 @@ jobs:
           owner: pokerlost
           repositories: pypokerlost
           permission-contents: read
-      - name: Locked host types and disposable PostgreSQL transaction tests
+      - name: Acquire the exact locked SDK with short-lived read access
         env:
           SDK_APP_TOKEN: {% raw %}${{ steps.sdkToken.outputs.token }}{% endraw %}
 {% if withPersistence %}          DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
@@ -125,7 +125,12 @@ jobs:
           export GIT_CONFIG_GLOBAL="$gitConfig" GIT_ASKPASS="$askpass"
           export GIT_TERMINAL_PROMPT=0 UV_NO_GITHUB_FAST_PATH=1
           uv sync --locked
-          make check
+      - name: Host types and real PostgreSQL tests without SDK credentials
+        env:
+          UV_OFFLINE: "true"
+{% if withPersistence %}          DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
+          TEST_DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
+{% endif %}        run: make check
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Build canonical wheel and sdist
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -155,7 +160,7 @@ jobs:
           docker run --rm --read-only --network host --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             --user "$(id -u):$(id -g)" --mount type=bind,source="$PWD/coverage",target=/checks/coverage \
 {% if withPersistence %}            --env TEST_DATABASE_URL=postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci \
-{% endif %}            {{ packageName }}:test sh -ec '{% if withPersistence %}python -m pytest tests/foundation/database_integration.py -p no:cacheprovider; {% endif %}python -m pytest --cov --cov-report=term-missing --cov-report=json --cov-report=xml -p no:cacheprovider'
+{% endif %}            {{ packageName }}:test sh -ec '{% if withPersistence %}python -m coverage run -m pytest tests/foundation/database_integration.py tests/*_integration.py -p no:cacheprovider; {% endif %}python -m pytest --cov{% if withPersistence %} --cov-append{% endif %} --cov-report=term-missing --cov-report=json --cov-report=xml -p no:cacheprovider'
       - name: Build the runtime candidate once
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:

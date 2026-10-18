@@ -65,10 +65,6 @@ packageName:
   type: str
   default: "{{ service_name | lower }}"
   when: false
-distributionName:
-  type: str
-  default: "pokerlost-{{ service_slug }}"
-  when: false
 projectDescription:
   type: str
   default: "Pokerlost {{ service_name }} foundation"

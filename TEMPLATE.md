@@ -46,3 +46,10 @@ normal GitHub branch isolation. Fresh tests and PostgreSQL run after cache resto
 runtime image is loaded into disposable Kind, migrated, probed, scaled and rolled back; it is also
 saved as a private workflow artifact. A Docker image ID is a local identity, not a registry manifest
 digest. No registry, release or remote cluster publication is implicit.
+
+Service-specific published Make commands can remain in `Makefile.local`, included by the shared
+Python Makefile. Local host/port/reload choices use the inherited FastAPI command options; the
+runtime image does not inherit them. Full persistence testing starts a fresh integration coverage
+measurement, includes owner `tests/*_integration.py` cases, then appends isolated tests and applies
+the full gate. Test assets preserve tools/migrations while `src/` is excluded and installed origin
+is asserted inside pytest. A source checkout cannot satisfy the installed-wheel assertion.
