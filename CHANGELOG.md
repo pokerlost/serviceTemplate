@@ -1,5 +1,7 @@
 # Changelog
 
+The private SDK gate follows the confirmed canonical `pokerlost/accountsService` identity after its GitHub transfer; the installation remains SDK-only.
+
 All notable template changes are documented here. Releases use PEP 440-compatible Git tags.
 
 ## Unreleased

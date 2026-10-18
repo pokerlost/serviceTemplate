@@ -50,7 +50,7 @@ jobs:
       contents: read
       actions: read
     needs: source
-    if: {% raw %}${{ github.event_name == 'workflow_dispatch' && inputs.reviewed_sha == github.sha && contains(fromJSON('["pokerlost/serviceTemplate","pokerlost/authService","mloso/accountsService","pokerlost/virtualMoney","pokerlost/pokerService","pokerlost/cryptoService"]'), github.repository) }}{% endraw %}
+    if: {% raw %}${{ github.event_name == 'workflow_dispatch' && inputs.reviewed_sha == github.sha && contains(fromJSON('["pokerlost/serviceTemplate","pokerlost/authService","pokerlost/accountsService","pokerlost/virtualMoney","pokerlost/pokerService","pokerlost/cryptoService"]'), github.repository) }}{% endraw %}
     environment: sdk-build
     runs-on: ubuntu-24.04
     timeout-minutes: 45

@@ -182,3 +182,21 @@ def test_update_from_committed_foundation_preserves_owner_state(
     assert (output / "compose.test.yaml").is_file() is persistence
     assert not _git(output, "ls-files", "-u")
     assert not list(output.rglob("*.rej"))
+
+
+def test_private_gate_uses_confirmed_canonical_repository() -> None:
+    """The transferred accounts repo is admitted without widening SDK access."""
+    import json
+    import re
+
+    source = (ROOT / "foundationOverlay/.github/workflows/ci.yml.jinja").read_text()
+    allowlist = re.search(r"fromJSON\('([^']+)'\)", source)
+    assert allowlist is not None
+    repositories = json.loads(allowlist.group(1))
+    assert "pokerlost/accountsService" in repositories
+    assert "mloso/accountsService" not in repositories
+    assert len(repositories) == 6
+    assert "inputs.reviewed_sha == github.sha" in source
+    assert "github.event_name == 'workflow_dispatch'" in source
+    assert "repositories: pypokerlost" in source
+    assert "permission-contents: read" in source
