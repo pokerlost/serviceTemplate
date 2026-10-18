@@ -1,0 +1,272 @@
+"""Exercise real authorization dependencies with signed, test-only input tokens."""
+
+from __future__ import annotations
+
+import asyncio
+import base64
+import hashlib
+import hmac
+import json
+from enum import StrEnum
+from typing import Annotated
+from uuid import UUID
+
+import pytest
+from fastapi import FastAPI, Request, Security
+from fastapi.security import SecurityScopes
+from fastapi.testclient import TestClient
+from pydantic import SecretStr
+from pypokerlost.enums import PokerlostScopes, PrincipalType
+from pypokerlost.types import (
+    PokerlostAudience,
+    PokerlostAuthorizationContext,
+    PokerlostResponse,
+)
+
+from {{ packageName }} import authorization
+from {{ packageName }} import scopes as scope_module
+from {{ packageName }}.app import create_app
+
+_FIXTURE_KEY = b"synthetic-test-only-key-never-used-by-runtime"
+
+
+class FixtureScopes(StrEnum):
+    __new__ = scope_module.Scopes._new_member_
+    READ = "accounts.self.getMe"
+    ADMIN = "auth.client.manage"
+
+
+def context(
+    *, audience: str = "{{ service_name }}", granted: bool = True
+) -> PokerlostAuthorizationContext:
+    return PokerlostAuthorizationContext(
+        principal_id=UUID(int=1),
+        client_id=UUID(int=2),
+        principal_type=PrincipalType.SERVICE,
+        service_name="technicalFixture",
+        audience=PokerlostAudience(audience),
+        scopes=(
+            PokerlostScopes.ACCOUNTS_SELF_GET_ME
+            if granted
+            else PokerlostScopes.AUTH_CLIENT_MANAGE,
+        ),
+    )
+
+
+def signed_token(
+    value: PokerlostAuthorizationContext, *, expires_at: int = 1001
+) -> str:
+    payload = json.dumps(
+        {"context": value.model_dump(mode="json"), "expires_at": expires_at},
+        sort_keys=True,
+    ).encode()
+    encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    signature = hmac.new(_FIXTURE_KEY, encoded.encode(), hashlib.sha256).hexdigest()
+    return encoded + "." + signature
+
+
+class SignedFixtureVerifier:
+    """Verify synthetic signed inputs at a fixed test clock; no runtime policy."""
+
+    def __init__(self) -> None:
+        self.calls: list[PokerlostAudience] = []
+
+    async def verify(
+        self, token: SecretStr, *, audience: PokerlostAudience
+    ) -> PokerlostAuthorizationContext:
+        self.calls.append(audience)
+        encoded, signature = token.get_secret_value().split(".", 1)
+        expected = hmac.new(_FIXTURE_KEY, encoded.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            raise authorization.AuthorizationError(
+                "POKERLOST_ACCESS_TOKEN_INVALID", 401, "Access token is invalid."
+            )
+        payload = json.loads(
+            base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4))
+        )
+        if payload["expires_at"] <= 1000:
+            raise authorization.AuthorizationError(
+                "POKERLOST_ACCESS_TOKEN_EXPIRED", 401, "Access token has expired."
+            )
+        return PokerlostAuthorizationContext.model_validate_json(
+            json.dumps(payload["context"])
+        )
+
+
+@pytest.fixture
+def protected_application(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[FastAPI, list[UUID]]:
+{% if withPersistence %}    monkeypatch.setenv(
+        "DATABASE_URL", "postgresql+asyncpg://test:test@127.0.0.1:1/test"
+    )
+{% endif %}    monkeypatch.setattr(authorization, "Scopes", FixtureScopes)
+    flow = authorization.OAUTH2.model.flows.clientCredentials
+    assert flow is not None
+    monkeypatch.setattr(
+        flow,
+        "scopes",
+        {scope.value: "Technical test fixture" for scope in FixtureScopes},
+    )
+    application = create_app()
+    calls: list[UUID] = []
+
+    @application.post("/technicalProtected", response_model=PokerlostResponse[int])
+    async def protected(
+        principal: Annotated[
+            PokerlostAuthorizationContext,
+            Security(
+                authorization.authorize_pokerlost_request,
+                scopes=[FixtureScopes.READ.value],
+            ),
+        ],
+    ) -> dict[str, object]:
+        calls.append(principal.principal_id)
+        return {"ok": True, "result": 17}
+
+    return application, calls
+
+
+@pytest.mark.parametrize(
+    "header", [None, "", "Basic synthetic", "Bearer", "Bearer a b", "Bearer a\tb"]
+)
+def test_missing_or_malformed_header_never_reaches_handler(
+    protected_application: tuple[FastAPI, list[UUID]], header: str | None
+) -> None:
+    application, calls = protected_application
+    verifier = SignedFixtureVerifier()
+    application.state.token_verifier = verifier
+    with TestClient(application) as client:
+        response = client.post(
+            "/technicalProtected",
+            headers={} if header is None else {"Authorization": header},
+        )
+    assert response.status_code == 401
+    assert response.json() == {
+        "ok": False,
+        "result": None,
+        "error": "POKERLOST_AUTHENTICATION_REQUIRED",
+        "error_message": "Authentication is required.",
+        "retry_after": None,
+    }
+    assert calls == [] and verifier.calls == []
+
+
+@pytest.mark.parametrize("failure", ["signature", "expired", "audience", "scope"])
+def test_invalid_tokens_fail_before_handler(
+    protected_application: tuple[FastAPI, list[UUID]], failure: str
+) -> None:
+    application, calls = protected_application
+    verifier = SignedFixtureVerifier()
+    application.state.token_verifier = verifier
+    token = signed_token(
+        context(
+            audience="otherService" if failure == "audience" else "{{ service_name }}",
+            granted=failure != "scope",
+        ),
+        expires_at=999 if failure == "expired" else 1001,
+    )
+    if failure == "signature":
+        token = token[:-1] + ("0" if token[-1] != "0" else "1")
+    with TestClient(application) as client:
+        response = client.post(
+            "/technicalProtected", headers={"Authorization": "Bearer " + token}
+        )
+    assert response.status_code == (403 if failure == "scope" else 401)
+    expected = {
+        "signature": "POKERLOST_ACCESS_TOKEN_INVALID",
+        "expired": "POKERLOST_ACCESS_TOKEN_EXPIRED",
+        "audience": "POKERLOST_ACCESS_TOKEN_INVALID",
+        "scope": "POKERLOST_INSUFFICIENT_SCOPE",
+    }
+    assert response.json()["error"] == expected[failure]
+    assert token not in response.text
+    assert "detail" not in response.json()
+    assert calls == []
+    assert verifier.calls == [PokerlostAudience("{{ service_name }}")]
+
+
+def test_valid_scope_and_audience_reach_handler_once(
+    protected_application: tuple[FastAPI, list[UUID]],
+) -> None:
+    application, calls = protected_application
+    application.state.token_verifier = SignedFixtureVerifier()
+    with TestClient(application) as client:
+        response = client.post(
+            "/technicalProtected",
+            headers={"Authorization": "bEaReR " + signed_token(context())},
+        )
+    assert response.status_code == 200
+    assert response.json()["result"] == 17
+    assert calls == [UUID(int=1)]
+    operation = application.openapi()["paths"]["/technicalProtected"]["post"]
+    assert operation["security"] == [{"PokerlostOAuth2": [FixtureScopes.READ.value]}]
+
+
+def test_unconfigured_verifier_fails_closed(
+    protected_application: tuple[FastAPI, list[UUID]],
+) -> None:
+    application, calls = protected_application
+    with TestClient(application, raise_server_exceptions=False) as client:
+        response = client.post(
+            "/technicalProtected",
+            headers={"Authorization": "Bearer " + signed_token(context())},
+        )
+    assert response.status_code == 500
+    assert response.json()["error"] == "{{ service_env_prefix }}_INTERNAL_ERROR"
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("required", "message"),
+    [
+        ([], "at least one"),
+        (["unknown.scope"], "unknown"),
+        ([FixtureScopes.READ.value] * 2, "duplicate"),
+    ],
+)
+def test_invalid_route_scope_configuration_fails_closed(
+    protected_application: tuple[FastAPI, list[UUID]],
+    required: list[str],
+    message: str,
+) -> None:
+    application, calls = protected_application
+    request = Request({"type": "http", "app": application})
+    with pytest.raises(RuntimeError, match=message):
+        asyncio.run(
+            authorization.authorize_pokerlost_request(
+                SecurityScopes(required), None, request
+            )
+        )
+    assert calls == []
+
+
+def test_scope_catalog_requires_complete_nonempty_descriptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert scope_module.scope_descriptions() == {
+        scope.value: description
+        for scope, description in scope_module.SCOPE_DESCRIPTIONS.items()
+    }
+    monkeypatch.setattr(scope_module, "Scopes", FixtureScopes)
+    monkeypatch.setattr(scope_module, "SCOPE_DESCRIPTIONS", {})
+    with pytest.raises(RuntimeError, match="one description"):
+        scope_module.scope_descriptions()
+    descriptions = {FixtureScopes.READ: "Read", FixtureScopes.ADMIN: " "}
+    monkeypatch.setattr(scope_module, "SCOPE_DESCRIPTIONS", descriptions)
+    with pytest.raises(RuntimeError, match="not be empty"):
+        scope_module.scope_descriptions()
+    descriptions[FixtureScopes.ADMIN] = "Manage"
+    assert scope_module.scope_descriptions() == {
+        FixtureScopes.READ.value: "Read",
+        FixtureScopes.ADMIN.value: "Manage",
+    }
+
+
+@pytest.mark.parametrize("invalid", ["plain", "Wrong.scope", "valid.Wrong", "a..b"])
+def test_scope_names_reject_noncanonical_segments(invalid: str) -> None:
+    with pytest.raises(ValueError, match="dotted lower camelCase"):
+
+        class InvalidScopes(StrEnum):
+            __new__ = scope_module.Scopes._new_member_
+            INVALID = invalid

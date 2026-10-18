@@ -18,6 +18,8 @@ service template.
 
 ## Development
 
+- [Technical verification](testing.md) — `docs/testing.md`.
+
 - `AGENTS.md` — repository rules.
 - `Makefile` — root command interface.
 

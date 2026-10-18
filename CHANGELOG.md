@@ -16,6 +16,14 @@ All notable template changes are documented here. Releases use PEP 440-compatibl
   service-owned domain enums.
 - Allow public-only OpenAPI documents to omit an unused OAuth2 scheme while validating protected
   operation scopes against the explicit SDK catalog.
-- Remove the task-specific rendered-template checker and do not replace it with permanent tests.
+- Replace task-specific rendered checks with maintained Copier, HTTP, lifecycle, authorization,
+  documentation and installed-wheel regression suites.
+- Inherit the shared digest-oriented Helm chart, Compose transaction tests and multi-stage
+  installed-wheel Docker build from the content-addressed FastAPI parent.
+- Keep project tests, settings, scopes, migration history and deployment values during historical
+  Copier updates; manage shared technical cases under `tests/foundation/`.
+- Require complete statement/branch coverage and report skipped private runtime verification as
+  failing. Prepare an environment-approved SDK-only App workflow without configuring credentials
+  or publishing images, packages or releases.
 
 No compatibility alias or parallel legacy protocol is retained.

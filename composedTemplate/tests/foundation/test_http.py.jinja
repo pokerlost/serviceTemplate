@@ -1,0 +1,14 @@
+{% extends "composedTemplate/_base/fastApiTestHttp.py.jinja" %}
+{% block expectedPaths %}EXPECTED_OPENAPI_PATHS = {"/", "/getOpenApi"}
+{% endblock %}
+{% block errorAssertions %}def assert_error(response: Response, status: int, code: str, message: str) -> None:
+    assert response.status_code == status
+    assert response.json() == {
+        "ok": False,
+        "result": None,
+        "error": "{{ service_env_prefix }}_" + code,
+        "error_message": message,
+        "retry_after": None,
+    }
+{% endblock %}
+

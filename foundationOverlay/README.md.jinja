@@ -12,4 +12,22 @@ uv sync --locked
 uv run --locked uvicorn {{ packageName }}.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-`GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. {% if withTesting %}Run `uv run --locked pytest` for the generated technical suite.{% endif %} {% if withCi %}CI checks source without a secret on PRs; a private SDK build requires a reviewed SHA and an approved, narrowly scoped App installation.{% endif %}
+`GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. {% if withTesting %}Run `make test-unit` for isolated coverage and `make test` for all enabled capabilities. A DB render requires a disposable `TEST_DATABASE_URL`.{% endif %} {% if withCi %}CI checks source without a secret on PRs; a private SDK build requires a reviewed SHA and an approved, narrowly scoped App installation.{% endif %}
+
+## 📦 Container and deployment candidate
+
+{% if withDocker %}`make build image test-image` uses the inherited multi-stage build and fresh
+installed-wheel tests. Private SDK installation requires a short-lived SDK-only read token through
+`DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'` in a reviewed environment. Neither a
+credential nor a development tool is copied into the runtime. The final process runs as UID 65532
+and supports a read-only filesystem and graceful SIGTERM.
+{% endif %}{% if withKubernetes %}`make chart` packages the managed chart, `make chart-check` validates it,
+and `make deploy-local` / `make undeploy-local` operate this application's disposable Kind cluster.
+`deploy/values.yaml` belongs to the application; `deploy/chart/` follows the shared template.
+External deployment requires a tested image manifest digest and an approved target.
+{% endif %}
+
+Ordinary PR CI has no SDK secret. Private runtime checks require an exact reviewed SHA and the
+reviewer-protected `sdk-build` environment, with App secrets held only there. A skipped private job
+leaves the required runtime gate failing. Workflow artifacts and BuildKit caches stay within the
+private repository; no image, package or release is published by these commands.

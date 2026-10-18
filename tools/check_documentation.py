@@ -35,6 +35,11 @@ _ALLOWED_LINK_PREFIXES = ("http://", "https://", "mailto:")
 _IGNORED_DIRECTORY_NAMES = frozenset(
     {
         ".agents",
+        ".aws",
+        ".local",
+        ".serena",
+        "backups",
+        ".pytest_cache",
         ".codex",
         ".git",
         ".mypy_cache",
@@ -444,6 +449,9 @@ def _check_links(
     for source, prose in pages.items():
         display = _relative_display(source, repository_root)
         for destination, _navigable in _link_destinations(prose):
+            if not destination.strip():
+                errors.append(f"{display}: local link destination is empty")
+                continue
             if destination.startswith("#"):
                 fragment = unquote(destination[1:])
                 anchors = _heading_anchors(source, anchor_cache)
@@ -458,7 +466,11 @@ def _check_links(
             if destination.casefold().startswith(_ALLOWED_LINK_PREFIXES):
                 continue
 
-            parsed = urlsplit(destination)
+            try:
+                parsed = urlsplit(destination)
+            except ValueError:
+                errors.append(f"{display}: malformed local link: {destination}")
+                continue
             if (
                 parsed.scheme
                 or parsed.netloc

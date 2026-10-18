@@ -1,12 +1,16 @@
 [project]
 name = "pokerlost-service-template-tooling"
-version = "0.0.0"
+version = "0.2.0.dev0"
 description = "Repository-local quality tooling for the Pokerlost service template."
 requires-python = ">=3.14"
 dependencies = []
 
 [dependency-groups]
 dev = [
+    "copier==9.17.2",
+    "pytest>=9,<10",
+    "pytest-cov>=7,<8",
+    "PyYAML>=6,<7",
     "mypy>=2.3,<2.4",
     "pre-commit==4.6.2",
     "ruff==0.16.4",
@@ -25,6 +29,7 @@ extend-exclude = ["_sources"]
 select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP"]
 
 [tool.ruff.lint.isort]
+known-first-party = ["tools"]
 known-third-party = [
     "alembic",
     "fastapi",
@@ -38,6 +43,29 @@ known-third-party = [
 ]
 [tool.mypy]
 python_version = "3.14"
-files = ["tools/check_documentation.py"]
+files = ["tools"]
+explicit_package_bases = true
 strict = true
 warn_unused_configs = true
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+testpaths = ["tests", "tools/test_composition.py"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+branch = true
+source = ["tools"]
+omit = ["*/tools/test_composition.py"]
+patch = ["subprocess"]
+
+[tool.coverage.report]
+fail_under = 100
+precision = 2
+show_missing = true
+
+[tool.coverage.json]
+output = "coverage/coverage.json"
+
+[tool.coverage.xml]
+output = "coverage/coverage.xml"

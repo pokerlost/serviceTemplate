@@ -1,4 +1,4 @@
-templateVersion = "0.1.0.dev0"
+templateVersion = "0.2.0.dev0"
 answersSchema = 1
 snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
@@ -6,6 +6,13 @@ output = "composedTemplate"
 include = [
   ".copier-answers.yml.jinja",
   ".editorconfig",
+  "Makefile.jinja",
+  ".pre-commit-config.yaml",
+  ".github/actions/actionlint/action.yml",
+  ".github/actions/deployment-tools/action.yml",
+  ".github/ISSUE_TEMPLATE/bug.yml",
+  ".github/ISSUE_TEMPLATE/feature.yml",
+  "compose.test.yaml.jinja",
   ".gitignore",
   ".github/PULL_REQUEST_TEMPLATE.md.jinja",
   ".github/workflows/ci.yml.jinja",
@@ -18,6 +25,7 @@ include = [
   "SERVICE.md.jinja",
   "pyproject.toml.jinja",
   "_base/pyproject.toml.jinja",
+  "_base/Makefile.jinja",
   "docs/architecture.md.jinja",
   "src/{{ packageName }}/__init__.py.jinja",
   "src/{{ packageName }}/py.typed",
@@ -33,9 +41,24 @@ include = [
   "migrations/versions/.gitkeep",
   "tests/test_http.py.jinja",
   "tests/database_integration.py.jinja",
+  "tests/foundation/test_package.py.jinja",
+  "tests/foundation/test_http.py.jinja",
+  "tests/foundation/database_integration.py.jinja",
+  "deploy/chart/.helmignore",
+  "deploy/chart/Chart.yaml",
+  "deploy/chart/templates/_helpers.tpl",
+  "deploy/chart/templates/deployment.yaml",
+  "deploy/chart/templates/migration.yaml",
+  "deploy/chart/templates/service.yaml",
+  "deploy/chart/templates/serviceaccount.yaml",
+  "deploy/chart/values.schema.json",
+  "deploy/chart/values.yaml",
+  "deploy/local/postgres.yaml",
+  "deploy/values.yaml.jinja",
 ]
 allowOverride = [
   "AGENTS.md.jinja",
+  "Makefile.jinja",
   "README.md.jinja",
   "SERVICE.md.jinja",
   "pyproject.toml.jinja",
@@ -43,9 +66,9 @@ allowOverride = [
   ".github/workflows/ci.yml.jinja",
   "src/{{ packageName }}/app.py.jinja",
   "src/{{ packageName }}/errors.py.jinja",
-  "tests/test_http.py.jinja",
+  "tests/foundation/test_http.py.jinja",
   "Dockerfile.jinja",
-  ".dockerignore",
+
 ]
-retainBase = { "pyproject.toml.jinja" = "_base/fastApiPyproject.toml.jinja", "src/{{ packageName }}/app.py.jinja" = "_base/fastApiApp.py.jinja", "src/{{ packageName }}/errors.py.jinja" = "_base/fastApiErrors.py.jinja" }
+retainBase = { "Makefile.jinja" = "_base/fastApiMakefile.jinja", "Dockerfile.jinja" = "_base/fastApiDockerfile.jinja", "tests/foundation/test_http.py.jinja" = "_base/fastApiTestHttp.py.jinja", "pyproject.toml.jinja" = "_base/fastApiPyproject.toml.jinja", "src/{{ packageName }}/app.py.jinja" = "_base/fastApiApp.py.jinja", "src/{{ packageName }}/errors.py.jinja" = "_base/fastApiErrors.py.jinja" }
 smokeAnswers = { service_name = "sampleService" }

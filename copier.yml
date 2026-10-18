@@ -10,6 +10,9 @@ _skip_if_exists:
   - "src/*/scopes.py"
   - "src/*/settings.py"
   - "migrations/**"
+  - "tests/test_http.py"
+  - "tests/database_integration.py"
+  - "deploy/values.yaml"
 _exclude:
   - "_base"
   - "_base/**"
@@ -17,7 +20,11 @@ _exclude:
   # Copier applies new exclusions while reconstructing the old revision.
   - "app/**"
   - "alembic/**"
-  - "deploy/**"
+  - "{% if not (withKubernetes | default(false)) %}deploy/**{% endif %}"
+  - "{% if not (withKubernetes | default(false)) %}deploy{% endif %}"
+  - "{% if not withPersistence %}tests/foundation/database_integration.py{% endif %}"
+  - "{% if not withPersistence %}deploy/local{% endif %}"
+  - "{% if not (withDocker and withPersistence and withTesting) %}compose.test.yaml{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows/**{% endif %}"
   - "{% if not (withPersistence | default(false)) %}alembic.ini{% endif %}"
@@ -58,6 +65,10 @@ packageName:
   type: str
   default: "{{ service_name | lower }}"
   when: false
+distributionName:
+  type: str
+  default: "pokerlost-{{ service_slug }}"
+  when: false
 projectDescription:
   type: str
   default: "Pokerlost {{ service_name }} foundation"
@@ -69,6 +80,14 @@ pythonMinimum:
 ruffTarget:
   type: str
   default: py314
+  when: false
+baseMakefileTemplate:
+  type: str
+  default: "composedTemplate/_base/Makefile.jinja"
+  when: false
+pythonImage:
+  type: str
+  default: "python:3.14.7-slim-trixie@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
   when: false
 basePyprojectTemplate:
   type: str
@@ -90,6 +109,10 @@ withCi:
   type: bool
   default: true
   help: "Include technical CI. Private SDK build requires separately approved read access."
+withKubernetes:
+  type: bool
+  default: true
+  help: "Include the inherited shared Helm chart and local Kind contour."
 withDocker:
   type: bool
   default: true
