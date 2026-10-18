@@ -182,7 +182,7 @@ jobs:
 {% if withPersistence %}            --env DATABASE_URL=postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci \
 {% endif %}            {{ packageName }}:candidate)"
           ready=false
-          for attempt in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8000/health/ready; then ready=true; break; fi
             sleep 1
           done
@@ -213,7 +213,7 @@ jobs:
           forward_pid=$!
           trap 'kill "$forward_pid" 2>/dev/null; kind delete cluster --name {{ packageName }}-ci' EXIT
           ready=false
-          for attempt in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:18080/health/ready; then ready=true; break; fi
             sleep 1
           done
