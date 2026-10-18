@@ -411,7 +411,7 @@ def _heading_anchors(path: Path, cache: dict[Path, set[str]]) -> set[str]:
 
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError, UnicodeError:
+    except (OSError, UnicodeError):
         cache[resolved] = set()
         return cache[resolved]
 

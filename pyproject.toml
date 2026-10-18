@@ -25,6 +25,9 @@ line-length = 88
 src = ["tools"]
 extend-exclude = ["_sources"]
 
+[tool.ruff.per-file-target-version]
+"tools/check_documentation.py" = "py312"
+
 [tool.ruff.lint]
 select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP"]
 

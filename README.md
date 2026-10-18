@@ -29,3 +29,8 @@ uv run --no-project --with 'copier==9.17.2' python _sources/fastApiTemplate/tool
 ```
 
 Review the derivative diff before generating or updating downstream services. `SERVICE.md`, `PROJECT.md`, application code, scopes, and migrations remain service-owned. The [template contract](TEMPLATE.md), [SDK compatibility](SDK_COMPATIBILITY.md), [creation/update guide](CREATE_SERVICE.md), and [flat-layout migration guide](docs/migrationGuide.md) define the active behavior. No commit, release, or deployment follows from local generation.
+
+The shared Markdown checker and its tests are maintained in `serrja/pythonTemplate`.
+`documentation-tool.lock.json` pins the reviewed source and file hashes. Refresh these
+managed snapshots from that owner; the checker retains Python 3.12 syntax so all consumers
+use the same implementation. This tooling is separate from the generated Copier tree.

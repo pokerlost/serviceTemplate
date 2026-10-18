@@ -83,7 +83,7 @@ baseMakefileTemplate:
   when: false
 pythonImage:
   type: str
-  default: "python:3.14.7-slim-trixie@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
+  default: "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
   when: false
 basePyprojectTemplate:
   type: str
