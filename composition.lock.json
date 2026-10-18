@@ -14,7 +14,7 @@
     ".github/workflows/ci.yml.jinja": "1c7dc0b770cb5b559af59f23357dc46bafc8eb8a718d6b138238b1b425fb5ba4",
     ".gitignore": "56a9b9094b284a7ea7baaf4bd5777598f51e285dd5704bee1d8f3858a8b66c3a",
     ".pre-commit-config.yaml": "ce876c91a3925b76317a9875c15d344f78e3be9936662ac8b0c64f224f6f98da",
-    ".template-source.json": "8be79b39bf358e0646912512f26c8106cafbf5c66f58a380cedb6051692bc8ef",
+    ".template-source.json": "6b71b856a6740341eccfc6af6bdf0ee0dcbd9b0bb5fefaa9f215c4ed2d5b65c0",
     "AGENTS.md.jinja": "1659fffd10f8627c39b63646205c762d199f3013c391934b60a4d6e40c07f89d",
     "CONTRIBUTING.md.jinja": "39f64fcbbfb3a32064069bbaefdb7b50e88f3dd59345fe5d24dbe0e5674baa11",
     "Dockerfile.jinja": "84495d4183906090361e6b0846d06015b1182892c008e153d649d9237e13a5d0",
@@ -65,12 +65,12 @@
     "tests/database_integration.py.jinja": "0c507d6e338589bdd41845a64b51fe7a885e1d9530381f694ef625b1a189c057",
     "tests/foundation/database_integration.py.jinja": "633356bb9a0c5cde45f5ab42cf50c46c1a3df60b6326696707cbbd3416176eba",
     "tests/foundation/test_authorization.py.jinja": "8a13768bc1730d8310c6e84ee8d006b2013a8796b7980919ebf4775134e8c5b2",
-    "tests/foundation/test_http.py.jinja": "2649c50bfca5f53332f10971b48613fda563974da3d5b5a612eed4e06d4a5326",
+    "tests/foundation/test_http.py.jinja": "3972f0bf2324a7e75dc348d06c94db646907fb22ffad8bd4b66984f670d9cb89",
     "tests/foundation/test_package.py.jinja": "66d0bac5c6d381901f219dd15e53b5c0bc30a2c013a10d764f9c853644ad2992",
     "tests/foundation/test_pokerlost_http.py.jinja": "565910a57e92eda0c3fb3a0b02fc715add05535f399f7aaf50f37bac66171a83",
     "tests/test_http.py.jinja": "92c585ef106e3d1aba177aa45b6145d90d37d48cd80c0f883726669a4604bef1"
   },
-  "overlayContentSha256": "a00068cab1a825c7bf70d4582b8debbf71e65ecffacb1981099b9a9b98063af8",
+  "overlayContentSha256": "b3e2c757c74751fb09d38c973df42b3fbc01e2a2a49a5d984a804f395c4f4d09",
   "owners": {
     ".copier-answers.yml.jinja": "parent",
     ".dockerignore": "parent",
@@ -141,6 +141,6 @@
   },
   "parentContentSha256": "b3921f163e53d6f81c974005e121e15f5916ddc0774af58ba014e2737485f656",
   "schema": 1,
-  "sourceContentSha256": "a6129b64db3030dadd9028438c2c7551869a5cfbc8368e49e0e38e9a07711e48",
+  "sourceContentSha256": "097d2483f5196ea2673596c913cd8ab9fecca207ad85aac7b2a4c71215c6435b",
   "templateVersion": "0.2.0.dev0"
 }
