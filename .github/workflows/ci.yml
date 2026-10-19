@@ -72,95 +72,9 @@ jobs:
         working-directory: ${{ runner.temp }}/render
         run: make source SOURCE_REQUIRE_LOCK=false
       - run: echo 'Fresh source render passed; private SDK lock, runtime and Kind acceptance remain separate B1 checks.' >> "$GITHUB_STEP_SUMMARY"
-  privateBuild:
-    if: github.event_name == 'workflow_dispatch' && github.actor == 'serrja' && github.triggering_actor == 'serrja' && inputs.reviewed_sha == github.sha && inputs.reviewed_sha == vars.SDK_BUILD_REVIEWED_SHA
-    needs: [maintain, render]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix: {persistence: [false, true]}
-    permissions: {contents: read, actions: read}
-    services:
-      postgres:
-        image: postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
-        env: {POSTGRES_USER: ci, POSTGRES_PASSWORD: ci, POSTGRES_DB: ci}
-        ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U ci -d ci" --health-interval 5s --health-timeout 5s --health-retries 12
-    steps:
-      - name: Validate admission before SDK token creation
-        env: {GH_TOKEN: '${{ github.token }}', REVIEWED_SHA: '${{ inputs.reviewed_sha }}'}
-        run: |
-          set -euo pipefail
-          [[ "$REVIEWED_SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$REVIEWED_SHA" = "$GITHUB_SHA"
-          test "$GITHUB_REPOSITORY" = pokerlost/serviceTemplate
-          test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)" = true
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with: {persist-credentials: false, fetch-depth: 0, ref: '${{ github.event.pull_request.head.sha || github.sha }}'}
-      - uses: ./.github/actions/actionlint
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
-      - name: Restore maintenance Docker tools
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        with:
-          context: .
-          file: Dockerfile.quality
-          target: quality
-          load: true
-          tags: servicetemplate:quality
-          cache-from: type=gha,scope=${{ github.repository_id }}-maintenance-python314-linux-amd64-${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}
-          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-maintenance-python314-linux-amd64-${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}
-      - uses: ./.github/actions/deployment-tools
-      - name: Mint the existing SDK-only read token
-        id: sdkToken
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ secrets.POKERLOST_SDK_APP_ID }}
-          private-key: ${{ secrets.POKERLOST_SDK_APP_PRIVATE_KEY }}
-          owner: pokerlost
-          repositories: pypokerlost
-          permission-contents: read
-      - run: make render RENDER_OUTPUT="$RUNNER_TEMP/private-render" RENDER_ARGS='-d service_name=verifyService -d withPersistence=${{ matrix.persistence }} -d withDocker=true -d withKubernetes=true'
-      - name: Resolve the real private SDK lock through a BuildKit secret
-        env: {SDK_APP_TOKEN: '${{ steps.sdkToken.outputs.token }}'}
-        run: make lock-render SDK_RENDER="$RUNNER_TEMP/private-render"
-      - name: Restore the private quality graph
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        with:
-          context: ${{ runner.temp }}/private-render
-          target: quality
-          load: true
-          tags: verifyservice:quality
-          secrets: sdk_token=${{ steps.sdkToken.outputs.token }}
-          cache-from: type=gha,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-quality-python314-linux-amd64-owner
-          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-quality-python314-linux-amd64-owner
-      - name: Fresh source, installed-wheel and PostgreSQL checks plus canonical artifacts
-        working-directory: ${{ runner.temp }}/private-render
-        env:
-          SDK_APP_TOKEN: ${{ steps.sdkToken.outputs.token }}
-          TEST_DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
-        run: make check build verify image QUALITY_NETWORK=host DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'
-      - name: Use the tested local candidate in disposable Kind
-        working-directory: ${{ runner.temp }}/private-render
-        env: {SDK_APP_TOKEN: '${{ steps.sdkToken.outputs.token }}'}
-        run: |
-          set -euo pipefail
-          trap 'make undeploy-local' EXIT
-          make deploy-local DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'
-          helm upgrade verifyservice deploy/chart --kube-context kind-verifyservice-local --namespace foundation --reuse-values --set replicaCount=3 --wait --timeout 120s --rollback-on-failure
-          helm rollback verifyservice 1 --kube-context kind-verifyservice-local --namespace foundation --wait --timeout 120s
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: sdk-render-${{ matrix.persistence }}-${{ inputs.reviewed_sha }}
-          path: |
-            ${{ runner.temp }}/private-render/coverage/
-            ${{ runner.temp }}/private-render/dist/
-          retention-days: 14
-          if-no-files-found: error
   required:
     if: always()
-    needs: [maintain, render, privateBuild]
+    needs: [maintain, render]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -168,9 +82,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           MAINTAIN: ${{ needs.maintain.result }}
           RENDER: ${{ needs.render.result }}
-          PRIVATE: ${{ needs.privateBuild.result }}
         run: |
           set -euo pipefail
           test "$MAINTAIN" = success
           test "$RENDER" = success
-          if [ "$EVENT" = workflow_dispatch ]; then test "$PRIVATE" = success; else test "$PRIVATE" = skipped; fi
+          echo "Private runtime acceptance is the separate SDK technical acceptance workflow."

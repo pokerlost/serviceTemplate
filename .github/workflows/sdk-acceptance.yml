@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/sdk-acceptance.yml
+      - .github/admission/**
+      - .github/scripts/sdk_admit.sh
       - .github/scripts/sdk_admission.py
       - .github/scripts/test_sdk_admission.py
       - .github/scripts/sdk_acceptance.sh
@@ -14,13 +16,14 @@ on:
     branches: [main]
     paths:
       - .github/workflows/sdk-acceptance.yml
+      - .github/admission/**
       - .github/scripts/**
       - .github/actions/**
       - .github/docs/sdk-admission.md
   workflow_dispatch:
     inputs:
       reviewed_sha:
-        description: Full reviewed source SHA from this repository's main PR
+        description: Full reviewed source SHA, integrated or exact open local PR head
         required: true
         type: string
 permissions:
@@ -39,32 +42,21 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ./.github/actions/actionlint
-      - name: Verify actual admission metadata access without SDK credentials
-        env: {GH_TOKEN: '${{ github.token }}'}
-        run: |
-          set -euo pipefail
-          gh api "repos/$GITHUB_REPOSITORY" --silent
-          gh api "repos/$GITHUB_REPOSITORY/commits/main" --silent
-          gh api "repos/$GITHUB_REPOSITORY/pulls/1" --silent
-          python3 - <<'PYTHON'
-          import json
-          import os
-          import sys
-          sys.path.insert(0, ".github/scripts")
-          from sdk_admission import api, validate_visible_writers
-          writers = api("repos/" + os.environ["GITHUB_REPOSITORY"] + "/collaborators?per_page=100")
-          print(json.dumps([{"login": user["login"], "role_name": user.get("role_name"),
-                             "base_push": user["permissions"]["push"]} for user in writers]))
-          validate_visible_writers(writers)
-          print("Visible API is partial; fresh full owner writer review is required before SDK access.")
-          PYTHON
-      - name: Credential-free admission regression tests
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Restore credential-free admission toolchain
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: .github/admission/Dockerfile
+          load: true
+          tags: sdk-admission:reviewed
+          cache-from: type=gha,scope=${{ github.repository_id }}-admission-python314-linux-amd64-${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-admission-python314-linux-amd64-${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}
+      - name: Credential-free native pytest and CliRunner regressions
         run: |
           docker run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 \
-            --env PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
-            --mount "type=bind,source=$GITHUB_WORKSPACE,target=/checks,readonly" --workdir /checks \
-            python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56 \
-            python -m unittest discover -s .github/scripts -p test_sdk_admission.py -v
+            --user "$(id -u):$(id -g)" --entrypoint python sdk-admission:reviewed \
+            -m pytest /admission/test_sdk_admission.py -p no:cacheprovider -v
   private-acceptance:
     if: github.event_name == 'workflow_dispatch'
     needs: admission-checks
@@ -73,7 +65,8 @@ jobs:
     permissions: {contents: read, actions: read, pull-requests: read}
     strategy:
       fail-fast: false
-      matrix: {persistence: ['false', 'true']}
+      matrix:
+        persistence: ${{ fromJSON(github.repository == 'pokerlost/serviceTemplate' && '["false","true"]' || (github.repository == 'pokerlost/authService' || github.repository == 'pokerlost/accountsService') && '["true"]' || '["false"]') }}
     services:
       postgres:
         image: postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
@@ -90,18 +83,29 @@ jobs:
       - name: Checkout the workflow's exact default-branch commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {persist-credentials: false, fetch-depth: 0, ref: '${{ github.sha }}', path: trusted}
-      - name: Admit identity, current default and current source PR before SDK access
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Load only the reviewed default admission image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: trusted
+          file: trusted/.github/admission/Dockerfile
+          load: true
+          tags: sdk-admission:reviewed
+          cache-from: type=gha,scope=${{ github.repository_id }}-admission-python314-linux-amd64-trusted
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-admission-python314-linux-amd64-trusted
+      - name: Admit identity, current default and exact source relationship before SDK access
         env: {GH_TOKEN: '${{ github.token }}'}
-        run: python3 trusted/.github/scripts/sdk_admission.py
+        run: bash trusted/.github/scripts/sdk_admit.sh
       - name: Checkout only the separately reviewed source commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: {persist-credentials: false, fetch-depth: 0, ref: '${{ inputs.reviewed_sha }}', path: candidate}
       - name: Verify both exact checkout roots and recheck admission
         env: {GH_TOKEN: '${{ github.token }}'}
-        run: python3 trusted/.github/scripts/sdk_admission.py "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
+        run: bash trusted/.github/scripts/sdk_admit.sh "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
       - uses: ./trusted/.github/actions/deployment-tools
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Restore existing template-maintenance graph without SDK credentials
+        if: github.repository == 'pokerlost/serviceTemplate'
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: candidate
@@ -116,7 +120,7 @@ jobs:
         run: bash trusted/.github/scripts/sdk_acceptance.sh prepare
       - name: Recheck current heads immediately before token creation
         env: {GH_TOKEN: '${{ github.token }}'}
-        run: python3 trusted/.github/scripts/sdk_admission.py "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
+        run: bash trusted/.github/scripts/sdk_admit.sh "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
       - name: Mint existing SDK-only read token
         id: sdk
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
