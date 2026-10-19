@@ -45,12 +45,14 @@ def validate(
     workflow = env.get("GITHUB_SHA", "")
     require(name in CONSUMERS, "Repository is not an SDK CI consumer")
     require(
-        env.get("GITHUB_EVENT_NAME") == "workflow_dispatch", "Manual dispatch required"
+        env.get("GITHUB_EVENT_NAME") == "workflow_dispatch",
+        "Manual dispatch required",
     )
     require(env.get("GITHUB_ACTOR") == "serrja", "Owner actor required")
     require(env.get("GITHUB_TRIGGERING_ACTOR") == "serrja", "Owner rerun required")
     require(
-        FULL_SHA.fullmatch(source) is not None, "Full lowercase source SHA required"
+        FULL_SHA.fullmatch(source) is not None,
+        "Full lowercase source SHA required",
     )
     require(FULL_SHA.fullmatch(workflow) is not None, "Full workflow SHA required")
     require(source == env.get("ADMITTED_SHA"), "Source SHA is not currently admitted")
@@ -62,7 +64,8 @@ def validate(
     require(repository.get("private") is True, "Private consumer required")
     branch = repository.get("default_branch")
     require(
-        env.get("GITHUB_REF") == "refs/heads/" + str(branch), "Default ref required"
+        env.get("GITHUB_REF") == "refs/heads/" + str(branch),
+        "Default ref required",
     )
     require(default.get("sha") == workflow, "Default HEAD changed; review it again")
     require(source_commit.get("sha") == source, "Source commit identity mismatch")
@@ -90,7 +93,8 @@ def validate(
 def validate_visible_writers(writers: list[dict[str, Any]]) -> None:
     """Reject visible additional writers without treating a partial list as proof."""
     require(
-        len(writers) < 100, "Collaborator pagination requires an explicit new review"
+        len(writers) < 100,
+        "Collaborator pagination requires an explicit new review",
     )
     write_roles = {"admin", "maintain", "write"}
     known_roles = write_roles | {"read", "triage", "triage_plus"}
@@ -101,10 +105,8 @@ def validate_visible_writers(writers: list[dict[str, Any]]) -> None:
             not user["permissions"]["push"] or role in write_roles,
             "Inconsistent collaborator role requires review",
         )
-    write_logins = {
-        user["login"] for user in writers if user["role_name"] in write_roles
-    }
-    require(write_logins <= {"serrja"}, "Sole-writer assumption changed")
+    logins = {user["login"] for user in writers if user["role_name"] in write_roles}
+    require(logins <= {"serrja"}, "Sole-writer assumption changed")
 
 
 class OwnerReview(BaseModel):
@@ -169,7 +171,8 @@ def admit(trusted: Path | None, candidate: Path | None) -> None:
     require(name in CONSUMERS, "Repository is not an SDK CI consumer")
     source = env.get("REVIEWED_SHA", "")
     require(
-        FULL_SHA.fullmatch(source) is not None, "Full lowercase source SHA required"
+        FULL_SHA.fullmatch(source) is not None,
+        "Full lowercase source SHA required",
     )
     repository = cast(dict[str, Any], api("repos/" + name))
     default = cast(
@@ -187,7 +190,8 @@ def admit(trusted: Path | None, candidate: Path | None) -> None:
     )
     require(len(pulls) < 100, "Source PR pagination requires explicit review")
     writers = cast(
-        list[dict[str, Any]], api("repos/" + name + "/collaborators?per_page=100")
+        list[dict[str, Any]],
+        api("repos/" + name + "/collaborators?per_page=100"),
     )
     validate(env, repository, default, source_commit, comparison, pulls, writers)
     require(
