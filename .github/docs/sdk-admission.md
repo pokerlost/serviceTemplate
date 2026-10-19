@@ -11,10 +11,12 @@ The owner reviews the complete current source diff and the current CI-only PR be
 setting `SDK_BUILD_REVIEWED_SHA` to the source SHA and `SDK_WORKFLOW_REVIEWED_SHA` to the
 reviewed default-branch commit. Dispatch this workflow on `main`, never on the candidate
 branch. A source input is not itself authorization. Both actors must be `serrja`, the
-repository must be one of the six private consumers, current PR #1 must have that exact
-same-repository head, and the current default commit must match the workflow pin.
-The acceptance job needs `GITHUB_TOKEN` pull-request read access to verify PR #1 in a
-private consumer; this does not grant the SDK App access to any consumer repository.
+repository must be one of the six private consumers, and the current default commit
+must match the workflow pin. The exact source must exist in this repository and be
+either an ancestor of current default or the exact head of an actual open same-repo
+PR discovered through the commit API. No PR number or open PR is required after merge.
+The acceptance job needs `GITHUB_TOKEN` pull-request read access to inspect source
+relationships in a private consumer; this does not grant the SDK App access to any consumer repository.
 The repository token's collaborators list can omit inherited organization access. An
 empty list is not proof of sole ownership. The visible metadata check rejects known
 additional writers and unknown/inconsistent roles using effective `role_name`, never
@@ -69,12 +71,24 @@ deployment belongs to this entry point.
 
 ## Review and recovery
 
-PR checks run the admission regression suite in a pinned, read-only networkless Python
-container, without SDK credentials, and validate actual workflows with actionlint.
+PR checks run native pytest/CliRunner admission regressions in the locked, pinned,
+read-only networkless `.github/admission/Dockerfile` container, without SDK credentials, and validate actual workflows with actionlint.
 Review all called scripts and actions, not only this YAML. Existing product CI, commands,
-coverage policy, Docker recipes and public contracts remain unchanged.
+coverage policy and public contracts remain unchanged. `sdk-acceptance.yml` is the
+only SDK credential entry point; ordinary CI validates source without minting a token.
+The default guard image is rebuilt from `trusted`, never from `candidate`.
 
 Revoke admission by clearing either reviewed-SHA variable. Revert the CI-only change
 with an ordinary commit if needed; do not force push or remove repository branches or
 user storage. Use the recorded full source/workflow/image identities when reviewing a
 failed run or restoring a previous verified candidate.
+
+## Canonical source
+
+serviceTemplate owns this infrastructure in its root .github directory. Its existing
+composition publishes the explicitly listed files with repository ownership and
+content hashes; generated services receive checked snapshots, not a second editable
+workflow implementation. Update consumers through Copier and review the actual diff.
+Alembic state is read through the installed generic FastAPI adapter using
+ScriptDirectory and MigrationContext; revision strings are not assumed hexadecimal.
+Empty baselines and multiple heads compare as sets after disposable upgrade.

@@ -50,13 +50,28 @@ case "${1:-}" in
       docker run --rm --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
         --network host "${database_args[@]}" "$package:candidate" \
         python -m alembic upgrade head > "$report/alembic-upgrade.log" 2>&1
-      docker run --rm --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+      docker run --rm --interactive --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
         --network host "${database_args[@]}" "$package:candidate" \
-        python -m alembic current > "$report/alembic-current.txt" 2>&1
-      docker run --rm --read-only --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-        --network host "${database_args[@]}" "$package:candidate" \
-        python -m alembic heads > "$report/alembic-heads.txt" 2>&1
-      sed -nE 's/^([a-f0-9]+) .*$/\1/p' "$report/alembic-heads.txt" | sort > "$report/expected-revisions.txt"
+        python - "$package" > "$report/migration-status.json" <<'PYTHON'
+import asyncio
+import importlib
+import os
+import sys
+from alembic.config import Config
+from sqlalchemy.ext.asyncio import create_async_engine
+read_heads = importlib.import_module(sys.argv[1] + ".migration_status").read_heads
+async def inspect():
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    try:
+        async with engine.connect() as connection:
+            status = await connection.run_sync(lambda sync: read_heads(Config("alembic.ini"), sync))
+        print(status.model_dump_json(by_alias=True))
+    finally:
+        await engine.dispose()
+asyncio.run(inspect())
+PYTHON
+      jq -e '.expectedHeads == .currentHeads' "$report/migration-status.json" >/dev/null
+      jq -r '.expectedHeads[]' "$report/migration-status.json" | sort > "$report/expected-revisions.txt"
     fi
     container=''
     trap 'if [ -n "$container" ]; then docker rm -f "$container" >/dev/null; fi' EXIT
@@ -106,9 +121,26 @@ case "${1:-}" in
       "${database_values[@]}" > "$report/kind-install.log" 2>&1
     if [ "$B1_PERSISTENCE" = true ]; then
       kubectl --kubeconfig "$kubeconfig" --context "$context" -n foundation \
-        exec deployment/foundation-database -- psql -U foundation -d foundation \
-        -Atc 'select version_num from alembic_version' > "$report/kind-alembic-version.txt"
-      sort "$report/kind-alembic-version.txt" > "$report/actual-kind-revisions.txt"
+        exec -i "deployment/$package" -- python - "$package" > "$report/kind-migration-status.json" <<'PYTHON'
+import asyncio
+import importlib
+import os
+import sys
+from alembic.config import Config
+from sqlalchemy.ext.asyncio import create_async_engine
+read_heads = importlib.import_module(sys.argv[1] + ".migration_status").read_heads
+async def inspect():
+    engine = create_async_engine(os.environ["DATABASE_URL"])
+    try:
+        async with engine.connect() as connection:
+            status = await connection.run_sync(lambda sync: read_heads(Config("alembic.ini"), sync))
+        print(status.model_dump_json(by_alias=True))
+    finally:
+        await engine.dispose()
+asyncio.run(inspect())
+PYTHON
+      jq -e '.expectedHeads == .currentHeads' "$report/kind-migration-status.json" >/dev/null
+      jq -r '.currentHeads[]' "$report/kind-migration-status.json" | sort > "$report/actual-kind-revisions.txt"
       cmp "$report/expected-revisions.txt" "$report/actual-kind-revisions.txt"
     fi
     helm upgrade "$package" "$runtime/deploy/chart" --kubeconfig "$kubeconfig" \
