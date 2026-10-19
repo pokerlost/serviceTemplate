@@ -26,7 +26,7 @@
     ".github/workflows/sdk-acceptance.yml": "7d965952a3f6946fce0ce0d47212f55d5afbe9089b61f193ea99af003da72abe",
     ".gitignore": "732f5ce68b4b13ef900931ca4a47ef00acffa7cdb7b699feb0e8a8d7ac719d82",
     ".pre-commit-config.yaml": "ce876c91a3925b76317a9875c15d344f78e3be9936662ac8b0c64f224f6f98da",
-    ".template-source.json": "4458790732a24f21e843a3a2439fccd65462934af6c1fde7442d171e54ff09e1",
+    ".template-source.json": "db402c9de41db8ea52794ca8e69ebc7f51bc2cf43c390512fba95f784b66c14f",
     "AGENTS.md.jinja": "1659fffd10f8627c39b63646205c762d199f3013c391934b60a4d6e40c07f89d",
     "CONTRIBUTING.md.jinja": "39f64fcbbfb3a32064069bbaefdb7b50e88f3dd59345fe5d24dbe0e5674baa11",
     "Dockerfile.jinja": "0b48a2c03544e692e5cbfe0c86d9158450a27d6cbccb09b15afad6f53a095335",
@@ -42,7 +42,7 @@
     "_base/fastApiApp.py.jinja": "d44f108904f482c328ef3cb09f87e2ad846bb3bcc2442e006b1243c928dcbd76",
     "_base/fastApiDockerfile.jinja": "552e804b4e58d19b8f35efb03625bc3014a569cae30760eccb9b1d0d168f1630",
     "_base/fastApiErrors.py.jinja": "62dc184262a036115d15654ef061fb18335a64e305ec657c9d2daa4664401d34",
-    "_base/fastApiMakefile.jinja": "a267e28791808d7df9063659ccf082854edd34ecf9ef79d47ea88c978a598a01",
+    "_base/fastApiMakefile.jinja": "e97c7bb02f61b69787077d276e15e77c0d2aba550850c50ec70c9d928acfccef",
     "_base/fastApiPyproject.toml.jinja": "20234145a21abfdeca0cbf2f65b38657f35c2c5f1e7f7325cb1c44b8b7d87521",
     "_base/fastApiTestHttp.py.jinja": "bbc484b03a64e26bb4640231d7925a289d3c204e4d3b458cd9df6ca2c2f38848",
     "_base/pyproject.toml.jinja": "bdadaa18e14e5833ca96b23b31ad9e45711439d202ac0b6e02765a56788fd2be",
@@ -183,8 +183,8 @@
     "tests/foundation/test_pokerlost_http.py.jinja": "overlay",
     "tests/test_http.py.jinja": "parent"
   },
-  "parentContentSha256": "e6b1854132b5b98fb496dc2b2a9e432ab4d8220ba359461c2600b191f5ef24fc",
+  "parentContentSha256": "c645ee25b55840dad1dbf2a65cc5597e0587d16f1ac44bc1ce27ce95541a8238",
   "schema": 1,
-  "sourceContentSha256": "affcc402e25432c2787d5d79c43ceea084372c48aab42d61345e0c108a8887e4",
+  "sourceContentSha256": "7318492fffd2114037140dc72e4a71b187cddc98b3c5e0bc64e1aaf4efd54107",
   "templateVersion": "0.2.0.dev0"
 }
