@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, cast
 
@@ -57,9 +58,42 @@ def validate(
     require(pull.get("state") == "open", "Main source PR must remain open")
     require(pull["head"]["repo"]["full_name"] == name, "Fork source is not admitted")
     require(pull["head"]["sha"] == source, "Source PR HEAD changed; review it again")
+    validate_owner_review(env)
+    validate_visible_writers(writers)
+
+
+def validate_visible_writers(writers: list[dict[str, Any]]) -> None:
+    """Reject visible additional writers without treating a partial list as proof."""
     require(len(writers) < 100, "Collaborator pagination requires an explicit new review")
-    write_logins = {user["login"] for user in writers if user["permissions"]["push"]}
-    require(write_logins == {"serrja"}, "Sole-writer assumption changed")
+    write_roles = {"admin", "maintain", "write"}
+    known_roles = write_roles | {"read", "triage", "triage_plus"}
+    for user in writers:
+        role = user.get("role_name")
+        require(role in known_roles, "Unknown collaborator role requires review")
+        require(
+            not user["permissions"]["push"] or role in write_roles,
+            "Inconsistent collaborator role requires review",
+        )
+    write_logins = {user["login"] for user in writers if user["role_name"] in write_roles}
+    require(write_logins <= {"serrja"}, "Sole-writer assumption changed")
+
+
+def validate_owner_review(env: dict[str, str]) -> None:
+    """Require a fresh owner writer audit bound to this exact repository and pair."""
+    review = env.get("OWNER_WRITER_REVIEW", "").split("|")
+    expected = [
+        env.get("GITHUB_REPOSITORY", ""),
+        "serrja",
+        env.get("REVIEWED_SHA", ""),
+        env.get("GITHUB_SHA", ""),
+    ]
+    require(
+        len(review) == 5 and review[:4] == expected,
+        "Owner writer review required for this exact repository/source/workflow",
+    )
+    require(review[4].isdecimal(), "Owner writer review timestamp is invalid")
+    age = time.time() - int(review[4])
+    require(0 <= age <= 3600, "Owner writer review expired or is in the future")
 
 
 def api(endpoint: str) -> object:

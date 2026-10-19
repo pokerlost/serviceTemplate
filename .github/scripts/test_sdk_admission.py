@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import time
 import unittest
 
 from sdk_admission import CONSUMERS, validate
@@ -24,6 +25,8 @@ class AdmissionTests(unittest.TestCase):
             "ADMITTED_WORKFLOW_SHA": "a" * 40,
             "ADMITTED_SHA": "b" * 40,
         }
+        self.reviewed_at = int(time.time())
+        self.env["OWNER_WRITER_REVIEW"] = self.owner_review()
         self.repository = {
             "full_name": "pokerlost/authService",
             "private": True,
@@ -37,7 +40,19 @@ class AdmissionTests(unittest.TestCase):
                 "repo": {"full_name": "pokerlost/authService"},
             },
         }
-        self.writers = [{"login": "serrja", "permissions": {"push": True}}]
+        self.writers = [{"login": "serrja", "role_name": "admin", "permissions": {"push": True}}]
+
+    def owner_review(self, reviewed_at: int | None = None) -> str:
+        """Bind a synthetic owner audit to the fixture repository and both commits."""
+        return "|".join(
+            [
+                self.env["GITHUB_REPOSITORY"],
+                "serrja",
+                self.env["REVIEWED_SHA"],
+                self.env["GITHUB_SHA"],
+                str(self.reviewed_at if reviewed_at is None else reviewed_at),
+            ]
+        )
 
     def admit(self) -> None:
         """Evaluate the current synthetic admission fixture."""
@@ -62,6 +77,7 @@ class AdmissionTests(unittest.TestCase):
         for name in CONSUMERS:
             with self.subTest(name=name):
                 self.env["GITHUB_REPOSITORY"] = name
+                self.env["OWNER_WRITER_REVIEW"] = self.owner_review()
                 self.repository["full_name"] = name
                 self.pull["head"]["repo"]["full_name"] = name
                 self.admit()
@@ -98,13 +114,17 @@ class AdmissionTests(unittest.TestCase):
 
     def test_second_writer_is_rejected(self) -> None:
         """Fail closed when the sole-writer assumption changes."""
-        self.writers.append({"login": "another", "permissions": {"push": True}})
+        self.writers.append(
+            {"login": "another", "role_name": "write", "permissions": {"push": True}}
+        )
         with self.assertRaisesRegex(ValueError, "Sole-writer"):
             self.admit()
 
     def test_read_only_collaborator_does_not_gain_admission(self) -> None:
         """Permit readers without treating them as workflow writers."""
-        self.writers.append({"login": "reader", "permissions": {"push": False}})
+        self.writers.append(
+            {"login": "reader", "role_name": "read", "permissions": {"push": False}}
+        )
         self.admit()
 
     def test_closed_main_pr_is_rejected(self) -> None:
@@ -117,6 +137,67 @@ class AdmissionTests(unittest.TestCase):
         """Avoid assuming that an incomplete page proves sole ownership."""
         self.writers *= 100
         with self.assertRaisesRegex(ValueError, "pagination"):
+            self.admit()
+
+    def test_organization_admin_keeps_effective_write_with_read_base(self) -> None:
+        """Recognize organization access rather than only base permissions."""
+        self.writers[0]["permissions"]["push"] = False
+        self.admit()
+
+    def test_second_inherited_writer_is_rejected_even_with_read_base(self) -> None:
+        """Never miss an additional effective writer whose base grant is read."""
+        self.writers.append(
+            {"login": "another", "role_name": "write", "permissions": {"push": False}}
+        )
+        with self.assertRaisesRegex(ValueError, "Sole-writer"):
+            self.admit()
+
+    def test_unknown_custom_role_requires_review(self) -> None:
+        """Do not assume unfamiliar custom roles are readers."""
+        self.writers.append(
+            {"login": "another", "role_name": "custom", "permissions": {"push": False}}
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown collaborator role"):
+            self.admit()
+
+    def test_contradictory_role_permissions_fail_closed(self) -> None:
+        """Reject inconsistent API metadata rather than ignoring a possible writer."""
+        self.writers.append(
+            {"login": "another", "role_name": "read", "permissions": {"push": True}}
+        )
+        with self.assertRaisesRegex(ValueError, "Inconsistent collaborator role"):
+            self.admit()
+
+    def test_missing_owner_writer_review_fails_closed(self) -> None:
+        """Owner dispatch and source pins alone cannot replace the writer audit."""
+        del self.env["OWNER_WRITER_REVIEW"]
+        with self.assertRaisesRegex(ValueError, "Owner writer review"):
+            self.admit()
+
+    def test_owner_review_binds_every_identity_and_both_commits(self) -> None:
+        """Do not reuse a writer audit across repositories, owners or commit pairs."""
+        for position in range(5):
+            with self.subTest(position=position):
+                fields = self.owner_review().split("|")
+                fields[position] = "invalid"
+                self.env["OWNER_WRITER_REVIEW"] = "|".join(fields)
+                with self.assertRaisesRegex(ValueError, "Owner writer review"):
+                    self.admit()
+
+    def test_owner_review_must_be_fresh(self) -> None:
+        """Reject expired or future-dated owner attestations."""
+        for offset in [-3601, 120]:
+            with self.subTest(offset=offset):
+                self.env["OWNER_WRITER_REVIEW"] = self.owner_review(self.reviewed_at + offset)
+                with self.assertRaisesRegex(ValueError, "Owner writer review"):
+                    self.admit()
+
+    def test_empty_visible_list_is_never_owner_review(self) -> None:
+        """Accept a partial API only with a separate fresh full owner audit."""
+        self.writers = []
+        self.admit()
+        self.env["OWNER_WRITER_REVIEW"] = ""
+        with self.assertRaisesRegex(ValueError, "Owner writer review"):
             self.admit()
 
 

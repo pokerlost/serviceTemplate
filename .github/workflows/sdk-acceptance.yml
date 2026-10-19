@@ -46,7 +46,18 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY" --silent
           gh api "repos/$GITHUB_REPOSITORY/commits/main" --silent
           gh api "repos/$GITHUB_REPOSITORY/pulls/1" --silent
-          gh api "repos/$GITHUB_REPOSITORY/collaborators?per_page=100" --silent
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import sys
+          sys.path.insert(0, ".github/scripts")
+          from sdk_admission import api, validate_visible_writers
+          writers = api("repos/" + os.environ["GITHUB_REPOSITORY"] + "/collaborators?per_page=100")
+          print(json.dumps([{"login": user["login"], "role_name": user.get("role_name"),
+                             "base_push": user["permissions"]["push"]} for user in writers]))
+          validate_visible_writers(writers)
+          print("Visible API is partial; fresh full owner writer review is required before SDK access.")
+          PYTHON
       - name: Credential-free admission regression tests
         run: |
           docker run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 \
@@ -73,6 +84,7 @@ jobs:
       REVIEWED_SHA: ${{ inputs.reviewed_sha }}
       ADMITTED_SHA: ${{ vars.SDK_BUILD_REVIEWED_SHA }}
       ADMITTED_WORKFLOW_SHA: ${{ vars.SDK_WORKFLOW_REVIEWED_SHA }}
+      OWNER_WRITER_REVIEW: ${{ vars.SDK_SOLE_WRITER_REVIEW }}
       B1_PERSISTENCE: ${{ matrix.persistence }}
     steps:
       - name: Checkout the workflow's exact default-branch commit

@@ -15,8 +15,22 @@ repository must be one of the six private consumers, current PR #1 must have tha
 same-repository head, and the current default commit must match the workflow pin.
 The acceptance job needs `GITHUB_TOKEN` pull-request read access to verify PR #1 in a
 private consumer; this does not grant the SDK App access to any consumer repository.
-Every current writer must still be `serrja`. A changed source/default head fails admission
-and requires a new review; changed refs never inherit the earlier authorization.
+The repository token's collaborators list can omit inherited organization access. An
+empty list is not proof of sole ownership. The visible metadata check rejects known
+additional writers and unknown/inconsistent roles using effective `role_name`, never
+only base `permissions.push`.
+
+Before **every** activation, the owner uses the already authorized owner API to audit
+all current effective writers and confirms that only `serrja` can write. After reviewing
+the exact repository/source/workflow pair, the owner sets the native repository variable
+`SDK_SOLE_WRITER_REVIEW` to `repository|serrja|sourceSHA|workflowSHA|unixSeconds`.
+The guard requires an exact pair and a timestamp no older than one hour, repeated just
+before token creation. Changed source/default commits never inherit this review.
+
+This value records the owner's assertion; CI cannot independently enumerate all inherited
+organization writers with its restricted token. It is not a signature or independent
+approval. If another writer is added, stop admission, clear the review/pins and reassess
+secret access. The owner must not refresh the value without repeating the full API audit.
 
 This is the owner-approved sole-writer model, not independent environment approval.
 Repository secrets are available to trusted same-repository workflow authors; reassess
