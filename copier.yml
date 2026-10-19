@@ -36,8 +36,6 @@ _exclude:
   - "{% if not (withTesting | default(true)) %}tests{% endif %}"
   - "{% if not (withDocker | default(true)) %}Dockerfile{% endif %}"
   - "{% if not (withDocker | default(true)) %}.dockerignore{% endif %}"
-  - "{% if not (withDocker | default(true)) %}docker/**{% endif %}"
-  - "{% if not (withDocker | default(true)) %}docker{% endif %}"
 service_name:
   type: str
   help: "Canonical Pokerlost service name, such as pokerService."
