@@ -44,7 +44,7 @@ class AdmissionTests(unittest.TestCase):
         self.source = {"sha": "b" * 40}
         self.comparison = {"status": "diverged", "merge_base_commit": {"sha": "c" * 40}}
         self.writers = [
-            {"login": "serrja", "role_name": "admin", "permissions": {"push": True}}
+            {"login": "serrja", "role_name": "admin", "permissions": {"push": True}},
         ]
 
     def owner_review(self, reviewed_at: int | None = None) -> str:
@@ -159,13 +159,17 @@ class AdmissionTests(unittest.TestCase):
             self.admit()
 
     def test_source_repository_commit_is_exact(self) -> None:
+        """Reject a response belonging to a different source commit."""
         self.source["sha"] = "d" * 40
         with self.assertRaisesRegex(ValueError, "commit identity"):
             self.admit()
 
     def test_cli_help_and_invalid_arguments_need_no_credentials(self) -> None:
+        """Keep CLI help lazy and parser errors free of environment values."""
         result = CliRunner().invoke(
-            app, ["--help"], env={"GH_TOKEN": "synthetic-do-not-print"}
+            app,
+            ["--help"],
+            env={"GH_TOKEN": "synthetic-do-not-print"},
         )
         self.assertEqual(result.exit_code, 0)
         self.assertNotIn("synthetic-do-not-print", result.output)
@@ -229,7 +233,7 @@ class AdmissionTests(unittest.TestCase):
         for offset in [-3601, 120]:
             with self.subTest(offset=offset):
                 self.env["OWNER_WRITER_REVIEW"] = self.owner_review(
-                    self.reviewed_at + offset
+                    self.reviewed_at + offset,
                 )
                 with self.assertRaisesRegex(ValueError, "Owner writer review"):
                     self.admit()
