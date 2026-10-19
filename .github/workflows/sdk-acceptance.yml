@@ -1,0 +1,214 @@
+name: SDK technical acceptance
+run-name: SDK acceptance ${{ inputs.reviewed_sha || github.event.pull_request.head.sha || github.sha }}
+on:
+  pull_request:
+    paths:
+      - .github/workflows/sdk-acceptance.yml
+      - .github/scripts/sdk_admission.py
+      - .github/scripts/test_sdk_admission.py
+      - .github/scripts/sdk_acceptance.sh
+      - .github/actions/actionlint/action.yml
+      - .github/actions/deployment-tools/action.yml
+      - .github/docs/sdk-admission.md
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/sdk-acceptance.yml
+      - .github/scripts/**
+      - .github/actions/**
+      - .github/docs/sdk-admission.md
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: Full reviewed source SHA from this repository's main PR
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: sdk-acceptance-${{ github.event_name }}-${{ github.ref }}-${{ inputs.reviewed_sha }}
+  cancel-in-progress: false
+jobs:
+  admission-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: {contents: read, pull-requests: read}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ./.github/actions/actionlint
+      - name: Verify actual admission metadata access without SDK credentials
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY" --silent
+          gh api "repos/$GITHUB_REPOSITORY/commits/main" --silent
+          gh api "repos/$GITHUB_REPOSITORY/pulls/1" --silent
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import sys
+          sys.path.insert(0, ".github/scripts")
+          from sdk_admission import api, validate_visible_writers
+          writers = api("repos/" + os.environ["GITHUB_REPOSITORY"] + "/collaborators?per_page=100")
+          print(json.dumps([{"login": user["login"], "role_name": user.get("role_name"),
+                             "base_push": user["permissions"]["push"]} for user in writers]))
+          validate_visible_writers(writers)
+          print("Visible API is partial; fresh full owner writer review is required before SDK access.")
+          PYTHON
+      - name: Credential-free admission regression tests
+        run: |
+          docker run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 \
+            --env PYTHONDONTWRITEBYTECODE=1 --user "$(id -u):$(id -g)" \
+            --mount "type=bind,source=$GITHUB_WORKSPACE,target=/checks,readonly" --workdir /checks \
+            python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56 \
+            python -m unittest discover -s .github/scripts -p test_sdk_admission.py -v
+  private-acceptance:
+    if: github.event_name == 'workflow_dispatch'
+    needs: admission-checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    permissions: {contents: read, actions: read, pull-requests: read}
+    strategy:
+      fail-fast: false
+      matrix: {persistence: ['false', 'true']}
+    services:
+      postgres:
+        image: postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env: {POSTGRES_USER: ci, POSTGRES_PASSWORD: ci, POSTGRES_DB: ci}
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U ci -d ci" --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      REVIEWED_SHA: ${{ inputs.reviewed_sha }}
+      ADMITTED_SHA: ${{ vars.SDK_BUILD_REVIEWED_SHA }}
+      ADMITTED_WORKFLOW_SHA: ${{ vars.SDK_WORKFLOW_REVIEWED_SHA }}
+      OWNER_WRITER_REVIEW: ${{ vars.SDK_SOLE_WRITER_REVIEW }}
+      B1_PERSISTENCE: ${{ matrix.persistence }}
+    steps:
+      - name: Checkout the workflow's exact default-branch commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: {persist-credentials: false, fetch-depth: 0, ref: '${{ github.sha }}', path: trusted}
+      - name: Admit identity, current default and current source PR before SDK access
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: python3 trusted/.github/scripts/sdk_admission.py
+      - name: Checkout only the separately reviewed source commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: {persist-credentials: false, fetch-depth: 0, ref: '${{ inputs.reviewed_sha }}', path: candidate}
+      - name: Verify both exact checkout roots and recheck admission
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: python3 trusted/.github/scripts/sdk_admission.py "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
+      - uses: ./trusted/.github/actions/deployment-tools
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Restore existing template-maintenance graph without SDK credentials
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: candidate
+          file: candidate/Dockerfile.quality
+          target: quality
+          load: true
+          tags: servicetemplate:quality
+          cache-from: type=gha,scope=${{ github.repository_id }}-maintenance-python314-linux-amd64-trusted
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-maintenance-python314-linux-amd64-trusted
+      - name: Prepare the reviewed runtime; no SDK credentials yet
+        id: runtime
+        run: bash trusted/.github/scripts/sdk_acceptance.sh prepare
+      - name: Recheck current heads immediately before token creation
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: python3 trusted/.github/scripts/sdk_admission.py "$GITHUB_WORKSPACE/trusted" "$GITHUB_WORKSPACE/candidate"
+      - name: Mint existing SDK-only read token
+        id: sdk
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.POKERLOST_SDK_APP_ID }}
+          private-key: ${{ secrets.POKERLOST_SDK_APP_PRIVATE_KEY }}
+          owner: pokerlost
+          repositories: pypokerlost
+          permission-contents: read
+      - name: Resolve generated SDK lock when applicable
+        env: {SDK_APP_TOKEN: '${{ steps.sdk.outputs.token }}'}
+        run: bash trusted/.github/scripts/sdk_acceptance.sh lock
+      - name: Restore existing private quality build graph
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ${{ steps.runtime.outputs.runtime_dir }}
+          file: ${{ steps.runtime.outputs.runtime_dir }}/Dockerfile
+          target: quality
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.runtime.outputs.package }}:quality
+          secrets: sdk_token=${{ steps.sdk.outputs.token }}
+          cache-from: type=gha,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-quality-python314-linux-amd64-owner
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-quality-python314-linux-amd64-owner
+      - name: Fresh source, types and applicable PostgreSQL tests
+        env:
+          SDK_APP_TOKEN: ${{ steps.sdk.outputs.token }}
+          TEST_DATABASE_URL: postgresql+asyncpg://ci:ci@127.0.0.1:5432/ci
+        run: bash trusted/.github/scripts/sdk_acceptance.sh check
+      - name: Export the canonical wheel and sdist
+        env: {SDK_APP_TOKEN: '${{ steps.sdk.outputs.token }}'}
+        run: bash trusted/.github/scripts/sdk_acceptance.sh build
+      - name: Restore existing installed-test build graph
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ${{ steps.runtime.outputs.runtime_dir }}
+          file: ${{ steps.runtime.outputs.runtime_dir }}/Dockerfile
+          target: test
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.runtime.outputs.package }}:test
+          secrets: sdk_token=${{ steps.sdk.outputs.token }}
+          cache-from: type=gha,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-test-python314-linux-amd64-owner
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-test-python314-linux-amd64-owner
+      - name: Fresh installed-wheel and applicable disposable PostgreSQL acceptance
+        env: {SDK_APP_TOKEN: '${{ steps.sdk.outputs.token }}'}
+        run: bash trusted/.github/scripts/sdk_acceptance.sh verify
+      - name: Restore and load the runtime from the tested build graph
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ${{ steps.runtime.outputs.runtime_dir }}
+          file: ${{ steps.runtime.outputs.runtime_dir }}/Dockerfile
+          target: runtime
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.runtime.outputs.package }}:candidate
+          secrets: sdk_token=${{ steps.sdk.outputs.token }}
+          cache-from: type=gha,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-runtime-python314-linux-amd64-owner
+          cache-to: type=gha,mode=max,scope=${{ github.repository_id }}-sdk-${{ matrix.persistence }}-runtime-python314-linux-amd64-owner
+      - name: Installed application readiness, Alembic and graceful stop
+        run: bash trusted/.github/scripts/sdk_acceptance.sh runtime
+      - name: Load the same image into owned disposable Kind; migrate, scale and roll back
+        run: bash trusted/.github/scripts/sdk_acceptance.sh kind
+      - name: Archive the tested image without rebuilding; report advisory coverage
+        run: bash trusted/.github/scripts/sdk_acceptance.sh archive
+      - name: Preserve private evidence without credentials
+        if: always() && steps.runtime.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: b1-${{ matrix.persistence }}-${{ inputs.reviewed_sha }}
+          path: |
+            ${{ steps.runtime.outputs.runtime_dir }}/coverage/
+            ${{ steps.runtime.outputs.runtime_dir }}/dist/
+          retention-days: 14
+          if-no-files-found: error
+  result:
+    if: always()
+    needs: [admission-checks, private-acceptance]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require real acceptance for manual SDK runs
+        env:
+          EVENT: ${{ github.event_name }}
+          CHECKS: ${{ needs.admission-checks.result }}
+          PRIVATE: ${{ needs.private-acceptance.result }}
+        run: |
+          set -euo pipefail
+          test "$CHECKS" = success
+          if [ "$EVENT" = workflow_dispatch ]; then
+            test "$PRIVATE" = success
+          else
+            test "$PRIVATE" = skipped
+            echo 'Admission infrastructure checked; private runtime acceptance not run.' >> "$GITHUB_STEP_SUMMARY"
+          fi
