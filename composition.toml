@@ -1,4 +1,4 @@
-templateVersion = "0.2.0.dev0"
+templateVersion = "0.3.0.dev0"
 answersSchema = 1
 snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
@@ -39,6 +39,7 @@ include = [
   "src/{{ packageName }}/app.py.jinja",
   "src/{{ packageName }}/errors.py.jinja",
   "src/{{ packageName }}/resources.py.jinja",
+  "src/{{ packageName }}/observability.py.jinja",
   "src/{{ packageName }}/settings.py.jinja",
   "src/{{ packageName }}/persistence.py.jinja",
   "alembic.ini.jinja",
@@ -47,6 +48,7 @@ include = [
   "tests/test_http.py.jinja",
   "tests/database_integration.py.jinja",
   "tests/foundation/test_package.py.jinja",
+  "tests/foundation/test_observability.py.jinja",
   "tests/foundation/test_http.py.jinja",
   "tests/foundation/database_integration.py.jinja",
   "deploy/chart/.helmignore",

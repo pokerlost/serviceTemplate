@@ -1,6 +1,6 @@
 [project]
 name = "pokerlost-service-template-tooling"
-version = "0.2.0.dev0"
+version = "0.3.0.dev0"
 description = "Repository-local quality tooling for the Pokerlost service template."
 requires-python = ">=3.14"
 dependencies = []
