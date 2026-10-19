@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/pokerlost/serviceTemplate",
+  "revision": "f6f9df6f04b5044dd1a676a0f7a9edd1d24a4be8",
+  "files": {
+    ".github/admission/Dockerfile": "1c4e0932b2b6e8b32ae5557d5d2fcfde4bca43a2828f2cd33d6dbf960a8cc681",
+    ".github/admission/Dockerfile.dockerignore": "7e85bf03fea02c48e1dfe70f182af9b10fb2c28275f1bb0ee8beea7bf5285c48",
+    ".github/admission/pyproject.toml": "ad147eabd3df3897e6d4c1797d5e2b9aea6c12a942d0654c2ab9f9453ebc4904",
+    ".github/admission/uv.lock": "152894da4f5993a016d9a5b462ab9907ff5519f821311efee7b659f4f29c6e38",
+    ".github/scripts/sdk_admit.sh": "491c93e141e7d3902101f3b28618d7a83ba203175d820321dc5137f86303ec08",
+    ".github/scripts/sdk_admission.py": "78f71b75572575dca529238c69d9bf65370e66074a26df693333914ec9ce027f",
+    ".github/scripts/test_sdk_admission.py": "d1daae2ab1d13e01941b36f107ec2bf5f3e4c119767878aa908150b10d114559",
+    ".github/scripts/sdk_acceptance.sh": "b56e73b00f2d5d54aa190f5c32b57846b9023f8ddf8a06d73afedb189fc7af17",
+    ".github/workflows/sdk-acceptance.yml": "7d965952a3f6946fce0ce0d47212f55d5afbe9089b61f193ea99af003da72abe",
+    ".github/docs/sdk-admission.md": "117d97452bfcf9c284ec3cbecc99d2786aa9ebea4bc9bd27649a7d1a8e1a7ac8"
+  },
+  "role": "Reviewed canonical CI admission snapshot; application/runtime changes are outside this PR."
+}

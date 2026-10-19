@@ -142,6 +142,7 @@ def test_missing_or_malformed_header_never_reaches_handler(
             headers={} if header is None else {"Authorization": header},
         )
     assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
     assert response.json() == {
         "ok": False,
         "result": None,

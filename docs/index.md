@@ -10,6 +10,7 @@ service template.
 
 ## API and SDK
 
+- [Operation naming](operationNaming.md) — external camelCase and Python PEP 8.
 - `SDK_COMPATIBILITY.md` — API, shared contracts, token ownership, and retry compatibility.
 
 ## Architecture

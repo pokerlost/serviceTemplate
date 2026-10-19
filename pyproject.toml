@@ -14,6 +14,8 @@ dev = [
     "mypy>=2.3,<2.4",
     "pre-commit==4.6.2",
     "ruff==0.16.4",
+    "typer==0.27.3",
+    "pydantic>=2.12,<3",
 ]
 
 [tool.uv]
@@ -29,7 +31,7 @@ extend-exclude = ["_sources"]
 "tools/check_documentation.py" = "py312"
 
 [tool.ruff.lint]
-select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP"]
+select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "TID252"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["tools"]
@@ -44,6 +46,9 @@ known-third-party = [
     "typer",
     "uvicorn",
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
 [tool.mypy]
 python_version = "3.14"
 files = ["tools"]
@@ -53,13 +58,13 @@ warn_unused_configs = true
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers --strict-config"
-testpaths = ["tests", "tools/test_composition.py"]
+testpaths = ["tests", "tools/test_composition.py", ".github/scripts/test_sdk_admission.py"]
 pythonpath = ["."]
 
 [tool.coverage.run]
 branch = true
-source = ["tools"]
-omit = ["*/tools/test_composition.py"]
+source = ["tools", ".github/scripts"]
+omit = ["*/tools/test_composition.py", "*/.github/scripts/test_sdk_admission.py"]
 patch = ["subprocess"]
 
 [tool.coverage.report]

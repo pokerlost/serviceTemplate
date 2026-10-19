@@ -36,8 +36,9 @@ is generated from the pinned FastAPI snapshot, never edited as an independent im
 The private runtime workflow uses the approved solo-owner/full-SHA policy described in
 [technical verification](docs/testing.md). Ordinary PR source checks have no SDK secret and do
 not claim B1 runtime acceptance. Manual dispatch requires the actual private build to pass.
-The owner activates the existing CI-only PR #2 and provisions the existing SDK-only App secrets;
-this task does not merge or expand its installation. Reassess the model if another writer is added.
+The trusted default workflow and source commit have separate full-SHA admission pins. An exact
+integrated source remains admissible after its PR closes; a changed HEAD requires new review.
+The existing SDK-only App installation is unchanged. Reassess the model if another writer is added.
 
 The approved candidate builds wheel/sdist and installed-wheel test/runtime targets using one
 BuildKit graph. Its cache is scoped to the private consumer repository, platform and target, with

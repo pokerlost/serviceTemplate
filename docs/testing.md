@@ -41,14 +41,16 @@ and stops gracefully. `deploy/chart/` is managed by the FastAPI parent; `deploy/
 owned by the service. `make deploy-local` and `make undeploy-local` operate an explicit disposable
 Kind contour, never the default host kubeconfig.
 
-Ordinary PR jobs receive no SDK secret. The separately approved solo-owner model permits only
-manual dispatch by serrja (including the triggering actor), with a full SHA equal to the branch
-SHA and `SDK_BUILD_REVIEWED_SHA`, a private consumer and the fixed six-consumer allowlist.
-This is owner policy, not a server-enforced reviewer environment; it is valid only while serrja
-is the sole writer. Reassess before granting another writer or trusting new workflow authors.
-The existing SDK-only App retains `Contents: read` solely on `pokerlost/pypokerlost`.
-The owner provisions `POKERLOST_SDK_APP_ID` and `POKERLOST_SDK_APP_PRIVATE_KEY` as repository
-secrets and activates the six existing CI-only PR #2; this task does not merge them or manage
-keys. Ordinary source success does not verify B1. On a manual run, a skipped or failed private
-job fails acceptance. Private cache/artifacts remain per consumer, target and platform;
-credentials use short-lived BuildKit secrets. No release or remote deployment is implicit.
+Ordinary PR jobs receive no SDK secret. The [admission policy](../.github/docs/sdk-admission.md)
+uses the approved sole-owner model: manual dispatch by serrja, separate exact source/default
+workflow pins, a fresh writer-review receipt and a final pre-token recheck. The source is either
+an integrated commit or an exact open same-repository PR head; admission does not depend on
+PR #1 remaining open. A new source or workflow HEAD requires new review. This is owner policy,
+not independent server-enforced environment approval. Reassess before adding another writer.
+
+The existing App retains read access solely to pypokerlost. Credentials remain repository
+secrets only in the approved six consumers. On a manual run, a skipped or failed private job
+fails acceptance. Wheel, installed application, runtime readiness, native Alembic head receipts
+and disposable Kind scaling/rollback must all pass. Empty Alembic baselines are valid; console
+revision spelling is never parsed. Cache and evidence remain private per consumer, target and
+platform. No release, registry destination or remote deployment is implicit.

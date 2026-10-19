@@ -69,6 +69,11 @@ def test_update_keeps_service_owned_files_and_migrations(tmp_path: Path) -> None
     _git(output, "init", "--quiet")
     _commit(output, (".",), "initial render")
     owner_doc = output / "SERVICE.md"
+    owner_agents = output / "AGENTS.md"
+    owner_agents.write_text(
+        owner_agents.read_text() + "\nProject-owned agent boundary.\n"
+    )
+    original_agents = owner_agents.read_bytes()
     scopes = output / "src/sampleservice/scopes.py"
     revision = output / "migrations/versions/owner_revision.py"
     owner_doc.write_text(owner_doc.read_text() + "\nService owner note.\n")
@@ -79,6 +84,7 @@ def test_update_keeps_service_owned_files_and_migrations(tmp_path: Path) -> None
         output,
         (
             "SERVICE.md",
+            "AGENTS.md",
             "src/sampleservice/scopes.py",
             "migrations/versions/owner_revision.py",
         ),
@@ -94,6 +100,7 @@ def test_update_keeps_service_owned_files_and_migrations(tmp_path: Path) -> None
     )
     _run(*COPIER, "update", "--quiet", "--defaults", f"--vcs-ref={second}", cwd=output)
     assert "Service owner note." in owner_doc.read_text()
+    assert owner_agents.read_bytes() == original_agents
     assert "# exact owner scopes" in scopes.read_text()
     assert revision.read_bytes() == original_revision
     assert (
@@ -182,25 +189,3 @@ def test_update_from_committed_foundation_preserves_owner_state(
     assert (output / "compose.test.yaml").is_file() is persistence
     assert not _git(output, "ls-files", "-u")
     assert not list(output.rglob("*.rej"))
-
-
-def test_private_gate_uses_confirmed_canonical_repository() -> None:
-    """The transferred accounts repo is admitted without widening SDK access."""
-    import json
-    import re
-
-    source = (ROOT / "foundationOverlay/.github/workflows/ci.yml.jinja").read_text()
-    allowlist = re.search(r"fromJSON\('([^']+)'\)", source)
-    assert allowlist is not None
-    repositories = json.loads(allowlist.group(1))
-    assert "pokerlost/accountsService" in repositories
-    assert "mloso/accountsService" not in repositories
-    assert len(repositories) == 6
-    assert "inputs.reviewed_sha == github.sha" in source
-    assert "github.event_name == 'workflow_dispatch'" in source
-    assert "repositories: pypokerlost" in source
-    assert "permission-contents: read" in source
-    assert "github.actor == 'serrja'" in source
-    assert "github.triggering_actor == 'serrja'" in source
-    assert "inputs.reviewed_sha == vars.SDK_BUILD_REVIEWED_SHA" in source
-    assert "environment: sdk-build" not in source

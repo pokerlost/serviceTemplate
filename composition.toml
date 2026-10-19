@@ -60,6 +60,8 @@ include = [
   "deploy/chart/values.yaml",
   "deploy/local/postgres.yaml",
   "deploy/values.yaml.jinja",
+  "src/{{ packageName }}/migration_status.py.jinja",
+  "tests/foundation/test_migrations.py.jinja",
 ]
 allowOverride = [
   "AGENTS.md.jinja",
@@ -77,3 +79,4 @@ allowOverride = [
 ]
 retainBase = { "Makefile.jinja" = "_base/fastApiMakefile.jinja", "Dockerfile.jinja" = "_base/fastApiDockerfile.jinja", "tests/foundation/test_http.py.jinja" = "_base/fastApiTestHttp.py.jinja", "pyproject.toml.jinja" = "_base/fastApiPyproject.toml.jinja", "src/{{ packageName }}/app.py.jinja" = "_base/fastApiApp.py.jinja", "src/{{ packageName }}/errors.py.jinja" = "_base/fastApiErrors.py.jinja" }
 smokeAnswers = { service_name = "sampleService" }
+includeRepository = [".github/admission/Dockerfile", ".github/admission/Dockerfile.dockerignore", ".github/admission/pyproject.toml", ".github/admission/uv.lock", ".github/scripts/sdk_admit.sh", ".github/scripts/sdk_admission.py", ".github/scripts/test_sdk_admission.py", ".github/scripts/sdk_acceptance.sh", ".github/workflows/sdk-acceptance.yml", ".github/docs/sdk-admission.md", ".github/sdk-admission-source.json"]
