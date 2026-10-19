@@ -2,7 +2,7 @@
 
 The active Copier source is `composedTemplate/`, assembled from content-addressed FastAPI source and `foundationOverlay/`. The prior flat source remains in historical Git ref `7ee1232`; it is absent from the active worktree and does not define new renders.
 
-The current derivative worktree declares template version `0.2.0.dev0` and answers schema 1 in `composition.toml`; its actual content identity is in `composition.lock.json`, including the root `copier.yml` digest. These local identifiers are not a published tag or release.
+The current derivative worktree declares template version `0.3.0.dev0` and answers schema 1 in `composition.toml`; its actual content identity is in `composition.lock.json`, including the root `copier.yml` digest. These local identifiers are not a published tag or release.
 
 ## 🧭 Generation and ownership
 
@@ -14,9 +14,9 @@ The shared HTTP error handlers sanitize validation, framework, readiness, and un
 
 ## 🔌 Public infrastructure and future operations
 
-The pristine service registers `GET /` (`getRoot`, `PokerlostResponse[None]`), `GET /getOpenApi` (`getOpenApi`, unmodified FastAPI OpenAPI), `/health/live`, and `/health/ready`. It registers no business endpoint. A future operation uses one globally unique lower camelCase `POST /<operationId>` with `PokerlostRequest[Payload]` and `PokerlostResponse[Result]`. Do not introduce generic REST aliases or an invented operation to populate the scaffold.
+The pristine service registers `GET /` (`getRoot`, `PokerlostResponse[None]`), `GET /getOpenApi` (`getOpenApi`, unmodified FastAPI OpenAPI), `/health/live`, and `/health/ready`. It registers no business endpoint. A future operation uses one service-local unique lower camelCase `POST /<operationId>` with `PokerlostRequest[Payload]` and `PokerlostResponse[Result]`. Do not introduce generic REST aliases or an invented operation to populate the scaffold.
 
-Protected calls receive only `Authorization: Bearer <token>` outside the body. A route declares a non-empty exact set of service-owned dotted lower camelCase scopes. A local verifier must verify the token and exact service audience; the pristine verifier is absent and fails closed. The SDK owns HTTP transport, canonical response decoding, explicit retry, token-store/refresher ports, and one narrow expired-token refresh. It is not a UI or realtime client. [SDK_COMPATIBILITY.md](SDK_COMPATIBILITY.md) owns the detailed SDK contract and pinned revision.
+Protected calls receive `Authorization: Bearer <token>` outside the body. Explicit gateway clients also send the noncredential routing header `x-pokerlost-serviceId`; direct service clients retain their previous default. A route declares a non-empty exact set of service-owned dotted lower camelCase scopes. A local verifier must verify the token and exact service audience; the pristine verifier is absent and fails closed. The SDK owns HTTP transport, canonical response decoding, explicit retry, token-store/refresher ports, and one narrow expired-token refresh. It is not a UI or realtime client. [SDK_COMPATIBILITY.md](SDK_COMPATIBILITY.md) owns the detailed SDK contract and pinned revision.
 
 ## 🔒 Failure and lifecycle boundaries
 
@@ -53,3 +53,7 @@ runtime image does not inherit them. Full persistence testing starts a fresh int
 measurement, includes owner `tests/*_integration.py` cases, then appends isolated tests and writes
 advisory reports; test/build/type/report errors still fail. Test assets preserve tools/migrations while `src/` is excluded and installed origin
 is asserted inside pytest. A source checkout cannot satisfy the installed-wheel assertion.
+
+## Local source-only SDK build
+
+A private bare SDK source cache can replace the named `sdk-source` Docker build context. Use `--build-context sdk-source=/private/state/sdk-source --build-arg SDK_SOURCE_MODE=local`. The context contains only `pypokerlost.git`, created with `git clone --bare --no-hardlinks` from the reviewed checkout; no SSH configuration, token, working tree or credentials. The locked full SDK Git revision remains authoritative. Missing commits fail the frozen sync. Only the builder contains the source cache; the runtime receives the installed environment. Remote mode continues to require the existing SDK-only BuildKit secret. platformInfra owns preparation, orchestration and receipts. This does not change B1 App admission or trusted-workflow policy.

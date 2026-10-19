@@ -6,7 +6,13 @@ from {{ packageName }}.errors import configure_error_handlers
 from {{ packageName }}.routers import openapi, root
 from {{ packageName }}.settings import ServiceSettings
 {% endblock %}
-{% block configureApplication %}    application.include_router(root.router)
+{% block configureApplication %}    application.description = (
+        "Direct service origins do not require a routing header. Gateway HTTP calls "
+        "use x-pokerlost-serviceId with an exact SDK ServiceId and an operation path "
+        "without a service prefix. The routing header grants no authorization; "
+        "protected operations still require their exact Bearer audience/scopes."
+    )
+    application.include_router(root.router)
     application.include_router(openapi.router)
     application.state.token_verifier = None
     configure_authorization_errors(application)

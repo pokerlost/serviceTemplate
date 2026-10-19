@@ -7,9 +7,9 @@ cross-repository verification procedure.
 
 ```text
 remote:               git@github.com:pokerlost/pypokerlost.git
-distribution version: 0.2.0
-current dependency:   8652cc850ccef8a00538ba6ff0b545ff7f3d38af
-foundation pin:       8652cc850ccef8a00538ba6ff0b545ff7f3d38af
+distribution version: 0.3.0.dev0
+current dependency:   c4d8327e8318eab6769b3f05c4a7d848c75afb0b
+foundation pin:       c4d8327e8318eab6769b3f05c4a7d848c75afb0b
 Python:               >=3.14
 ```
 
@@ -51,12 +51,12 @@ from pypokerlost.types import (
 ```
 
 Generated and handwritten methods and types are flat. SDK-owned enums form an explicit flat catalog
-under `pypokerlost/enums/`; there are no service subdirectories or contracts compatibility package.
+under `src/pypokerlost/enums/`; there are no service subdirectories or contracts compatibility package.
 
 ## Operation protocol
 
 Every generated business method uses `POST /<operationId>`, an `application/json`
-`PokerlostRequest[Payload]`, and `PokerlostResponse[Result]`. Operation names are globally unique
+`PokerlostRequest[Payload]`, and `PokerlostResponse[Result]`. Operation names are unique within one service; another ServiceId may reuse the name. Names are
 single lowerCamelCase verbs matching `^[a-z][A-Za-z0-9]*$`.
 
 Protected calls add only:
@@ -90,7 +90,7 @@ New foundations own `src/<lowercase_package_name>/scopes.py`; older services ret
 standard FastAPI OAuth2 client-credentials dependency can publish that catalog, using `/getToken`
 and `auto_error=False`. Protected routes use one non-empty exact `Security` requirement.
 
-`pypokerlost/enums/pokerlost_scopes.py` is the explicit SDK-owned cross-service catalog. The
+`src/pypokerlost/enums/pokerlost_scopes.py` is the explicit SDK-owned cross-service catalog. The
 generator reads all service OpenAPI documents in one invocation and derives only each implemented
 method's `__scopes__`. A document with zero protected operations may omit
 `components.securitySchemes`. If an operation is protected, the generator requires the supported
@@ -187,3 +187,7 @@ Confirm obsolete unchanged managed files disappear and service-owned content rem
 The pristine settings, resources, environment example, and Helm chart contain no outbound target,
 credential, token store, retry tuning, encryption secret, or fake verifier. Production deployment
 remains behind mandatory HTTPS/TLS termination.
+
+## Gateway migration
+
+The verified SDK main pin is 0.3.0.dev0. Public imports are unchanged after src layout migration. Direct-origin clients retain service_id=None. Gateway-origin clients explicitly select the SDK ServiceId; x-pokerlost-serviceId selects a fixed internal service and never grants scopes/audience. Authorization and wire bodies are unchanged. Consumer runtime acceptance must use its own current lock and installed wheel.
