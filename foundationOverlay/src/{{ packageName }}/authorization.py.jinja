@@ -110,5 +110,7 @@ def configure_authorization_errors(application: FastAPI) -> None:
         return JSONResponse(
             status_code=error.status_code,
             content=response.model_dump(mode="json"),
-            headers={"WWW-Authenticate": "Bearer"} if error.status_code == 401 else None,
+            headers=(
+                {"WWW-Authenticate": "Bearer"} if error.status_code == 401 else None
+            ),
         )
