@@ -34,3 +34,9 @@ The shared Markdown checker and its tests are maintained in `serrja/pythonTempla
 `documentation-tool.lock.json` pins the reviewed source and file hashes. Refresh these
 managed snapshots from that owner; the checker retains Python 3.12 syntax so all consumers
 use the same implementation. This tooling is separate from the generated Copier tree.
+
+## 📄 License
+
+Original additions use [MIT](LICENSE); inherited source and dependencies retain
+their [notices](THIRD_PARTY_NOTICES.md). Generated projects choose `licensePolicy`
+and their own holder/year through the common Python foundation.

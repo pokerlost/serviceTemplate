@@ -5,7 +5,7 @@ version = "0.1.0"
 description = "{{ projectDescription }}"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = [{{ self.runtimeDependencies() }}]
+{{ self.licenseMetadata() }}dependencies = [{{ self.runtimeDependencies() }}]
 {% endblock %}
 {% block runtimeDependencies %}{{ super() }}, "pypokerlost"{% endblock %}
 {% block extraConfiguration %}

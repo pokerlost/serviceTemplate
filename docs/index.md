@@ -27,3 +27,5 @@ service template.
 ## Project
 
 - `CHANGELOG.md` — changelog.
+
+- [Local agent contracts](agent-contracts.md)

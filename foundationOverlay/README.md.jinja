@@ -29,3 +29,10 @@ External deployment requires a tested image manifest digest and an approved targ
 
 Ordinary PR CI has no SDK secret and does not verify B1. Private checks use owner-only manual dispatch (actor and triggering actor serrja), full SHA equal to the branch SHA and `SDK_BUILD_REVIEWED_SHA`, and the existing SDK-only App. The owner must provision repository secrets and activate the CI-only workflow registration. This is an accepted solo-writer policy, not a reviewer-protected environment. A skipped private job fails manual acceptance. Coverage percentages are advisory; test, build, type, configuration and report errors fail. Workflow artifacts and BuildKit caches stay within the
 private repository; no image, package or release is published by these commands.
+
+## 📄 License policy
+
+Copier records `licensePolicy` and, for MIT, the project owner's holder/year.
+The default `unlicensed` choice grants no project redistribution license.
+Scaffold attribution and dependency terms in `THIRD_PARTY_NOTICES.md` remain separate.
+Existing owner license files survive updates.
