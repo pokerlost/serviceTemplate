@@ -5,7 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        exclude: (^|/).*\.jinja$|^template/deploy/helm/.*/templates/
+        exclude: (^|/).*\.jinja$
       - id: check-toml
         exclude: (^|/).*\.jinja$
       - id: check-json
@@ -20,26 +20,26 @@ repos:
     hooks:
       - id: ruff-check
         name: Ruff check
-        entry: uvx --from ruff==0.16.4 ruff check --fix
+        entry: uv run --locked ruff check --fix
         language: system
         types: [python]
 
       - id: ruff-format
         name: Ruff format
-        entry: uvx --from ruff==0.16.4 ruff format
+        entry: uv run --locked ruff format
         language: system
         types: [python]
 
       - id: mypy
         name: mypy
-        entry: uvx --from 'mypy>=2.3,<2.4' mypy
+        entry: uv run --locked mypy
         language: system
         pass_filenames: false
-        files: ^(scripts|template/scripts)/.*\.py$
+        files: ^tools/.*\.py$
 
       - id: root-documentation
         name: Root documentation contract
         entry: make docs-check
         language: system
         pass_filenames: false
-        files: ^(.*\.md(?:\.jinja)?|template/scripts/check_documentation\.py)$
+        files: ^(.*\.md(?:\.jinja)?|tools/check_documentation\.py)$

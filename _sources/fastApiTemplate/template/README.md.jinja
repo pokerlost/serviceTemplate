@@ -1,0 +1,39 @@
+# {{ projectName }}
+
+FastAPI foundation with process health routes. Product operations belong to this application.
+
+## Run and verify
+
+The canonical quality/build path uses Git, Make and Docker. Resolve and commit `uv.lock` once after a fresh render; existing checkouts enforce it. A native Python/uv loop is optional.
+
+```bash
+uv lock
+make install
+make CONTAINERIZED=1 run
+```
+
+`create_app` reads validated settings when called. Imports do not connect to the network. `GET /health/live` checks the process; `/health/ready` checks enabled required resources.{% if withPersistence %} Set `DATABASE_URL` to a `postgresql+asyncpg://` URL before normal startup. Migrations never run during application startup.{% else %} No DSN or credentials are needed.{% endif %}
+
+```bash
+make lint
+make typecheck
+{% if withTesting %}make test-unit
+{% endif %}make build
+```
+
+{% if withTesting %}`make test` includes isolated runtime coverage{% if withPersistence %} and a real PostgreSQL transaction/readiness check requiring `TEST_DATABASE_URL` for an explicitly disposable database{% endif %}. Managed tests live in `tests/foundation`; `tests/test_http.py` is an application-owned seed.{% else %}Testing was disabled. Enable it before claiming test coverage or enabling CI.{% endif %}
+
+{% if withDocker %}## Container
+
+`make build` exports wheel/sdist from the Docker `artifacts` target; `make image` loads the runtime candidate. The runtime installs that wheel, uses UID 65532 and one Uvicorn process, and supports a read-only filesystem and bounded SIGTERM shutdown.
+{% if withTesting %}
+`make verify` freshly tests the installed wheel in a container{% if withPersistence %} with a unique disposable Compose PostgreSQL project{% endif %}. It cleans only its own resources. Installed coverage is written to `coverage/installed/`; source reports remain separate. Percentages are advisory; missing/stale reports and real check failures fail. A cached build never substitutes for executing tests.
+{% endif %}
+{% endif %}{% if withKubernetes %}## Kubernetes
+
+`deploy/chart` is the shared FastAPI chart managed by Copier. Set `image.repository` and `image.digest` in the application-owned `deploy/values.yaml`; database values reference an existing Secret rather than containing credentials. `make chart-check chart` validates and packages the chart. Deploy the resulting checksummed artifact and the already tested image; deployment does not rebuild it. Optional migrations run as a Helm pre-install/pre-upgrade Job, never in every application replica. Application rollback does not undo a database migration.
+{% if withDocker %}
+`make deploy-local` creates a dedicated `{{ packageName }}-local` Kind cluster and `.local/kubeconfig`{% if withPersistence %}, including a synthetic disposable PostgreSQL{% endif %}. It loads the local candidate using an explicit development tag override. `make undeploy-local` removes only that cluster. It does not select an external kubeconfig.
+{% endif %}{% endif %}
+
+`PROJECT.md`, `SERVICE.md`, settings, migrations, seed tests and deployment values are application-owned. Review updates and provenance before applying them. See [architecture](docs/architecture.md) and [contribution guide](CONTRIBUTING.md). CI preserves artifacts and coverage; registry publication and release require separate configured targets and authorization.

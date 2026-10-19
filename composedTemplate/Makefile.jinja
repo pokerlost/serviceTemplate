@@ -1,0 +1,10 @@
+{% extends "composedTemplate/_base/fastApiMakefile.jinja" %}
+
+{% block dockerSettings %}{{ super() }}
+{% if not withDocker %}IMAGE_COMMAND = printf "%s\n" "notApplicable: runtime delivery disabled for this render"
+{% endif %}SOURCE_REQUIRE_LOCK ?= true
+.PHONY: source
+source:
+	$(DOCKER) buildx build --file Dockerfile.source --build-arg REQUIRE_LOCK=$(SOURCE_REQUIRE_LOCK) --target source --load --tag {{ packageName }}:source $(QUALITY_BUILD_ARGS) .
+	$(DOCKER) run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 --user "$$(id -u):$$(id -g)" {{ packageName }}:source
+{% endblock %}

@@ -1,40 +1,125 @@
 _min_copier_version: "9.17.2"
-_subdirectory: template
+_subdirectory: composedTemplate
 _answers_file: .copier-answers.yml
 _templates_suffix: .jinja
 _envops:
   undefined: jinja2.StrictUndefined
-
-# SERVICE.md belongs to the generated service after the initial copy.
-# Template updates must not overwrite service-specific architecture/rules.
 _skip_if_exists:
+  - AGENTS.md
+  - PROJECT.md
   - SERVICE.md
-
+  - "src/*/scopes.py"
+  - "src/*/settings.py"
+  - "migrations/**"
+  - "tests/test_http.py"
+  - "tests/database_integration.py"
+  - "deploy/values.yaml"
+_exclude:
+  - .vscode
+  - .vscode/**
+  - .serena
+  - .serena/**
+  - "_base"
+  - "_base/**"
+  # Keep prior flat-layout application data visible for a reviewed migration.
+  # Copier applies new exclusions while reconstructing the old revision.
+  - "app/**"
+  - "alembic/**"
+  - "{% if not (withKubernetes | default(false)) %}deploy/**{% endif %}"
+  - "{% if not (withKubernetes | default(false)) %}deploy{% endif %}"
+  - "{% if not withPersistence %}tests/foundation/database_integration.py{% endif %}"
+  - "{% if not withPersistence %}deploy/local{% endif %}"
+  - "{% if not (withDocker and withPersistence and withTesting) %}compose.test.yaml{% endif %}"
+  - "{% if not (withCi | default(false)) %}.github/workflows{% endif %}"
+  - "{% if not (withCi | default(false)) %}.github/workflows/**{% endif %}"
+  - "{% if not withCi %}.github/admission/**{% endif %}"
+  - "{% if not withCi %}.github/admission{% endif %}"
+  - "{% if not withCi %}.github/scripts/sdk*{% endif %}"
+  - "{% if not withCi %}.github/docs/sdk-admission.md{% endif %}"
+  - "{% if not withCi %}.github/sdk-admission-source.json{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}alembic.ini{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}migrations{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}migrations/**{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}src/*/persistence.py{% endif %}"
+  - "{% if not withPersistence %}src/*/migration_status.py{% endif %}"
+  - "{% if not withPersistence %}tests/foundation/test_migrations.py{% endif %}"
+  - "{% if not (withPersistence | default(false)) %}tests/database_integration.py{% endif %}"
+  - "{% if not (withTesting | default(true)) %}tests/**{% endif %}"
+  - "{% if not (withTesting | default(true)) %}tests{% endif %}"
+  - "{% if not (withDocker | default(true)) %}Dockerfile{% endif %}"
+  - "{% if not (withDocker | default(true)) %}.dockerignore{% endif %}"
 service_name:
   type: str
-  help: "Canonical Pokerlost service name, e.g. authService or virtualMoney."
+  help: "Canonical Pokerlost service name, such as pokerService."
   validator: >-
-    {%- if not service_name -%}
-    service_name must not be empty.
-    {%- elif not service_name.isascii() -%}
-    service_name must contain ASCII characters only.
-    {%- elif not service_name[0].isalpha() -%}
-    service_name must start with an ASCII letter.
-    {%- elif not service_name.isalnum() -%}
-    service_name must contain letters and digits only; spaces and _, -, ., / are not allowed.
+    {%- if not service_name or not service_name.isascii() or not service_name[0].islower() or not service_name.isalnum() -%}
+    Use ASCII lower camelCase, starting with a lowercase letter.
     {%- endif -%}
-
 service_slug:
   type: str
   default: "{{ service_name | lower }}"
   when: false
-
 service_env_prefix:
   type: str
   default: "{{ service_name | upper }}"
   when: false
-
 database_name:
   type: str
   default: "{{ service_name | lower }}"
+  when: false
+projectName:
+  type: str
+  default: "{{ service_name }}"
+  when: false
+packageName:
+  type: str
+  default: "{{ service_name | lower }}"
+  when: false
+projectDescription:
+  type: str
+  default: "Pokerlost {{ service_name }} foundation"
+  when: false
+pythonMinimum:
+  type: str
+  default: "3.14"
+  when: false
+ruffTarget:
+  type: str
+  default: py314
+  when: false
+baseMakefileTemplate:
+  type: str
+  default: "composedTemplate/_base/Makefile.jinja"
+  when: false
+pythonImage:
+  type: str
+  default: "python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
+  when: false
+basePyprojectTemplate:
+  type: str
+  default: "composedTemplate/_base/pyproject.toml.jinja"
+  when: false
+profile:
+  type: str
+  default: library
+  when: false
+withPersistence:
+  type: bool
+  default: false
+  help: "Include PostgreSQL lifecycle without subject schema."
+withTesting:
+  type: bool
+  default: true
+  when: false
+withCi:
+  type: bool
+  default: true
+  help: "Include technical CI. Private SDK build requires separately approved read access."
+withKubernetes:
+  type: bool
+  default: true
+  help: "Include the inherited shared Helm chart and local Kind contour."
+withDocker:
+  type: bool
+  default: true
   when: false

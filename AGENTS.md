@@ -7,7 +7,8 @@ This repository owns the shared Copier foundation for Pokerlost backend services
 1. Read this file, `TEMPLATE.md`, and `copier.yml`.
 2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
    `PokerlostResponse`, header authorization, OpenAPI publication, Python support, or SDK integration.
-3. Inspect the current template, documentation, Makefile, pre-commit configuration, and relevant
+3. Inspect `composition.toml`, `foundationOverlay/`, `composedTemplate/`, documentation, Makefile,
+   pre-commit configuration, and relevant
    generated source before editing.
 4. Inspect the authoritative `pypokerlost` implementation whenever a shared SDK contract changes.
 5. Preserve existing user changes and keep every change focused on the requested responsibility.
@@ -31,7 +32,8 @@ or pre-release layouts unless the user explicitly requires them.
 
 - Keep this repository a Copier template, not a deployable business service or shared runtime
   package.
-- Keep PostgreSQL, SQLAlchemy, Alembic, FastAPI, Docker, and Helm in the generated foundation.
+- Keep optional PostgreSQL/SQLAlchemy/Alembic wiring in the inherited generic foundation. New
+  default renders have no mandatory database, remote telemetry, Helm, or Docker setting.
 - Keep generated services free of business/domain implementation, concrete persistence entities,
   credentials, authentication policy, and authorization policy.
 - Keep `service_name` as the only user-supplied service identity unless generation genuinely needs
@@ -45,10 +47,10 @@ or pre-release layouts unless the user explicitly requires them.
 - Target Python 3.14 for template-maintenance scripts and generated services.
 - Begin project-owned Python modules with a focused module docstring followed immediately by
   `from __future__ import annotations`.
-- Use a 100-character Python line length, strict mypy, built-in generics, `collections.abc`,
+- Use an 88-character Python line length, strict mypy, built-in generics, `collections.abc`,
   `Self`, modern unions, explicit return types, and PEP 695 syntax where it expresses the contract.
-- Use lowerCamelCase for new project-owned private names where no existing import or protocol
-  fixes the spelling, `PascalCase` classes, and `UPPER_SNAKE_CASE` constants. Keep published
+- Use `snake_case` for owned Python modules, functions, methods, variables, and internal fields,
+  `CapWords` classes, and `UPPER_SNAKE_CASE` constants. Keep published
   imports, generated paths, framework hooks, and canonical external acronym casing.
 - Use Pokerlost consistently in prose and project-owned identifiers. Preserve the distribution
   name `pypokerlost`.
@@ -70,8 +72,9 @@ or pre-release layouts unless the user explicitly requires them.
 
 ## Verification
 
-- Use the root `Makefile` as the canonical command interface.
-- Run `make format`, then `make check` and `make pre-commit` before handoff.
+- The root `Makefile` checks maintainer sources and documentation; use `CREATE_SERVICE.md` and the
+  derivative composition command for the active source.
+- Do not run broad mutating format or legacy checks just to validate a small source change.
 - After Copier structure changes, render into a disposable destination and run the generated
   service's documented checks when its private SDK dependency is available.
 - When template-managed files change, verify a Copier update from a prior template revision and
@@ -79,8 +82,8 @@ or pre-release layouts unless the user explicitly requires them.
 - Run the manual compatibility verification in `SDK_COMPATIBILITY.md` after changes to API operations,
   request/response envelopes, header authorization, OpenAPI, Python, or the SDK boundary.
 - Report every unavailable tool, failed command, and external-service limitation.
-- Do not add or modify tests unless the user explicitly requests them. Do not add rendered-template
-  checkers, `scripts/check_*.py`, architecture checker scripts, or hidden equivalents.
+- Add focused technical and regression tests for changed template composition, lifecycle,
+  HTTP, configuration, packaging, and update behavior. Do not build a parallel checker framework.
 
 ## Git hygiene
 

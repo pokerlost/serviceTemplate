@@ -1,56 +1,36 @@
-# Pokerlost serviceTemplate
+# serviceTemplate
 
-`serviceTemplate` is the shared Copier template for Pokerlost backend services. It generates a
-business-free FastAPI foundation with PostgreSQL, SQLAlchemy, Alembic, Logfire, Docker, Helm, and
-the standard Python tooling used by the platform. Services with protected operations publish
-standard OAuth2 client-credentials scope metadata, accept bearer access tokens through the
-Authorization header, and install the verified `pypokerlost` SDK from a pinned private GitHub SSH
-source. Public-only services do not publish an unused scheme.
+A Pokerlost Copier specialization assembled from a pinned `fastApiTemplate` source, which itself is derived from the existing Python base. The active source is `composedTemplate/`; `foundationOverlay/` owns Pokerlost additions. The former flat template remains reproducible from the repository's historical Git ref `7ee1232`; it is no longer a second worktree source.
 
-Generated documentation separates SDK-owned transport/middleware from the service-owned local token
-verifier and business behavior. The pristine runtime provides canonical request/response envelopes,
-an empty exact-scope catalog, and a fail-closed verifier seam without a fake verifier, outbound
-client, credentials, token store, refresher, or retry configuration.
+## 🚀 Generate
 
-The template supports Copier 9.17.2, asks only for `service_name`, and requires Python 3.14 or newer
-for repository maintenance and generated services.
-Generating and locking a service requires GitHub SSH read access to `pokerlost/pypokerlost`; no
-repository credential is stored in the template.
-
-## Generate a service
+Use Copier 9.17.2 from the repository root. A dirty local source records a worktree render, not a published immutable release.
 
 ```bash
-uvx --from 'copier==9.17.2' copier copy <template-source> <destination> \
+destination="$(mktemp -d)"
+uv run --no-project --with 'copier==9.17.2' copier copy . "$destination" \
   -d service_name=exampleService
+cd "$destination"
+uv lock
+uv sync --locked
+uv run --locked uvicorn exampleservice.app:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Trusted execution is not required. After generation, follow the generated `README.md` and read its
-`AGENTS.md` and `SERVICE.md` before adding service behavior.
+The default has no DSN or outbound credential. It has only root, OpenAPI, liveness, and readiness infrastructure routes; no business operation or local token verifier is configured. Local installation of the pinned private `pypokerlost` runtime dependency needs Git SSH read access. New renders include focused technical tests, CI source checks, and a backend Dockerfile. Private SDK checks need the narrow GitHub App access and review gate described in [creation and update](CREATE_SERVICE.md).
 
-## Documentation
+## 🧭 Maintenance
 
-- [Documentation index](docs/index.md) is the repository documentation home.
-- `TEMPLATE.md` is the canonical contract for generated content and omissions.
-- `CREATE_SERVICE.md` contains the Copier copy, update, and verification
-  workflow.
-- `SDK_COMPATIBILITY.md` is the authoritative template-maintainer contract
-  and end-to-end SDK compatibility procedure.
-
-## Maintain the template
-
-The root Makefile is a thin interface for documentation and pre-commit checks:
+`composition.toml` declares the exact inherited files and the overlay ownership. `_sources/fastApiTemplate/sourceIdentity.json` and `composition.lock.json` record the actual parent content identity and generated-file ownership. Refreshing a parent is explicit:
 
 ```bash
-make help
-make check
-make check-full
+uv run --no-project --with 'copier==9.17.2' python _sources/fastApiTemplate/tools/compose_template.py --repo . --smoke
+uv run --no-project --with 'copier==9.17.2' python _sources/fastApiTemplate/tools/compose_template.py --repo . \
+  --refresh-base /path/to/fastApiTemplate --smoke
 ```
 
-The tooling-only `pyproject.toml` records the Python, Ruff, mypy, and pre-commit baseline. Root
-commands resolve those pinned tools with `uvx`; generated services instead use their locked
-project environment.
+Review the derivative diff before generating or updating downstream services. `SERVICE.md`, `PROJECT.md`, application code, scopes, and migrations remain service-owned. The [template contract](TEMPLATE.md), [SDK compatibility](SDK_COMPATIBILITY.md), [creation/update guide](CREATE_SERVICE.md), and [flat-layout migration guide](docs/migrationGuide.md) define the active behavior. No commit, release, or deployment follows from local generation.
 
-Render one disposable Copier service manually when template structure changes, inspect it, and
-remove it after verification. No rendered-template checker or permanent test is part of the
-template-maintenance gate unless a task explicitly requests one. Follow `CREATE_SERVICE.md` for
-dependency-backed generated-service and SDK verification.
+The shared Markdown checker and its tests are maintained in `serrja/pythonTemplate`.
+`documentation-tool.lock.json` pins the reviewed source and file hashes. Refresh these
+managed snapshots from that owner; the checker retains Python 3.12 syntax so all consumers
+use the same implementation. This tooling is separate from the generated Copier tree.

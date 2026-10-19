@@ -1,0 +1,9 @@
+{% extends "composedTemplate/_base/fastApiErrors.py.jinja" %}
+{% block extraImports %}from pypokerlost.types import PokerlostResponse
+{% endblock %}
+{% block responseContent %}    content = PokerlostResponse[None](
+        ok=False,
+        error=f"{{ service_env_prefix }}_{code}",
+        error_message=message,
+    ).model_dump(mode="json")
+{% endblock %}

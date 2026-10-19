@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      reviewed_sha:
+        description: Exact full reviewed SHA for the owner-reviewed private SDK build
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-{% raw %}${{ github.workflow }}{% endraw %}-{% raw %}${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/actionlint
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Restore public source-check tools without SDK credentials
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: .
+          file: Dockerfile.source
+          target: source
+          load: true
+          tags: {{ packageName }}:source
+          cache-from: type=gha,scope={% raw %}${{ github.repository_id }}{% endraw %}-public-source-python314-linux-amd64-{% raw %}${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}{% endraw %}
+          cache-to: type=gha,mode=max,scope={% raw %}${{ github.repository_id }}{% endraw %}-public-source-python314-linux-amd64-{% raw %}${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}{% endraw %}
+      - run: make source
+      - name: Report the separate private acceptance boundary
+        run: echo 'Source metadata/lint passed. B1 runtime, installed-wheel and Kind acceptance require the owner-dispatched privateBuild; this job does not verify B1.' >> "$GITHUB_STEP_SUMMARY"
+
+  required:
+    if: always()
+    needs: [source]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require actual source checks
+        env:
+          SOURCE: {% raw %}${{ needs.source.result }}{% endraw %}
+        run: test "$SOURCE" = success

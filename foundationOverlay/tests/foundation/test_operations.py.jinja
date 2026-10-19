@@ -1,0 +1,66 @@
+"""Check actual OpenAPI and one test-only example without adding product routes."""
+
+from __future__ import annotations
+
+import pytest
+from fastapi import APIRouter, FastAPI
+from fastapi.testclient import TestClient
+from pypokerlost.types import PokerlostOperation, PokerlostRequest, PokerlostResponse
+
+from {{ packageName }}.app import create_app
+
+
+@pytest.fixture
+def application(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
+{% if withPersistence %}    monkeypatch.setenv(
+        "DATABASE_URL", "postgresql+asyncpg://test:test@127.0.0.1:1/test"
+    )
+{% endif %}    return create_app()
+
+
+def test_pristine_openapi_keeps_infrastructure_exceptions(
+    application: FastAPI,
+) -> None:
+    with TestClient(application) as client:
+        document = client.get("/getOpenApi").json()
+    assert set(document["paths"]) == {"/", "/getOpenApi"}
+    assert document["paths"]["/"]["get"]["operationId"] == "getRoot"
+    assert document["paths"]["/getOpenApi"]["get"]["operationId"] == "getOpenApi"
+    identifiers = [
+        operation["operationId"]
+        for path in document["paths"].values()
+        for operation in path.values()
+    ]
+    assert len(identifiers) == len(set(identifiers))
+    assert all(PokerlostOperation(value) == value for value in identifiers)
+
+
+def test_example_uses_explicit_camel_case_and_native_router(
+    application: FastAPI,
+) -> None:
+    router = APIRouter(tags=["get"])
+
+    @router.post(
+        "/getOperation",
+        operation_id="getOperation",
+        response_model=PokerlostResponse[int],
+    )
+    async def get_operation(request: PokerlostRequest[int]) -> dict[str, object]:
+        return {"ok": True, "result": request.payload}
+
+    application.include_router(router)
+    with TestClient(application) as client:
+        document = client.get("/getOpenApi").json()
+        response = client.post("/getOperation", json={"payload": 7})
+    assert set(document["paths"]["/getOperation"]) == {"post"}
+    operation = document["paths"]["/getOperation"]["post"]
+    assert operation["operationId"] == "getOperation"
+    assert operation["tags"] == ["get"]
+    assert get_operation.__name__ == "get_operation"
+    assert response.status_code == 200 and response.json() == {
+        "ok": True,
+        "result": 7,
+        "error": None,
+        "error_message": None,
+        "retry_after": None,
+    }

@@ -8,3 +8,11 @@ __pycache__/
 .venv/
 build/
 dist/
+
+.aws
+.serena/
+.local/
+backups/
+coverage/
+.coverage
+.coverage.*

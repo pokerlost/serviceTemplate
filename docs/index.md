@@ -5,10 +5,12 @@ service template.
 
 ## Getting started
 
-- `CREATE_SERVICE.md` — create and update a service.
+- [Create and update a service](../CREATE_SERVICE.md).
+- [Migrate a flat-layout service](migrationGuide.md).
 
 ## API and SDK
 
+- [Operation naming](operationNaming.md) — external camelCase and Python PEP 8.
 - `SDK_COMPATIBILITY.md` — API, shared contracts, token ownership, and retry compatibility.
 
 ## Architecture
@@ -16,6 +18,8 @@ service template.
 - `TEMPLATE.md` — generated template contract.
 
 ## Development
+
+- [Technical verification](testing.md) — `docs/testing.md`.
 
 - `AGENTS.md` — repository rules.
 - `Makefile` — root command interface.
