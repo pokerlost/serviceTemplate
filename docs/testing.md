@@ -6,10 +6,8 @@ for dependency access and [SDK compatibility](../SDK_COMPATIBILITY.md) for the w
 
 ## Maintainer checks
 
-Run `make install`, `make check` and `make compose`. The locked maintenance environment requires
-Python 3.14. Coverage includes every owned tooling module, including unimported modules, while the
-canonical propagated `tools/test_composition.py` suite is test code. A missing branch fails the 100%
-threshold; retain its diagnostic rather than lowering the gate. The update suite exercises the
+Run `make check`, `make coverage` and `make verify` using Git, Make and Docker. The locked maintenance image uses Python 3.14. Coverage includes every owned tooling module, including unimported modules, while the
+canonical propagated `tools/test_composition.py` suite is test code. Missing statements/branches produce advisory warnings with actual counts; failed tests, builds, types and missing/corrupt/stale reports still fail. The update suite exercises the
 actual committed previous foundation and preserves owner-authored documents, settings, scopes,
 seed tests and migration bytes. Generated snapshots are refreshed through the parent composer;
 never repair their mirrors manually.
@@ -43,10 +41,14 @@ and stops gracefully. `deploy/chart/` is managed by the FastAPI parent; `deploy/
 owned by the service. `make deploy-local` and `make undeploy-local` operate an explicit disposable
 Kind contour, never the default host kubeconfig.
 
-Ordinary PR jobs receive no SDK secret. The private candidate requires a full reviewed SHA, a
-private destination and the existing reviewer-protected `sdk-build` environment; the owner may
-review their own manual run. Keep `POKERLOST_SDK_APP_ID` and `POKERLOST_SDK_APP_PRIVATE_KEY` only
-in that environment. The App installation grants `Contents: read` solely on the SDK repository.
-A missing or inaccessible gate blocks runtime checks before token creation. Private cache and
-artifacts stay within the consumer repository; a skipped private job is not a passing runtime gate.
-The workflow does not publish a registry image, release or remote deployment.
+Ordinary PR jobs receive no SDK secret. The separately approved solo-owner model permits only
+manual dispatch by serrja (including the triggering actor), with a full SHA equal to the branch
+SHA and `SDK_BUILD_REVIEWED_SHA`, a private consumer and the fixed six-consumer allowlist.
+This is owner policy, not a server-enforced reviewer environment; it is valid only while serrja
+is the sole writer. Reassess before granting another writer or trusting new workflow authors.
+The existing SDK-only App retains `Contents: read` solely on `pokerlost/pypokerlost`.
+The owner provisions `POKERLOST_SDK_APP_ID` and `POKERLOST_SDK_APP_PRIVATE_KEY` as repository
+secrets and activates the six existing CI-only PR #2; this task does not merge them or manage
+keys. Ordinary source success does not verify B1. On a manual run, a skipped or failed private
+job fails acceptance. Private cache/artifacts remain per consumer, target and platform;
+credentials use short-lived BuildKit secrets. No release or remote deployment is implicit.

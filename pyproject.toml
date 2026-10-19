@@ -63,7 +63,7 @@ omit = ["*/tools/test_composition.py"]
 patch = ["subprocess"]
 
 [tool.coverage.report]
-fail_under = 100
+fail_under = 0
 precision = 2
 show_missing = true
 

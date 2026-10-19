@@ -4,6 +4,11 @@ snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
 output = "composedTemplate"
 include = [
+  "docker/quality-python.mk",
+  "Dockerfile.quality.dockerignore",
+  ".github/workflows/contribution.yml",
+  "docker/coverage_report.py",
+  "docker/quality.mk",
   ".copier-answers.yml.jinja",
   ".editorconfig",
   "Makefile.jinja",

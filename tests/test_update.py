@@ -200,3 +200,7 @@ def test_private_gate_uses_confirmed_canonical_repository() -> None:
     assert "github.event_name == 'workflow_dispatch'" in source
     assert "repositories: pypokerlost" in source
     assert "permission-contents: read" in source
+    assert "github.actor == 'serrja'" in source
+    assert "github.triggering_actor == 'serrja'" in source
+    assert "inputs.reviewed_sha == vars.SDK_BUILD_REVIEWED_SHA" in source
+    assert "environment: sdk-build" not in source

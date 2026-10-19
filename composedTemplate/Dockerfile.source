@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1.27.1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
+FROM ghcr.io/astral-sh/uv:0.12.15@sha256:62f8c047d0a0e9ece6b53fc63df902585a67a47a7f318ddec4a37db586edc8e3 AS uv
+FROM python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56 AS source
+COPY --from=uv /uv /usr/local/bin/uv
+RUN uv venv /opt/source && uv pip install --python /opt/source/bin/python 'ruff==0.16.4'
+ENV PATH=/opt/source/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX=/tmp/pycache
+WORKDIR /app
+ARG REQUIRE_LOCK=true
+ENV REQUIRE_LOCK=$REQUIRE_LOCK
+COPY --chmod=u=rwX,go=rX . ./
+CMD ["sh", "-ec", "python -c 'import os,tomllib; from pathlib import Path; required=os.environ[\"REQUIRE_LOCK\"]==\"true\"; assert not required or Path(\"uv.lock\").is_file(), \"Required frozen lock is missing\"; names=[\"pyproject.toml\"]+([\"uv.lock\"] if Path(\"uv.lock\").is_file() else []); [tomllib.loads(Path(p).read_text()) for p in names]'; ruff check --no-cache src tests; ruff format --check --no-cache src tests; python -m compileall -q src"]

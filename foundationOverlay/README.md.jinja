@@ -16,9 +16,9 @@ uv run --locked uvicorn {{ packageName }}.app:create_app --factory --host 127.0.
 
 ## 📦 Container and deployment candidate
 
-{% if withDocker %}`make build image test-image` uses the inherited multi-stage build and fresh
+{% if withDocker %}`make check build image verify` uses the inherited multi-stage build and fresh
 installed-wheel tests. Private SDK installation requires a short-lived SDK-only read token through
-`DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'` in a reviewed environment. Neither a
+`DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'` after owner/full-SHA admission. Neither a
 credential nor a development tool is copied into the runtime. The final process runs as UID 65532
 and supports a read-only filesystem and graceful SIGTERM.
 {% endif %}{% if withKubernetes %}`make chart` packages the managed chart, `make chart-check` validates it,
@@ -27,7 +27,5 @@ and `make deploy-local` / `make undeploy-local` operate this application's dispo
 External deployment requires a tested image manifest digest and an approved target.
 {% endif %}
 
-Ordinary PR CI has no SDK secret. Private runtime checks require an exact reviewed SHA and the
-reviewer-protected `sdk-build` environment, with App secrets held only there. A skipped private job
-leaves the required runtime gate failing. Workflow artifacts and BuildKit caches stay within the
+Ordinary PR CI has no SDK secret and does not verify B1. Private checks use owner-only manual dispatch (actor and triggering actor serrja), full SHA equal to the branch SHA and `SDK_BUILD_REVIEWED_SHA`, and the existing SDK-only App. The owner must provision repository secrets and activate the CI-only workflow registration. This is an accepted solo-writer policy, not a reviewer-protected environment. A skipped private job fails manual acceptance. Coverage percentages are advisory; test, build, type, configuration and report errors fail. Workflow artifacts and BuildKit caches stay within the
 private repository; no image, package or release is published by these commands.

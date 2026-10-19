@@ -3,7 +3,7 @@
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --chmod=0755 docker/sdk_askpass.sh /usr/local/bin/sdk_askpass
-RUN --mount=type=cache,id=uv-runtime,target=/root/.cache/uv,sharing=locked \
+RUN --mount=type=cache,id={{ packageName }}-runtime-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
     --mount=type=secret,id=sdk_token,required=true \
     GIT_CONFIG_COUNT=1 \
     GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \
@@ -12,7 +12,7 @@ RUN --mount=type=cache,id=uv-runtime,target=/root/.cache/uv,sharing=locked \
     UV_NO_GITHUB_FAST_PATH=1 \
     uv sync --locked --no-dev --no-install-project
 {% endblock %}
-{% block testDependencies %}RUN --mount=type=cache,id=uv-development,target=/root/.cache/uv,sharing=locked \
+{% block testDependencies %}RUN --mount=type=cache,id={{ packageName }}-development-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
     --mount=type=secret,id=sdk_token,required=true \
     GIT_CONFIG_COUNT=1 \
     GIT_CONFIG_KEY_0=url.https://github.com/pokerlost/pypokerlost.git.insteadOf \

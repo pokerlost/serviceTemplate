@@ -1,0 +1,5 @@
+{% include "composedTemplate/Dockerfile.jinja" %}
+{% if withTesting %}FROM test AS installed-test
+ENV COVERAGE_FILE=/app/coverage/installed/.coverage
+CMD ["python", "-m", "pytest", "--cov", "--cov-report=term-missing", "--cov-report=json:/app/coverage/installed/coverage.json", "--cov-report=xml:/app/coverage/installed/coverage.xml", "-p", "no:cacheprovider", "--basetemp=/tmp/tests"]
+{% endif %}

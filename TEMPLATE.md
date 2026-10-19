@@ -33,12 +33,11 @@ assertions. `tests/foundation/` is managed; project seed tests, `SERVICE.md`, `P
 scopes, migrations and `deploy/values.yaml` remain project-owned during updates. The generic chart
 is generated from the pinned FastAPI snapshot, never edited as an independent implementation.
 
-The private runtime workflow requires a full reviewed SHA, a private consumer repository and an
-existing `sdk-build` environment with a required reviewer; the owner can be that reviewer. Place
-SDK App secrets only in that environment. The SDK-only App has `Contents: read` solely for
-`pokerlost/pypokerlost`; the workflow handles the actual cross-owner accountsService explicitly.
-No secret is provided to ordinary PR jobs. The required runtime gate fails when private verification
-is skipped or blocked. The template cannot configure the environment or App by itself.
+The private runtime workflow uses the approved solo-owner/full-SHA policy described in
+[technical verification](docs/testing.md). Ordinary PR source checks have no SDK secret and do
+not claim B1 runtime acceptance. Manual dispatch requires the actual private build to pass.
+The owner activates the existing CI-only PR #2 and provisions the existing SDK-only App secrets;
+this task does not merge or expand its installation. Reassess the model if another writer is added.
 
 The approved candidate builds wheel/sdist and installed-wheel test/runtime targets using one
 BuildKit graph. Its cache is scoped to the private consumer repository, platform and target, with
@@ -50,6 +49,6 @@ digest. No registry, release or remote cluster publication is implicit.
 Service-specific published Make commands can remain in `Makefile.local`, included by the shared
 Python Makefile. Local host/port/reload choices use the inherited FastAPI command options; the
 runtime image does not inherit them. Full persistence testing starts a fresh integration coverage
-measurement, includes owner `tests/*_integration.py` cases, then appends isolated tests and applies
-the full gate. Test assets preserve tools/migrations while `src/` is excluded and installed origin
+measurement, includes owner `tests/*_integration.py` cases, then appends isolated tests and writes
+advisory reports; test/build/type/report errors still fail. Test assets preserve tools/migrations while `src/` is excluded and installed origin
 is asserted inside pytest. A source checkout cannot satisfy the installed-wheel assertion.
