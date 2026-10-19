@@ -1,0 +1,8 @@
+**
+!.github/
+!.github/admission/
+!.github/admission/pyproject.toml
+!.github/admission/uv.lock
+!.github/scripts/
+!.github/scripts/sdk_admission.py
+!.github/scripts/test_sdk_admission.py

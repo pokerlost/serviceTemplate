@@ -6,7 +6,8 @@ import copy
 import time
 import unittest
 
-from sdk_admission import CONSUMERS, validate
+from sdk_admission import CONSUMERS, app, validate
+from typer.testing import CliRunner
 
 
 class AdmissionTests(unittest.TestCase):
@@ -40,7 +41,11 @@ class AdmissionTests(unittest.TestCase):
                 "repo": {"full_name": "pokerlost/authService"},
             },
         }
-        self.writers = [{"login": "serrja", "role_name": "admin", "permissions": {"push": True}}]
+        self.source = {"sha": "b" * 40}
+        self.comparison = {"status": "diverged", "merge_base_commit": {"sha": "c" * 40}}
+        self.writers = [
+            {"login": "serrja", "role_name": "admin", "permissions": {"push": True}},
+        ]
 
     def owner_review(self, reviewed_at: int | None = None) -> str:
         """Bind a synthetic owner audit to the fixture repository and both commits."""
@@ -56,7 +61,15 @@ class AdmissionTests(unittest.TestCase):
 
     def admit(self) -> None:
         """Evaluate the current synthetic admission fixture."""
-        validate(self.env, self.repository, self.default, self.pull, self.writers)
+        validate(
+            self.env,
+            self.repository,
+            self.default,
+            self.source,
+            self.comparison,
+            [self.pull],
+            self.writers,
+        )
 
     def test_reviewed_source_is_distinct_from_default_workflow(self) -> None:
         """Allow a reviewed source that differs from the trusted workflow commit."""
@@ -85,7 +98,7 @@ class AdmissionTests(unittest.TestCase):
     def test_changed_source_head_is_rejected(self) -> None:
         """Do not transfer admission to an updated source PR."""
         self.pull["head"]["sha"] = "c" * 40
-        with self.assertRaisesRegex(ValueError, "Source PR HEAD changed"):
+        with self.assertRaisesRegex(ValueError, "neither integrated"):
             self.admit()
 
     def test_changed_default_head_is_rejected(self) -> None:
@@ -97,7 +110,7 @@ class AdmissionTests(unittest.TestCase):
     def test_fork_source_is_rejected(self) -> None:
         """Do not admit a foreign repository through a same-named source PR."""
         self.pull["head"]["repo"]["full_name"] = "fork/authService"
-        with self.assertRaisesRegex(ValueError, "Fork"):
+        with self.assertRaisesRegex(ValueError, "neither integrated"):
             self.admit()
 
     def test_public_repository_is_rejected(self) -> None:
@@ -127,11 +140,42 @@ class AdmissionTests(unittest.TestCase):
         )
         self.admit()
 
-    def test_closed_main_pr_is_rejected(self) -> None:
+    def test_closed_unintegrated_pr_is_rejected(self) -> None:
         """Keep this entry point bound to an open candidate PR."""
         self.pull["state"] = "closed"
-        with self.assertRaisesRegex(ValueError, "remain open"):
+        with self.assertRaisesRegex(ValueError, "neither integrated"):
             self.admit()
+
+    def test_post_merge_source_needs_no_open_pr(self) -> None:
+        """An exact integrated source remains admissible after its PR is merged."""
+        self.pull["state"] = "closed"
+        self.comparison = {
+            "status": "ahead",
+            "merge_base_commit": {"sha": self.env["REVIEWED_SHA"]},
+        }
+        self.admit()
+        self.comparison["merge_base_commit"]["sha"] = "d" * 40
+        with self.assertRaisesRegex(ValueError, "neither integrated"):
+            self.admit()
+
+    def test_source_repository_commit_is_exact(self) -> None:
+        """Reject a response belonging to a different source commit."""
+        self.source["sha"] = "d" * 40
+        with self.assertRaisesRegex(ValueError, "commit identity"):
+            self.admit()
+
+    def test_cli_help_and_invalid_arguments_need_no_credentials(self) -> None:
+        """Keep CLI help lazy and parser errors free of environment values."""
+        result = CliRunner().invoke(
+            app,
+            ["--help"],
+            env={"GH_TOKEN": "synthetic-do-not-print"},
+        )
+        self.assertEqual(result.exit_code, 0)
+        self.assertNotIn("synthetic-do-not-print", result.output)
+        result = CliRunner().invoke(app, ["--unknown"])
+        self.assertEqual(result.exit_code, 2)
+        self.assertTrue(result.stderr)
 
     def test_incomplete_collaborator_page_is_rejected(self) -> None:
         """Avoid assuming that an incomplete page proves sole ownership."""
@@ -188,12 +232,16 @@ class AdmissionTests(unittest.TestCase):
         """Reject expired or future-dated owner attestations."""
         for offset in [-3601, 120]:
             with self.subTest(offset=offset):
-                self.env["OWNER_WRITER_REVIEW"] = self.owner_review(self.reviewed_at + offset)
+                self.env["OWNER_WRITER_REVIEW"] = self.owner_review(
+                    self.reviewed_at + offset,
+                )
                 with self.assertRaisesRegex(ValueError, "Owner writer review"):
                     self.admit()
 
     def test_empty_visible_list_is_never_owner_review(self) -> None:
         """Accept a partial API only with a separate fresh full owner audit."""
+        self.source = {"sha": "b" * 40}
+        self.comparison = {"status": "diverged", "merge_base_commit": {"sha": "c" * 40}}
         self.writers = []
         self.admit()
         self.env["OWNER_WRITER_REVIEW"] = ""
