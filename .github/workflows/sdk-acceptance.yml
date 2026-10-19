@@ -46,7 +46,17 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY" --silent
           gh api "repos/$GITHUB_REPOSITORY/commits/main" --silent
           gh api "repos/$GITHUB_REPOSITORY/pulls/1" --silent
-          gh api "repos/$GITHUB_REPOSITORY/collaborators?per_page=100" --silent
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import sys
+          sys.path.insert(0, ".github/scripts")
+          from sdk_admission import api, validate_writers
+          writers = api("repos/" + os.environ["GITHUB_REPOSITORY"] + "/collaborators?per_page=100")
+          print(json.dumps([{"login": user["login"], "role_name": user.get("role_name"),
+                             "base_push": user["permissions"]["push"]} for user in writers]))
+          validate_writers(writers)
+          PYTHON
       - name: Credential-free admission regression tests
         run: |
           docker run --init --rm --read-only --network none --tmpfs /tmp:rw,mode=1777 \

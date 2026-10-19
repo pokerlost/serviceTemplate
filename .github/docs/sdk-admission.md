@@ -15,6 +15,10 @@ repository must be one of the six private consumers, current PR #1 must have tha
 same-repository head, and the current default commit must match the workflow pin.
 The acceptance job needs `GITHUB_TOKEN` pull-request read access to verify PR #1 in a
 private consumer; this does not grant the SDK App access to any consumer repository.
+GitHub collaborator `permissions` describe the base role; `role_name` is the highest
+effective role including organization/team grants. Admission counts `admin`, `maintain`
+and `write` as writers and rejects unknown/custom or inconsistent roles until reviewed.
+The credential-free live API check uses the same writer validator.
 Every current writer must still be `serrja`. A changed source/default head fails admission
 and requires a new review; changed refs never inherit the earlier authorization.
 

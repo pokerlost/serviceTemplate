@@ -57,8 +57,22 @@ def validate(
     require(pull.get("state") == "open", "Main source PR must remain open")
     require(pull["head"]["repo"]["full_name"] == name, "Fork source is not admitted")
     require(pull["head"]["sha"] == source, "Source PR HEAD changed; review it again")
+    validate_writers(writers)
+
+
+def validate_writers(writers: list[dict[str, Any]]) -> None:
+    """Require one writer using effective roles, including organization grants."""
     require(len(writers) < 100, "Collaborator pagination requires an explicit new review")
-    write_logins = {user["login"] for user in writers if user["permissions"]["push"]}
+    write_roles = {"admin", "maintain", "write"}
+    known_roles = write_roles | {"read", "triage", "triage_plus"}
+    for user in writers:
+        role = user.get("role_name")
+        require(role in known_roles, "Unknown collaborator role requires review")
+        require(
+            not user["permissions"]["push"] or role in write_roles,
+            "Inconsistent collaborator role requires review",
+        )
+    write_logins = {user["login"] for user in writers if user["role_name"] in write_roles}
     require(write_logins == {"serrja"}, "Sole-writer assumption changed")
 
 

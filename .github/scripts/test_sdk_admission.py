@@ -37,7 +37,7 @@ class AdmissionTests(unittest.TestCase):
                 "repo": {"full_name": "pokerlost/authService"},
             },
         }
-        self.writers = [{"login": "serrja", "permissions": {"push": True}}]
+        self.writers = [{"login": "serrja", "role_name": "admin", "permissions": {"push": True}}]
 
     def admit(self) -> None:
         """Evaluate the current synthetic admission fixture."""
@@ -98,13 +98,17 @@ class AdmissionTests(unittest.TestCase):
 
     def test_second_writer_is_rejected(self) -> None:
         """Fail closed when the sole-writer assumption changes."""
-        self.writers.append({"login": "another", "permissions": {"push": True}})
+        self.writers.append(
+            {"login": "another", "role_name": "write", "permissions": {"push": True}}
+        )
         with self.assertRaisesRegex(ValueError, "Sole-writer"):
             self.admit()
 
     def test_read_only_collaborator_does_not_gain_admission(self) -> None:
         """Permit readers without treating them as workflow writers."""
-        self.writers.append({"login": "reader", "permissions": {"push": False}})
+        self.writers.append(
+            {"login": "reader", "role_name": "read", "permissions": {"push": False}}
+        )
         self.admit()
 
     def test_closed_main_pr_is_rejected(self) -> None:
@@ -117,6 +121,35 @@ class AdmissionTests(unittest.TestCase):
         """Avoid assuming that an incomplete page proves sole ownership."""
         self.writers *= 100
         with self.assertRaisesRegex(ValueError, "pagination"):
+            self.admit()
+
+    def test_organization_admin_keeps_effective_write_with_read_base(self) -> None:
+        """Recognize organization access rather than only base permissions."""
+        self.writers[0]["permissions"]["push"] = False
+        self.admit()
+
+    def test_second_inherited_writer_is_rejected_even_with_read_base(self) -> None:
+        """Never miss an additional effective writer whose base grant is read."""
+        self.writers.append(
+            {"login": "another", "role_name": "write", "permissions": {"push": False}}
+        )
+        with self.assertRaisesRegex(ValueError, "Sole-writer"):
+            self.admit()
+
+    def test_unknown_custom_role_requires_review(self) -> None:
+        """Do not assume unfamiliar custom roles are readers."""
+        self.writers.append(
+            {"login": "another", "role_name": "custom", "permissions": {"push": False}}
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown collaborator role"):
+            self.admit()
+
+    def test_contradictory_role_permissions_fail_closed(self) -> None:
+        """Reject inconsistent API metadata rather than ignoring a possible writer."""
+        self.writers.append(
+            {"login": "another", "role_name": "read", "permissions": {"push": True}}
+        )
+        with self.assertRaisesRegex(ValueError, "Inconsistent collaborator role"):
             self.admit()
 
 
