@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import time
 import unittest
 
 from sdk_admission import CONSUMERS, validate
@@ -24,6 +25,8 @@ class AdmissionTests(unittest.TestCase):
             "ADMITTED_WORKFLOW_SHA": "a" * 40,
             "ADMITTED_SHA": "b" * 40,
         }
+        self.reviewed_at = int(time.time())
+        self.env["OWNER_WRITER_REVIEW"] = self.owner_review()
         self.repository = {
             "full_name": "pokerlost/authService",
             "private": True,
@@ -38,6 +41,18 @@ class AdmissionTests(unittest.TestCase):
             },
         }
         self.writers = [{"login": "serrja", "role_name": "admin", "permissions": {"push": True}}]
+
+    def owner_review(self, reviewed_at: int | None = None) -> str:
+        """Bind a synthetic owner audit to the fixture repository and both commits."""
+        return "|".join(
+            [
+                self.env["GITHUB_REPOSITORY"],
+                "serrja",
+                self.env["REVIEWED_SHA"],
+                self.env["GITHUB_SHA"],
+                str(self.reviewed_at if reviewed_at is None else reviewed_at),
+            ]
+        )
 
     def admit(self) -> None:
         """Evaluate the current synthetic admission fixture."""
@@ -62,6 +77,7 @@ class AdmissionTests(unittest.TestCase):
         for name in CONSUMERS:
             with self.subTest(name=name):
                 self.env["GITHUB_REPOSITORY"] = name
+                self.env["OWNER_WRITER_REVIEW"] = self.owner_review()
                 self.repository["full_name"] = name
                 self.pull["head"]["repo"]["full_name"] = name
                 self.admit()
@@ -150,6 +166,38 @@ class AdmissionTests(unittest.TestCase):
             {"login": "another", "role_name": "read", "permissions": {"push": True}}
         )
         with self.assertRaisesRegex(ValueError, "Inconsistent collaborator role"):
+            self.admit()
+
+    def test_missing_owner_writer_review_fails_closed(self) -> None:
+        """Owner dispatch and source pins alone cannot replace the writer audit."""
+        del self.env["OWNER_WRITER_REVIEW"]
+        with self.assertRaisesRegex(ValueError, "Owner writer review"):
+            self.admit()
+
+    def test_owner_review_binds_every_identity_and_both_commits(self) -> None:
+        """Do not reuse a writer audit across repositories, owners or commit pairs."""
+        for position in range(5):
+            with self.subTest(position=position):
+                fields = self.owner_review().split("|")
+                fields[position] = "invalid"
+                self.env["OWNER_WRITER_REVIEW"] = "|".join(fields)
+                with self.assertRaisesRegex(ValueError, "Owner writer review"):
+                    self.admit()
+
+    def test_owner_review_must_be_fresh(self) -> None:
+        """Reject expired or future-dated owner attestations."""
+        for offset in [-3601, 120]:
+            with self.subTest(offset=offset):
+                self.env["OWNER_WRITER_REVIEW"] = self.owner_review(self.reviewed_at + offset)
+                with self.assertRaisesRegex(ValueError, "Owner writer review"):
+                    self.admit()
+
+    def test_empty_visible_list_is_never_owner_review(self) -> None:
+        """Accept a partial API only with a separate fresh full owner audit."""
+        self.writers = []
+        self.admit()
+        self.env["OWNER_WRITER_REVIEW"] = ""
+        with self.assertRaisesRegex(ValueError, "Owner writer review"):
             self.admit()
 
 
