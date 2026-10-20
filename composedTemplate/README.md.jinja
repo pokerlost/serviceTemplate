@@ -16,6 +16,12 @@ make run
 
 ## 📦 Container and deployment candidate
 
+`make ci-local` runs applicable checks once; `make version` and
+`make release-check` read and validate artifact versions. Wheel, sdist and chart
+share `dist/<source-content-sha256>/`, preserving previous rollback artifacts.
+After a successful online run, `make ci-local OFFLINE=1` validates prepared
+SDK/build/database inputs and runs fresh acceptance without fetching dependencies.
+
 {% if withDocker %}`make check build image verify` uses the inherited multi-stage build and fresh
 installed-wheel tests. Private SDK installation requires a short-lived SDK-only read token through
 `DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'` after owner/full-SHA admission. Neither a
