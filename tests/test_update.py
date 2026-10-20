@@ -225,6 +225,7 @@ def test_quality_delivery_uses_the_sdk_recipe_for_each_runtime_choice(
     settings = _run(
         "make",
         "--silent",
+        "CONTAINERIZED=0",
         "--eval=print-quality:;@echo $(QUALITY_DOCKERFILE) $(BUILD_DOCKERFILE)",
         "print-quality",
         cwd=output,
