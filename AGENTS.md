@@ -1,94 +1,11 @@
 # serviceTemplate
 
-This repository owns the shared Copier foundation for Pokerlost backend services.
+Read selected [baseRules](https://raw.githubusercontent.com/serrja/baseRules/730418d3cc480b4f05b88b4c8275296c4845a75a/docs/engineering.md),
+then [Pokerlost norms](https://raw.githubusercontent.com/pokerlost/projectRules/4785546cffa58f7ae1c22b6d6b8846a0141793eb/docs/project.md),
+then the full [local contracts](docs/agent-contracts.md), `TEMPLATE.md`, `copier.yml`
+and the SDK compatibility contract before editing. This override covers template
+composition, service protocol and SDK-only admission; applications keep their own
+contracts/settings/scopes/migrations. Edit the owned overlay, then compose/update.
 
-## Before every task
-
-1. Read this file, `TEMPLATE.md`, and `copier.yml`.
-2. Read `SDK_COMPATIBILITY.md` before changing the operation contract,
-   `PokerlostResponse`, header authorization, OpenAPI publication, Python support, or SDK integration.
-3. Inspect `composition.toml`, `foundationOverlay/`, `composedTemplate/`, documentation, Makefile,
-   pre-commit configuration, and relevant
-   generated source before editing.
-4. Inspect the authoritative `pypokerlost` implementation whenever a shared SDK contract changes.
-5. Preserve existing user changes and keep every change focused on the requested responsibility.
-
-## Sources of truth
-
-Use this priority order:
-
-```text
-latest direct user requirement
--> current pypokerlost implementation for SDK contracts
--> TEMPLATE.md and SDK_COMPATIBILITY.md
--> copier.yml and the current template tree
--> older repository history
-```
-
-The current checkout wins over stale prose. Do not add compatibility aliases for obsolete private
-or pre-release layouts unless the user explicitly requires them.
-
-## Repository boundary
-
-- Keep this repository a Copier template, not a deployable business service or shared runtime
-  package.
-- Keep optional PostgreSQL/SQLAlchemy/Alembic wiring in the inherited generic foundation. New
-  default renders have no mandatory database, remote telemetry, Helm, or Docker setting.
-- Keep generated services free of business/domain implementation, concrete persistence entities,
-  credentials, authentication policy, and authorization policy.
-- Keep `service_name` as the only user-supplied service identity unless generation genuinely needs
-  another answer.
-- Preserve generated `SERVICE.md` during Copier updates; it belongs to the generated service.
-- Do not introduce sibling-path SDK dependencies, floating Git branches, embedded credentials, or
-  alternative inter-service HTTP transports.
-
-## Python, typing, and naming
-
-- Target Python 3.14 for template-maintenance scripts and generated services.
-- Begin project-owned Python modules with a focused module docstring followed immediately by
-  `from __future__ import annotations`.
-- Use an 88-character Python line length, strict mypy, built-in generics, `collections.abc`,
-  `Self`, modern unions, explicit return types, and PEP 695 syntax where it expresses the contract.
-- Use `snake_case` for owned Python modules, functions, methods, variables, and internal fields,
-  `CapWords` classes, and `UPPER_SNAKE_CASE` constants. Keep published
-  imports, generated paths, framework hooks, and canonical external acronym casing.
-- Use Pokerlost consistently in prose and project-owned identifiers. Preserve the distribution
-  name `pypokerlost`.
-- Describe single lowerCamelCase operation names as API operations, method calls, or inter-service
-  calls. Keep dotted lowerCamelCase scope names separate from operation IDs.
-
-## Documentation
-
-- Keep `README.md` concise and `docs/index.md` as the navigation hub.
-- Write repository documentation in English with exactly one H1, a short opening paragraph,
-  repository-root file references in backticks, and language-tagged code fences.
-- Use relative inter-file Markdown links and verify their targets and anchors. HTTP(S), `mailto:`,
-  and same-document anchors are also allowed. Use restrained emoji in navigation headings.
-- Use `bash`, `python`, `toml`, `yaml`, `json`, `text`, `cpp`, or `cmake` fences as appropriate.
-- Do not record prompts, chat notes, temporary plans, absolute local checkout paths, stale commands,
-  invented verification, or unsupported guarantees.
-- Update template-maintainer documentation and generated-service documentation together whenever a
-  shared contract changes.
-
-## Verification
-
-- The root `Makefile` checks maintainer sources and documentation; use `CREATE_SERVICE.md` and the
-  derivative composition command for the active source.
-- Do not run broad mutating format or legacy checks just to validate a small source change.
-- After Copier structure changes, render into a disposable destination and run the generated
-  service's documented checks when its private SDK dependency is available.
-- When template-managed files change, verify a Copier update from a prior template revision and
-  confirm service-owned `SERVICE.md` remains unchanged.
-- Run the manual compatibility verification in `SDK_COMPATIBILITY.md` after changes to API operations,
-  request/response envelopes, header authorization, OpenAPI, Python, or the SDK boundary.
-- Report every unavailable tool, failed command, and external-service limitation.
-- Add focused technical and regression tests for changed template composition, lifecycle,
-  HTTP, configuration, packaging, and update behavior. Do not build a parallel checker framework.
-
-## Git hygiene
-
-- Inspect status, tracked and staged diffs, branch, remotes, and recent history before editing.
-- Do not commit IDE metadata, caches, virtual environments, build output, credentials, `.env`, or
-  disposable verification artifacts.
-- Review `git diff --check` and the complete final diff before committing.
-- Never use destructive Git commands or force push. Push only when the user explicitly requests it.
+Pins are reading sources, not automatic loaders or grants. Review the source diff,
+change full-SHA links explicitly and run docs checks when refreshing rules.

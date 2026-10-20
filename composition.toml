@@ -4,6 +4,13 @@ snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
 output = "composedTemplate"
 include = [
+  "deploy/chart/LICENSE",
+  "app_logging.json.jinja",
+  "_meta/license-questions.yml",
+  "LICENSE.jinja",
+  "LICENSES/pythonTemplate-MIT.txt",
+  "THIRD_PARTY_NOTICES.md.jinja",
+
   "docker/quality-python.mk",
   "Dockerfile.quality.dockerignore",
   ".github/workflows/contribution.yml",

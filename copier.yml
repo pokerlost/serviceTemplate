@@ -123,3 +123,6 @@ withDocker:
   type: bool
   default: true
   when: false
+
+---
+!include composedTemplate/_meta/license-questions.yml

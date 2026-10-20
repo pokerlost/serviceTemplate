@@ -9,7 +9,7 @@ Python 3.14+ and access to the pinned private `pypokerlost` source are required 
 ```bash
 uv lock
 uv sync --locked
-uv run --locked uvicorn {{ packageName }}.app:create_app --factory --host 127.0.0.1 --port 8000
+make run
 ```
 
 `GET /` uses `PokerlostResponse[None]`; `GET /getOpenApi` returns the unmodified OpenAPI document. `/health/live` and `/health/ready` are infrastructure probes. Read `SERVICE.md` for this service's data boundary, [architecture](docs/architecture.md) for the foundation lifecycle, and `AGENTS.md` for local work rules. {% if withTesting %}Run `make test-unit` for isolated coverage and `make test` for all enabled capabilities. A DB render requires a disposable `TEST_DATABASE_URL`.{% endif %} {% if withCi %}CI checks source without a secret on PRs; a private SDK build requires a reviewed SHA and an approved, narrowly scoped App installation.{% endif %}
@@ -29,3 +29,10 @@ External deployment requires a tested image manifest digest and an approved targ
 
 Ordinary PR CI has no SDK secret and does not verify B1. Private checks use owner-only manual dispatch (actor and triggering actor serrja), full SHA equal to the branch SHA and `SDK_BUILD_REVIEWED_SHA`, and the existing SDK-only App. The owner must provision repository secrets and activate the CI-only workflow registration. This is an accepted solo-writer policy, not a reviewer-protected environment. A skipped private job fails manual acceptance. Coverage percentages are advisory; test, build, type, configuration and report errors fail. Workflow artifacts and BuildKit caches stay within the
 private repository; no image, package or release is published by these commands.
+
+## 📄 License policy
+
+Copier records `licensePolicy` and, for MIT, the project owner's holder/year.
+The default `unlicensed` choice grants no project redistribution license.
+Scaffold attribution and dependency terms in `THIRD_PARTY_NOTICES.md` remain separate.
+Existing owner license files survive updates.
