@@ -1,7 +1,7 @@
 {
   "answersSchema": 1,
-  "configurationSha256": "9549abaa0a1ed000766d9bb1359061a060c948a4dba20e89bcbf53d70d2d79f7",
-  "copierConfigurationSha256": "8c5ad3ae7b80bdd62712321428e84c778021eec6d395f5967cd273579289cf7d",
+  "configurationSha256": "a7485b5dad47a92ed5745e9478b07aa9609c2f99537f65dfab527d22959ec9cc",
+  "copierConfigurationSha256": "e8325f3ffddfdba300b1041448642b75f75de61480761384e7405a7989543d88",
   "files": {
     ".copier-answers.yml.jinja": "4714ab805f141292e2d772077378c94470e1283f6a2b60e5791cd03122513726",
     ".dockerignore": "309a17f3eda92ed180adf6c38cec74d8bba334cf025074bd4c808820d4b30460",
@@ -26,13 +26,13 @@
     ".github/workflows/sdk-acceptance.yml": "7d965952a3f6946fce0ce0d47212f55d5afbe9089b61f193ea99af003da72abe",
     ".gitignore": "732f5ce68b4b13ef900931ca4a47ef00acffa7cdb7b699feb0e8a8d7ac719d82",
     ".pre-commit-config.yaml": "ce876c91a3925b76317a9875c15d344f78e3be9936662ac8b0c64f224f6f98da",
-    ".template-source.json": "7a2f66a24372082f41a832673d10a38e3d43daec346bc8011bed628772ee3691",
+    ".template-source.json": "82f678e1b280bf181f1d51f1012cefd239236bc4d7285be91531d7c40fdd9912",
     ".template-version.json.jinja": "eeac24ff61edf9593c2c10bbeff01e725d1c3d26fb4d5f3a5c1a16cf2a794967",
     "AGENTS.md.jinja": "1b4833b150229ed9fdd7eb0e548c8f1691a6b93e335de2370921f6e8be28479b",
     "CONTRIBUTING.md.jinja": "39f64fcbbfb3a32064069bbaefdb7b50e88f3dd59345fe5d24dbe0e5674baa11",
     "Dockerfile.jinja": "9ac257b056964978184d2da6d80709e334c806e87725a56ff7a72c53b77cc2be",
     "Dockerfile.quality.dockerignore": "b33c067b012b6ac670c6876493bb0ab63f68e4fb7c0722c35197e0e9161897d5",
-    "Dockerfile.quality.jinja": "f8d3408041d390da24a763fdb3be73ddee132179029854d52203367c2085ab96",
+    "Dockerfile.quality.jinja": "bbc2c5150f28abc5b01eeaea2bce4f74b963cd58e4b08e56144a60c41d8940fa",
     "Dockerfile.source": "1094649459968dabc08ac81e13b14ef72d90e2546d0d1f63fe3d20abff7c5903",
     "Dockerfile.source.dockerignore": "4b5262ccb7c9b2c87a98661016f5a10324d5ea820a3ba2a6d58d80e2bcf174d2",
     "LICENSE.jinja": "6cf866f34ac5be3c44e2749f192b6c067e3b4fe791dafe781a44d564d7a96986",
@@ -46,7 +46,7 @@
     "_base/fastApiApp.py.jinja": "5108297aefcd05155612e25133ea47ba14c55568209810c2e86a7c54ae391370",
     "_base/fastApiDockerfile.jinja": "c37cfa0a760c5a0a6b1aa9b432f204c55fcf5a7f720441375d6bd527d6b66ec0",
     "_base/fastApiErrors.py.jinja": "62dc184262a036115d15654ef061fb18335a64e305ec657c9d2daa4664401d34",
-    "_base/fastApiMakefile.jinja": "2316e2a57fdb705da2e214cd5a416c0347c2b119dc937872467e3dbb6596752d",
+    "_base/fastApiMakefile.jinja": "a92a42b076046c1cde6dafcc46e7bbb950ae284272dc738d63684387db401d5b",
     "_base/fastApiPyproject.toml.jinja": "6dc752f87e6b01c18a1aeefa7a8d503930508181085635fd054c45f17b73df95",
     "_base/fastApiTestHttp.py.jinja": "bbc484b03a64e26bb4640231d7925a289d3c204e4d3b458cd9df6ca2c2f38848",
     "_base/pyproject.toml.jinja": "72c3364530e6c64e000356227e829507f4f38d8b2667a59c8b0b7f8de5207372",
@@ -110,7 +110,7 @@
     "tests/foundation/test_pokerlost_http.py.jinja": "565910a57e92eda0c3fb3a0b02fc715add05535f399f7aaf50f37bac66171a83",
     "tests/test_http.py.jinja": "92c585ef106e3d1aba177aa45b6145d90d37d48cd80c0f883726669a4604bef1"
   },
-  "overlayContentSha256": "c5be6a9f12831d53866eb51b6836c51e1976c36a06a9c0e87e21874cec4bd201",
+  "overlayContentSha256": "1fe2468fae49dddb9d4ba5e4c5c03d07697af7cf2a74f75896199934c22d71e3",
   "owners": {
     ".copier-answers.yml.jinja": "parent",
     ".dockerignore": "parent",
@@ -141,7 +141,7 @@
     "CONTRIBUTING.md.jinja": "parent",
     "Dockerfile.jinja": "overlay",
     "Dockerfile.quality.dockerignore": "parent",
-    "Dockerfile.quality.jinja": "overlay",
+    "Dockerfile.quality.jinja": "parent",
     "Dockerfile.source": "overlay",
     "Dockerfile.source.dockerignore": "overlay",
     "LICENSE.jinja": "parent",
@@ -219,8 +219,8 @@
     "tests/foundation/test_pokerlost_http.py.jinja": "overlay",
     "tests/test_http.py.jinja": "parent"
   },
-  "parentContentSha256": "1c4c4f223b639feeba31c80e5c334325632c3eedd289c35a84105eb017a700be",
+  "parentContentSha256": "6bf86ff34780f6f1e92b12b0593d04ec7805deea44613431bc153b5d16d7655e",
   "schema": 1,
-  "sourceContentSha256": "3fa0cb30b02891e3bad8ed7d6cefee19ab0241b55ceb83009df140787892a603",
+  "sourceContentSha256": "a73cc9e70554c19e663f2ff2bffbae711d1f21fe010af32ce0af6573e5cc16f2",
   "templateVersion": "0.3.0.dev1"
 }

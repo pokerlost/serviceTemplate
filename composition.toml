@@ -12,6 +12,7 @@ include = [
 
   "docker/quality-python.mk",
   "Dockerfile.quality.dockerignore",
+  "Dockerfile.quality.jinja",
   ".github/workflows/contribution.yml",
   "docker/coverage_report.py",
   "docker/chart_release.py",

@@ -31,7 +31,7 @@ _exclude:
   - "{% if not (withKubernetes | default(false)) %}deploy{% endif %}"
   - "{% if not withPersistence %}tests/foundation/database_integration.py{% endif %}"
   - "{% if not withPersistence %}deploy/local{% endif %}"
-  - "{% if not (withDocker and withPersistence and withTesting) %}compose.test.yaml{% endif %}"
+  - "{% if not (withPersistence and withTesting) %}compose.test.yaml{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows/**{% endif %}"
   - "{% if not withCi %}.github/admission/**{% endif %}"
@@ -91,6 +91,10 @@ pythonMinimum:
 ruffTarget:
   type: str
   default: py314
+  when: false
+applicationDockerfileTemplate:
+  type: str
+  default: "composedTemplate/Dockerfile.jinja"
   when: false
 baseMakefileTemplate:
   type: str
