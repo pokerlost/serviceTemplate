@@ -26,7 +26,7 @@
     ".github/workflows/sdk-acceptance.yml": "7d965952a3f6946fce0ce0d47212f55d5afbe9089b61f193ea99af003da72abe",
     ".gitignore": "732f5ce68b4b13ef900931ca4a47ef00acffa7cdb7b699feb0e8a8d7ac719d82",
     ".pre-commit-config.yaml": "ce876c91a3925b76317a9875c15d344f78e3be9936662ac8b0c64f224f6f98da",
-    ".template-source.json": "6de7f852cd4b97f03617b20bce16681a7c1847ccd29e466d9f4da13096824b47",
+    ".template-source.json": "7ebd2fc805e9b6e3032a53f3a255d1fb7e41c699301c6c6988360910f508909a",
     "AGENTS.md.jinja": "1b4833b150229ed9fdd7eb0e548c8f1691a6b93e335de2370921f6e8be28479b",
     "CONTRIBUTING.md.jinja": "39f64fcbbfb3a32064069bbaefdb7b50e88f3dd59345fe5d24dbe0e5674baa11",
     "Dockerfile.jinja": "45081211cbb37a7c5a4a34500e451ceb7f605440ce5ae9dcac7c8ec52e233660",
@@ -41,11 +41,11 @@
     "README.md.jinja": "0e6db86087f57fd0b398e4110f6d9efcabce0ab5acab14ea0803b894eb612363",
     "SERVICE.md.jinja": "b757a10e1c94ef59a3503ff978d97d249b7b983ab6583410f743b15712011ee7",
     "THIRD_PARTY_NOTICES.md.jinja": "6e4668a4d6342d6e07b5733c894dcd0ff4cde9b1f441e9a5bb5593adc0fac187",
-    "_base/Makefile.jinja": "0c0624b6badd2be0fde4299eb6975a67d9e344b63e17a0c0de4875ab75cbd3a6",
+    "_base/Makefile.jinja": "5ba6a3054ea475a517aa5f154b476bc76bee44325c40aa756e05e0429c642075",
     "_base/fastApiApp.py.jinja": "5108297aefcd05155612e25133ea47ba14c55568209810c2e86a7c54ae391370",
     "_base/fastApiDockerfile.jinja": "33b30fb2327068c9dac041e64787c50a79e720b3ec8c7ea33c6202f84f8adfc7",
     "_base/fastApiErrors.py.jinja": "62dc184262a036115d15654ef061fb18335a64e305ec657c9d2daa4664401d34",
-    "_base/fastApiMakefile.jinja": "ce754c942f4ff8f05f0078fecd3096c194813a1ee247c1e88100d84a32468565",
+    "_base/fastApiMakefile.jinja": "422caed2f60268e69b7c30553b9e0720e3037c1c3555f8495a344b643dc4d375",
     "_base/fastApiPyproject.toml.jinja": "5b2093a69c9354a276bb3bc3a1eb81c6597e3bc24c780bda810dffb8db3de24a",
     "_base/fastApiTestHttp.py.jinja": "bbc484b03a64e26bb4640231d7925a289d3c204e4d3b458cd9df6ca2c2f38848",
     "_base/pyproject.toml.jinja": "0c6b9bdc02b307fb0a5dc070491a25ca60869fe4083469fb271919e5a8784a3c",
@@ -203,8 +203,8 @@
     "tests/foundation/test_pokerlost_http.py.jinja": "overlay",
     "tests/test_http.py.jinja": "parent"
   },
-  "parentContentSha256": "157ed430063fe07d6584bd9d4b2411d5d8a6f1f0d3c3dd959b9eeda33eef7e1d",
+  "parentContentSha256": "22baea1c2470ce83e646cf4aa47d3e9c3ca855b77f921955699c41e5a4099d2a",
   "schema": 1,
-  "sourceContentSha256": "2ed06e534efb94bbbb37ba530303ef0c30a8a58d1d2f0288620bfc6507b2f535",
+  "sourceContentSha256": "e64f8f2317103c4df37965d66184232d14c6c56c15a5a2eb9ed1e669ca4184f5",
   "templateVersion": "0.3.0.dev0"
 }
