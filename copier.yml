@@ -15,6 +15,8 @@ _skip_if_exists:
   - "tests/database_integration.py"
   - "deploy/values.yaml"
 _exclude:
+  - "_meta"
+  - "_meta/**"
   - .vscode
   - .vscode/**
   - .serena
@@ -29,7 +31,7 @@ _exclude:
   - "{% if not (withKubernetes | default(false)) %}deploy{% endif %}"
   - "{% if not withPersistence %}tests/foundation/database_integration.py{% endif %}"
   - "{% if not withPersistence %}deploy/local{% endif %}"
-  - "{% if not (withDocker and withPersistence and withTesting) %}compose.test.yaml{% endif %}"
+  - "{% if not (withPersistence and withTesting) %}compose.test.yaml{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows{% endif %}"
   - "{% if not (withCi | default(false)) %}.github/workflows/**{% endif %}"
   - "{% if not withCi %}.github/admission/**{% endif %}"
@@ -54,6 +56,9 @@ service_name:
   validator: >-
     {%- if not service_name or not service_name.isascii() or not service_name[0].islower() or not service_name.isalnum() -%}
     Use ASCII lower camelCase, starting with a lowercase letter.
+    {%- else -%}
+    {%- set python_name = service_name | lower -%}
+    {%- include "composedTemplate/_meta/python-name-validator.jinja" -%}
     {%- endif -%}
 service_slug:
   type: str
@@ -86,6 +91,10 @@ pythonMinimum:
 ruffTarget:
   type: str
   default: py314
+  when: false
+applicationDockerfileTemplate:
+  type: str
+  default: "composedTemplate/Dockerfile.jinja"
   when: false
 baseMakefileTemplate:
   type: str

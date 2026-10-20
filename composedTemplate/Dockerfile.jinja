@@ -10,11 +10,11 @@ COPY --chmod=0755 docker/sdk_askpass.sh /usr/local/bin/sdk_askpass
 COPY --chmod=0755 docker/sdk_sync.sh /usr/local/bin/sdk_sync
 COPY --from=sdk-source / /opt/sdk-source/
 ARG SDK_SOURCE_MODE=remote
-RUN --mount=type=cache,id={{ packageName }}-runtime-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
+RUN --mount=type=cache,id={{ packageName }}-runtime-python314-${TARGETPLATFORM},target=/root/.cache/uv,sharing=locked \
     --mount=type=secret,id=sdk_token \
     sdk_sync --no-dev
 {% endblock %}
-{% block testDependencies %}RUN --mount=type=cache,id={{ packageName }}-development-python314-linux-amd64,target=/root/.cache/uv,sharing=locked \
+{% block testDependencies %}RUN --mount=type=cache,id={{ packageName }}-development-python314-${TARGETPLATFORM},target=/root/.cache/uv,sharing=locked \
     --mount=type=secret,id=sdk_token \
     sdk_sync --all-groups
 {% endblock %}

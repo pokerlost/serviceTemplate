@@ -557,13 +557,14 @@ wheels = [
 
 [[package]]
 name = "pokerlost-service-template-tooling"
-version = "0.3.0.dev0"
+version = "0.3.0.dev1"
 source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
     { name = "copier" },
     { name = "mypy" },
+    { name = "packaging" },
     { name = "pre-commit" },
     { name = "pydantic" },
     { name = "pytest" },
@@ -579,6 +580,7 @@ dev = [
 dev = [
     { name = "copier", specifier = "==9.17.2" },
     { name = "mypy", specifier = ">=2.3,<2.4" },
+    { name = "packaging", specifier = ">=25,<27" },
     { name = "pre-commit", specifier = "==4.6.2" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "pytest", specifier = ">=9,<10" },
