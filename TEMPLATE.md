@@ -2,7 +2,7 @@
 
 The active Copier source is `composedTemplate/`, assembled from content-addressed FastAPI source and `foundationOverlay/`. The prior flat source remains in historical Git ref `7ee1232`; it is absent from the active worktree and does not define new renders.
 
-The current derivative worktree declares template version `0.3.0.dev0` and answers schema 1 in `composition.toml`; its actual content identity is in `composition.lock.json`, including the root `copier.yml` digest. These local identifiers are not a published tag or release.
+The template version comes from `pyproject.toml`; `composition.toml` declares answers schema 1. `composition.lock.json` records the actual content identity, including the root `copier.yml` digest. Generated `.template-version.json` records the selected template version and full source commit through supported Copier metadata. The generated application owns its separate package version.
 
 ## 🧭 Generation and ownership
 

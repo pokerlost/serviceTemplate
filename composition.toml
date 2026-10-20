@@ -1,4 +1,3 @@
-templateVersion = "0.3.0.dev0"
 answersSchema = 1
 snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
@@ -15,7 +14,8 @@ include = [
   "Dockerfile.quality.dockerignore",
   ".github/workflows/contribution.yml",
   "docker/coverage_report.py",
-  "docker/quality.mk",
+  "docker/chart_release.py",
+  "docker/quality.mk", "docker/source_identity.sh", "_meta/python-name-validator.jinja", "docker/release.py", "docs/development.md.jinja", "docs/versioning.md.jinja", "docs/releases.md.jinja",
   ".copier-answers.yml.jinja",
   ".editorconfig",
   "Makefile.jinja",

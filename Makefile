@@ -2,14 +2,22 @@ ifneq ($(CONTAINERIZED),1)
 QUALITY_IMAGE := servicetemplate:quality
 RUNTIME_IMAGE := servicetemplate:candidate
 QUALITY_NETWORK := bridge
-QUALITY_EXTRA_TARGETS := docs-check format-check chart-check
+QUALITY_EXTRA_TARGETS := docs-check format-check
 IMAGE_COMMAND = printf "%s\n" "notApplicable: maintenance source; runtime images belong to rendered applications"
-VERIFY_COMMAND = $(MAKE) render RENDER_OUTPUT="$(CURDIR)/.local/verified-render" RENDER_ARGS="-d service_name=verifyService -d withTesting=false -d withCi=false"
-BUILD_COMMAND = printf "%s\n" "notApplicable: maintenance source; distributions are verified in disposable renders"
+VERIFY_COMMAND = $(QUALITY_RUN) python docker/release.py bundle-verify
+BUILD_COMMAND = $(QUALITY_RUN) python docker/release.py bundle-build
 SDK_RENDER ?= $(CURDIR)/.local/verified-render
 .PHONY: lock-render
 lock-render:
 	$(DOCKER) buildx build --file docker/Dockerfile.sdk-lock --secret id=sdk_token,env=SDK_APP_TOKEN --target lock-artifact --output "type=local,dest=$(SDK_RENDER)" $(DOCKER_BUILD_ARGS) "$(SDK_RENDER)"
+OFFLINE_PREFLIGHT_COMMAND = true
+CI_LOCAL_TARGETS := check coverage build verify chart release-check
+VERSION_COMMAND = $(QUALITY_RUN) python -m composedTemplate.docker.chart_release version --chart-dir composedTemplate/deploy/chart
+RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python -m composedTemplate.docker.chart_release release-check --chart-dir composedTemplate/deploy/chart
+.PHONY: chart
+chart: quality-image
+	$(QUALITY_RUN) helm package composedTemplate/deploy/chart --destination dist/charts
+	$(QUALITY_RUN) python -m composedTemplate.docker.chart_release capture --chart-dir composedTemplate/deploy/chart
 include docker/quality-python.mk
 else
 .DEFAULT_GOAL := help
@@ -65,7 +73,7 @@ docs-check: ## Validate Markdown structure, local links and anchors
 	$(PYTHON) tools/check_documentation.py --documents $(MARKDOWN_DOCUMENTS)
 
 test: ## Run real Copier updates and maintenance coverage.
-	$(UV) run --locked pytest --cov --cov-report=term-missing --cov-report=json --cov-report=xml
+	$(UV) run --locked pytest --junitxml=coverage/junit.xml --cov --cov-report=term-missing --cov-report=json --cov-report=xml
 
 compose: ## Verify the inherited source and render a disposable service.
 	$(UV) run --locked python tools/compose_template.py --repo . --smoke

@@ -4,6 +4,13 @@ The private SDK gate follows the confirmed canonical `pokerlost/accountsService`
 
 All notable template changes are documented here. Releases use PEP 440-compatible Git tags.
 
+## 0.3.0.dev1
+
+Compatible tooling prerelease: inherit source-bound local CI and version/artifact
+checks from the Python owner. Derive template stamps from root metadata and render
+Copier full-SHA provenance. The application version and answer schema are retained;
+no runtime behavior or historical migration changes are introduced.
+
 ## Unreleased
 
 - Move access-token authentication from the JSON body to the standard Authorization bearer header.
