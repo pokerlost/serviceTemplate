@@ -1,8 +1,5 @@
 name: CI
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
     inputs:
       reviewed_sha: {description: Exact full owner-reviewed template SHA, required: true, type: string}

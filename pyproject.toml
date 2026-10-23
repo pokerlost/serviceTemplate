@@ -1,6 +1,6 @@
 [project]
 name = "pokerlost-service-template-tooling"
-version = "0.3.0.dev1"
+version = "0.3.0.dev2"
 license = "MIT"
 license-files = ["LICENSE", "LICENSES/*", "THIRD_PARTY_NOTICES.md"]
 description = "Repository-local quality tooling for the Pokerlost service template."

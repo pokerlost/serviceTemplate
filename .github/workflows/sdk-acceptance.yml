@@ -1,25 +1,6 @@
 name: SDK technical acceptance
 run-name: SDK acceptance ${{ inputs.reviewed_sha || github.event.pull_request.head.sha || github.sha }}
 on:
-  pull_request:
-    paths:
-      - .github/workflows/sdk-acceptance.yml
-      - .github/admission/**
-      - .github/scripts/sdk_admit.sh
-      - .github/scripts/sdk_admission.py
-      - .github/scripts/test_sdk_admission.py
-      - .github/scripts/sdk_acceptance.sh
-      - .github/actions/actionlint/action.yml
-      - .github/actions/deployment-tools/action.yml
-      - .github/docs/sdk-admission.md
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/sdk-acceptance.yml
-      - .github/admission/**
-      - .github/scripts/**
-      - .github/actions/**
-      - .github/docs/sdk-admission.md
   workflow_dispatch:
     inputs:
       reviewed_sha:

@@ -1,5 +1,10 @@
 # Developing serviceTemplate
 
+Daily policy: use `dev`, run `make lint`, inspect the staged diff, then explicitly
+`git push origin dev`. `main` and `test` are preserved. Test, typecheck, build,
+coverage and full acceptance commands below are manual. New manual Actions in
+`dev` may require a later authorized default-branch activation.
+
 The native source workflow is `make install`, `make ci-local`. Its ordered targets
 run quality/source tests once, report coverage, build a deterministic source bundle,
 verify its bytes and validate release metadata. `coverage/ci-local.json` records

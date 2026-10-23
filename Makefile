@@ -1,3 +1,12 @@
+ifeq ($(CONTAINERIZED),1)
+RUFF ?= ruff
+else
+RUFF ?= uvx --from ruff==0.16.4 ruff
+endif
+# Quick dev commands never prepare a product/build image.
+ifneq ($(filter lint format format-check check,$(MAKECMDGOALS)),)
+override CONTAINERIZED := 1
+endif
 ifneq ($(CONTAINERIZED),1)
 QUALITY_IMAGE := servicetemplate:quality
 RUNTIME_IMAGE := servicetemplate:candidate
@@ -11,13 +20,15 @@ SDK_RENDER ?= $(CURDIR)/.local/verified-render
 lock-render:
 	$(DOCKER) buildx build --file docker/Dockerfile.sdk-lock --secret id=sdk_token,env=SDK_APP_TOKEN --target lock-artifact --output "type=local,dest=$(SDK_RENDER)" $(DOCKER_BUILD_ARGS) "$(SDK_RENDER)"
 OFFLINE_PREFLIGHT_COMMAND = true
-CI_LOCAL_TARGETS := check coverage build verify chart release-check
+CI_LOCAL_TARGETS := acceptance coverage build verify chart release-check
 VERSION_COMMAND = $(QUALITY_RUN) python -m composedTemplate.docker.chart_release version --chart-dir composedTemplate/deploy/chart
 RELEASE_CHECK_COMMAND = $(QUALITY_RUN) python -m composedTemplate.docker.chart_release release-check --chart-dir composedTemplate/deploy/chart
 .PHONY: chart
 chart: quality-image
 	$(QUALITY_RUN) helm package composedTemplate/deploy/chart --destination dist/charts
 	$(QUALITY_RUN) python -m composedTemplate.docker.chart_release capture --chart-dir composedTemplate/deploy/chart
+QUALITY_EXTRA_TARGETS += acceptance
+CI_LOCAL_TARGETS ?= acceptance coverage build verify release-check
 include docker/quality-python.mk
 else
 .DEFAULT_GOAL := help
@@ -49,16 +60,16 @@ install: ## Install the locked maintenance environment.
 
 format: ## Apply Ruff lint fixes and formatting
 	$(call require_tool,$(UV))
-	$(UV) run --locked ruff check --fix tools tests
-	$(UV) run --locked ruff format tools tests
+	$(RUFF) check --fix tools tests
+	$(RUFF) format tools tests
 
 format-check: ## Check Ruff formatting without changing files
 	$(call require_tool,$(UV))
-	$(UV) run --locked ruff format --check tools tests
+	$(RUFF) format --check tools tests
 
 lint: ## Run Ruff lint without changing files
 	$(call require_tool,$(UV))
-	$(UV) run --locked ruff check tools tests
+	$(RUFF) check tools tests
 
 typecheck: ## Run strict mypy for repository-maintenance scripts
 	$(call require_tool,$(UV))
@@ -78,9 +89,18 @@ test: ## Run real Copier updates and maintenance coverage.
 compose: ## Verify the inherited source and render a disposable service.
 	$(UV) run --locked python tools/compose_template.py --repo . --smoke
 
-check: format-check lint typecheck docs-check test ## Run regular non-mutating maintainer checks
+check: lint format-check ## Fast lint-only gate; no tests/build.
+
+acceptance: format-check lint typecheck docs-check test ## Run regular non-mutating maintainer checks
 	$(UV) lock --check
 
-check-full: check pre-commit ## Run regular checks and all pre-commit hooks
+check-full: acceptance pre-commit ## Run regular checks and all pre-commit hooks
 
 endif
+
+.PHONY: dev-policy-help
+help: dev-policy-help
+dev-policy-help:
+	@printf '%s\n' 'Daily: make lint; explicit git push origin dev.' \
+	  'Manual only: test, typecheck, coverage, build, acceptance, ci-local.' \
+	  'Native lint tools must be installed; lint never syncs/builds the application.'
