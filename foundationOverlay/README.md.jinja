@@ -17,7 +17,7 @@ make run
 ## 📦 Container and deployment candidate
 
 `make ci-local` runs applicable checks once; `make version` and
-`make release-check` read and validate artifact versions. Wheel, sdist and chart
+`make release-check` read and validate artifact versions. Wheel and sdist{% if withKubernetes %}, plus the chart,{% endif %}
 share `dist/<source-content-sha256>/`, preserving previous rollback artifacts.
 After a successful online run, `make ci-local OFFLINE=1` validates prepared
 SDK/build/database inputs and runs fresh acceptance without fetching dependencies.
