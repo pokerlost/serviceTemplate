@@ -47,7 +47,7 @@ commit/rollback and readiness, with no dependency substitution. `TestClient` is 
 manager so startup/shutdown run; the async PostgreSQL test keeps lifespan and HTTPX requests in one
 event loop. Only deliberate HTTP 500 assertions disable server exception propagation.
 
-The canonical container commands are `make build image test-image`. For the private dependency,
+The canonical container commands are `make build image test-image`. For the pinned SDK dependency,
 pass `DOCKER_BUILD_ARGS='--secret id=sdk_token,env=SDK_APP_TOKEN'` only in a reviewed environment
 with a short-lived SDK-only read token. The token is a BuildKit secret mount, never a build argument
 or copied file. In a `withKubernetes=true` render, `make chart` packages the inherited chart, and
