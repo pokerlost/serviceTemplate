@@ -1,16 +1,17 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [test, dev, main]
   pull_request:
+    branches: [test, dev, main]
   workflow_dispatch:
     inputs:
       reviewed_sha: {description: Exact full owner-reviewed template SHA, required: true, type: string}
 permissions:
   contents: read
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   maintain:
     runs-on: ubuntu-24.04

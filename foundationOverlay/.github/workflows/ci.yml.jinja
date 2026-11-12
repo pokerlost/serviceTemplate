@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [test, dev, main]
   pull_request:
+    branches: [test, dev, main]
   workflow_dispatch:
     inputs:
       reviewed_sha:
@@ -15,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-{% raw %}${{ github.workflow }}{% endraw %}-{% raw %}${{ github.ref }}{% endraw %}
-  cancel-in-progress: true
+  group: ci-{% raw %}${{ github.workflow }}{% endraw %}-{% raw %}${{ github.event_name == 'pull_request' && github.ref || github.run_id }}{% endraw %}
+  cancel-in-progress: {% raw %}${{ github.event_name == 'pull_request' }}{% endraw %}
 
 jobs:
   source:
@@ -26,6 +27,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+          ref: {% raw %}${{ github.event.pull_request.head.sha || github.sha }}{% endraw %}
       - uses: ./.github/actions/actionlint
       - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
       - name: Restore public source-check tools without SDK credentials
