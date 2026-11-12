@@ -300,6 +300,14 @@ def test_explicit_delivery_profiles(
     assert (output / "Dockerfile").exists() == runtime_docker
     assert (output / "alembic.ini").exists() == persistence
     assert (output / "compose.test.yaml").exists() == persistence
+    readme = (output / "README.md").read_text()
+    if persistence:
+        assert "`DATABASE_URL`" in readme
+        assert "`postgresql+asyncpg://`" in readme
+        assert "before startup" in readme
+        assert "No database URL" not in readme
+    else:
+        assert "No database URL" in readme
     unit = _run("make", "--dry-run", "CONTAINERIZED=1", "test-unit", cwd=output)
     assert "pytest" in unit
     assert "kind " not in unit and "kubectl " not in unit and "helm " not in unit
