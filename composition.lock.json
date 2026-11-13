@@ -16,17 +16,17 @@
     ".github/admission/pyproject.toml": "ad147eabd3df3897e6d4c1797d5e2b9aea6c12a942d0654c2ab9f9453ebc4904",
     ".github/admission/uv.lock": "152894da4f5993a016d9a5b462ab9907ff5519f821311efee7b659f4f29c6e38",
     ".github/docs/sdk-admission.md": "117d97452bfcf9c284ec3cbecc99d2786aa9ebea4bc9bd27649a7d1a8e1a7ac8",
-    ".github/scripts/sdk_acceptance.sh": "b56e73b00f2d5d54aa190f5c32b57846b9023f8ddf8a06d73afedb189fc7af17",
+    ".github/scripts/sdk_acceptance.sh": "4ad09c2b275885bac6bd171e5eef74ef181b5a0c72834d9d0d674a9d32f94ba0",
     ".github/scripts/sdk_admission.py": "78f71b75572575dca529238c69d9bf65370e66074a26df693333914ec9ce027f",
     ".github/scripts/sdk_admit.sh": "491c93e141e7d3902101f3b28618d7a83ba203175d820321dc5137f86303ec08",
     ".github/scripts/test_sdk_admission.py": "d1daae2ab1d13e01941b36f107ec2bf5f3e4c119767878aa908150b10d114559",
-    ".github/sdk-admission-source.json": "ab9f0942cf3862097083aeeaf5a884ff2e502be8e0dec15a3c249516dd4636fc",
+    ".github/sdk-admission-source.json": "53a3ec686cde9379cb2cb783a7f362e0257b03ca51566e196444b391d5f8d9db",
     ".github/workflows/ci.yml.jinja": "67738b9c9979631d397fca10e9ba59dccb1157799bcf9a6bee8752ee894268be",
     ".github/workflows/contribution.yml": "9a92d2885189a911ebb2dafc1ee37fd8955490fffb8d080eb89ae41bf863f0fd",
     ".github/workflows/sdk-acceptance.yml": "7d965952a3f6946fce0ce0d47212f55d5afbe9089b61f193ea99af003da72abe",
     ".gitignore": "732f5ce68b4b13ef900931ca4a47ef00acffa7cdb7b699feb0e8a8d7ac719d82",
     ".pre-commit-config.yaml": "ce876c91a3925b76317a9875c15d344f78e3be9936662ac8b0c64f224f6f98da",
-    ".template-source.json": "71e71f60f05759b1348d98eae3c887c4a45d8cd3f5162c4e1d4aec9b80292978",
+    ".template-source.json": "78e6586e62176e757a58adcc912aa4b40a650f4e67d5d266e2f2ba456f49c764",
     ".template-version.json.jinja": "eeac24ff61edf9593c2c10bbeff01e725d1c3d26fb4d5f3a5c1a16cf2a794967",
     "AGENTS.md.jinja": "1b4833b150229ed9fdd7eb0e548c8f1691a6b93e335de2370921f6e8be28479b",
     "CONTRIBUTING.md.jinja": "39f64fcbbfb3a32064069bbaefdb7b50e88f3dd59345fe5d24dbe0e5674baa11",
@@ -110,7 +110,7 @@
     "tests/foundation/test_pokerlost_http.py.jinja": "565910a57e92eda0c3fb3a0b02fc715add05535f399f7aaf50f37bac66171a83",
     "tests/test_http.py.jinja": "92c585ef106e3d1aba177aa45b6145d90d37d48cd80c0f883726669a4604bef1"
   },
-  "overlayContentSha256": "7a2b09c8f7c9c345b9d749ac22f055f30a30290d38be414e9696e2cc71527e13",
+  "overlayContentSha256": "7bb109b36786f3dfd84f7d1805981749021146446856825a8de372d60cdef9b6",
   "owners": {
     ".copier-answers.yml.jinja": "parent",
     ".dockerignore": "parent",
@@ -221,6 +221,6 @@
   },
   "parentContentSha256": "c5e9704ef14099269b8905c87ba3e771094adc874c5a695622c5e8c1a601fae9",
   "schema": 1,
-  "sourceContentSha256": "97aa97276f2dfcff70345081fdbbeb2abddc05ce6682cc051a1503cecb8dc5cf",
+  "sourceContentSha256": "3d8cc02a377479b48b94975dba927e45607babe2ca2ea2aa1ada0b6070ce5bd5",
   "templateVersion": "0.3.0.dev1"
 }
