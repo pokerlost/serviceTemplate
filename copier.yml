@@ -126,7 +126,7 @@ withCi:
   help: "Include technical CI. Private SDK build requires separately approved read access."
 withKubernetes:
   type: bool
-  default: true
+  default: false
   help: "Include the inherited shared Helm chart and local Kind contour."
 withDocker:
   type: bool

@@ -10,6 +10,7 @@ import tarfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 COPIER = [sys.executable, "-m", "copier"]
@@ -219,6 +220,8 @@ def test_quality_delivery_uses_the_sdk_recipe_for_each_runtime_choice(
         f"withDocker={str(runtime_docker).lower()}",
         "-d",
         "withCi=false",
+        "-d",
+        "withKubernetes=true",
     )
     _git(output, "init", "--quiet")
     selected = "Dockerfile" if runtime_docker else "Dockerfile.quality"
@@ -236,3 +239,192 @@ def test_quality_delivery_uses_the_sdk_recipe_for_each_runtime_choice(
     assert "AS test" in recipe and "AS artifacts" in recipe
     assert (output / "compose.test.yaml").exists()
     assert (output / "Dockerfile").exists() == runtime_docker
+
+
+def _profile_source(tmp_path: Path) -> Path:
+    source = tmp_path / "source"
+    source.mkdir()
+    shutil.copy2(ROOT / "copier.yml", source / "copier.yml")
+    shutil.copytree(ROOT / "composedTemplate", source / "composedTemplate")
+    _git(source, "init", "--quiet")
+    _commit(source, ("copier.yml", "composedTemplate"), "profile source")
+    return source
+
+
+def test_kubernetes_is_opt_in(tmp_path: Path) -> None:
+    source = _profile_source(tmp_path)
+    output = tmp_path / "application"
+    _run(
+        *COPIER,
+        "copy",
+        "--quiet",
+        "--defaults",
+        str(source),
+        str(output),
+        "-d",
+        "service_name=sampleService",
+        "-d",
+        "withCi=false",
+    )
+    assert not (output / "deploy").exists()
+    assert "withKubernetes: false" in (output / ".copier-answers.yml").read_text()
+
+
+@pytest.mark.parametrize("kubernetes", [False, True])
+@pytest.mark.parametrize("persistence", [False, True])
+@pytest.mark.parametrize("runtime_docker", [False, True])
+def test_explicit_delivery_profiles(
+    tmp_path: Path, kubernetes: bool, persistence: bool, runtime_docker: bool
+) -> None:
+    source = _profile_source(tmp_path)
+    output = tmp_path / "application"
+    _run(
+        *COPIER,
+        "copy",
+        "--quiet",
+        "--defaults",
+        str(source),
+        str(output),
+        "-d",
+        "service_name=sampleService",
+        "-d",
+        "withCi=false",
+        "-d",
+        f"withKubernetes={str(kubernetes).lower()}",
+        "-d",
+        f"withPersistence={str(persistence).lower()}",
+        "-d",
+        f"withDocker={str(runtime_docker).lower()}",
+    )
+    assert (output / "deploy/chart/Chart.yaml").exists() == kubernetes
+    assert (output / "Dockerfile").exists() == runtime_docker
+    assert (output / "alembic.ini").exists() == persistence
+    assert (output / "compose.test.yaml").exists() == persistence
+    readme = (output / "README.md").read_text()
+    if persistence:
+        assert "`DATABASE_URL`" in readme
+        assert "`postgresql+asyncpg://`" in readme
+        assert "before startup" in readme
+        assert "No database URL" not in readme
+    else:
+        assert "No database URL" in readme
+    unit = _run("make", "--dry-run", "CONTAINERIZED=1", "test-unit", cwd=output)
+    assert "pytest" in unit
+    assert "kind " not in unit and "kubectl " not in unit and "helm " not in unit
+
+
+@pytest.mark.parametrize("kubernetes", [False, True])
+def test_default_change_preserves_explicit_profile_and_owner_state(
+    tmp_path: Path, kubernetes: bool
+) -> None:
+    source = _profile_source(tmp_path)
+    configuration = source / "copier.yml"
+    current = configuration.read_text()
+    configuration.write_text(
+        current.replace(
+            "withKubernetes:\n  type: bool\n  default: false",
+            "withKubernetes:\n  type: bool\n  default: true",
+        )
+    )
+    first = _commit(source, ("copier.yml",), "previous Kubernetes default")
+    output = tmp_path / "application"
+    _run(
+        *COPIER,
+        "copy",
+        "--quiet",
+        "--defaults",
+        f"--vcs-ref={first}",
+        str(source),
+        str(output),
+        "-d",
+        "service_name=sampleService",
+        "-d",
+        "withCi=false",
+        "-d",
+        "withPersistence=true",
+        "-d",
+        f"withKubernetes={str(kubernetes).lower()}",
+    )
+    _git(output, "init", "--quiet")
+    _commit(output, (".",), "previous render")
+    names = ["PROJECT.md", "SERVICE.md", "src/sampleservice/settings.py"]
+    if kubernetes:
+        names.append("deploy/values.yaml")
+    for name in names:
+        owned = output / name
+        owned.write_text(owned.read_text() + "\n# Project-owned policy\n")
+    revision = output / "migrations/versions/owner_revision.py"
+    revision.write_text('"""Immutable historical revision fixture."""\n')
+    names.append(revision.relative_to(output).as_posix())
+    preserved = {name: (output / name).read_bytes() for name in names}
+    _commit(output, (".",), "owner state")
+    configuration.write_text(current)
+    managed = source / "composedTemplate/src/{{ packageName }}/api/health.py.jinja"
+    managed.write_text(managed.read_text() + "\n# Managed update marker\n")
+    second = _commit(
+        source, ("copier.yml", "composedTemplate"), "opt-in deployment default"
+    )
+    _run(*COPIER, "update", "--quiet", "--defaults", f"--vcs-ref={second}", cwd=output)
+    assert all((output / name).read_bytes() == data for name, data in preserved.items())
+    assert (output / "deploy/chart/Chart.yaml").exists() == kubernetes
+    answers = (output / ".copier-answers.yml").read_text()
+    assert f"withKubernetes: {str(kubernetes).lower()}" in answers
+    assert (
+        "# Managed update marker"
+        in (output / "src/sampleservice/api/health.py").read_text()
+    )
+    assert not _git(output, "ls-files", "-u")
+    assert not list(output.rglob("*.rej"))
+
+
+def _assert_ci_event_policy(path: Path) -> None:
+    workflow = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
+    events = workflow["on"]
+    for event in ("push", "pull_request"):
+        assert events[event]["branches"] == ["test", "dev", "main"]
+        assert "paths" not in events[event] and "paths-ignore" not in events[event]
+    concurrency = workflow["concurrency"]
+    assert (
+        concurrency["cancel-in-progress"]
+        == "${{ github.event_name == 'pull_request' }}"
+    )
+    assert (
+        "github.event_name == 'pull_request' && github.ref || github.run_id"
+        in concurrency["group"]
+    )
+    assert workflow["permissions"] == {"contents": "read"}
+    for job in workflow["jobs"].values():
+        for step in job.get("steps", []):
+            if step.get("uses", "").startswith("actions/checkout@"):
+                assert step["with"]["persist-credentials"] == "false"
+                assert (
+                    step["with"]["ref"]
+                    == "${{ github.event.pull_request.head.sha || github.sha }}"
+                )
+
+
+def test_maintenance_ci_checks_every_permanent_branch_event() -> None:
+    _assert_ci_event_policy(ROOT / ".github/workflows/ci.yml")
+
+
+@pytest.mark.parametrize("persistence", [False, True])
+def test_rendered_ci_checks_every_permanent_branch_event(
+    tmp_path: Path, persistence: bool
+) -> None:
+    source = _profile_source(tmp_path)
+    output = tmp_path / "application"
+    _run(
+        *COPIER,
+        "copy",
+        "--quiet",
+        "--defaults",
+        str(source),
+        str(output),
+        "-d",
+        "service_name=sampleService",
+        "-d",
+        "withCi=true",
+        "-d",
+        f"withPersistence={str(persistence).lower()}",
+    )
+    _assert_ci_event_policy(output / ".github/workflows/ci.yml")

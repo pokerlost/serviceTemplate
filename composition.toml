@@ -57,6 +57,7 @@ include = [
   "tests/database_integration.py.jinja",
   "tests/foundation/test_package.py.jinja",
   "tests/foundation/test_observability.py.jinja",
+  "tests/foundation/test_settings.py.jinja",
   "tests/foundation/test_http.py.jinja",
   "tests/foundation/database_integration.py.jinja",
   "deploy/chart/.helmignore",
