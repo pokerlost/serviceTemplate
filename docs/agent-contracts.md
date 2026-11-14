@@ -1,6 +1,6 @@
 # serviceTemplate local contracts
 
-Read [baseRules at the selected commit](https://raw.githubusercontent.com/serrja/baseRules/730418d3cc480b4f05b88b4c8275296c4845a75a/docs/engineering.md), then [Pokerlost project norms](https://raw.githubusercontent.com/pokerlost/projectRules/4785546cffa58f7ae1c22b6d6b8846a0141793eb/docs/project.md) before the local contracts below. Pinned links are reading sources, not automatic
+Read [baseRules at the selected commit](https://raw.githubusercontent.com/serrja/baseRules/8434509933feaa71ba312f8d02caad7362766d5a/docs/engineering.md), then [Pokerlost project norms](https://raw.githubusercontent.com/pokerlost/projectRules/c3bfb397c46c2fa1021009e13f9e1090d9078176/docs/project.md) before the local contracts below. Pinned links are reading sources, not automatic
 loaders or grants. Review source diff and change full-SHA links explicitly, then run
 documentation checks. Local overrides cover only this repository's specialization.
 

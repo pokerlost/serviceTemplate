@@ -5,3 +5,16 @@ The process lifecycle, settings, resources, health endpoints, and optional Postg
 `GET /` returns `PokerlostResponse[None]`; `GET /getOpenApi` publishes the actual OpenAPI document. Future operations use one lower camelCase `POST /<operationId>` with typed `PokerlostRequest` and `PokerlostResponse`. A protected operation requires exact local capability scopes and a real local verifier. The pristine verifier is absent and fails closed. No SDK generator contract is inferred from missing business routes.
 
 The generated project owns `SERVICE.md`, `PROJECT.md`, concrete routes, scopes, adapters, and migrations. Review template updates against those owners. Historical migrations can create historical tables in a new database; changing this code foundation does not clean storage.
+
+## Runtime and execution settings
+
+`ServiceSettings.environment` selects `main`, `dev`, `test`, or `local` (the default)
+through `{{ projectName | upper }}_RUNTIME_ENVIRONMENT` or an explicit constructor
+argument. The existing telemetry input `{{ projectName | upper }}_ENVIRONMENT`
+keeps `local`, `dev`, `ci`, and `remote` as independent execution contours.
+
+Constructor inputs retain priority over process variables, then an explicitly
+selected dotenv file or secret directory. Neither identity derives from Git or
+configures endpoints, credentials, databases, namespaces, routing, or authorization.
+Generated application settings remain project-owned during updates. The pinned
+generic FastAPI source owns these settings and their managed regression tests.
