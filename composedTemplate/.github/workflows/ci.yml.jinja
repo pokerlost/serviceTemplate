@@ -42,15 +42,276 @@ jobs:
           cache-to: type=gha,mode=max,scope={% raw %}${{ github.repository_id }}{% endraw %}-public-source-python314-linux-amd64-{% raw %}${{ github.event_name == 'pull_request' && 'review' || 'trusted' }}{% endraw %}
       - run: make source
       - name: Report the separate private acceptance boundary
-        run: echo 'Source metadata/lint passed. B1 runtime, installed-wheel and Kind acceptance require the owner-dispatched privateBuild; this job does not verify B1.' >> "$GITHUB_STEP_SUMMARY"
+        run: echo 'Source metadata/lint passed. Native package acceptance runs separately. B1 application-image and Kind acceptance still require the owner-dispatched privateBuild; this source job does not verify B1.' >> "$GITHUB_STEP_SUMMARY"
+
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      package-name: {% raw %}${{ steps.native-target.outputs.package-name }}{% endraw %}
+      version-target: {% raw %}${{ steps.native-target.outputs.version-target }}{% endraw %}
+    env:
+      UV_NO_SYNC: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: url.https://github.com/pokerlost/pypokerlost.git.insteadOf
+      GIT_CONFIG_VALUE_0: ssh://git@github.com/pokerlost/pypokerlost.git
+      GIT_TERMINAL_PROMPT: '0'
+      UV_NO_GITHUB_FAST_PATH: '1'
+{% if withPersistence %}      TEST_DATABASE_URL: postgresql+asyncpg://foundation:synthetic-test-only@127.0.0.1:5432/foundation
+    services:
+      postgres:
+        image: postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: foundation
+          POSTGRES_PASSWORD: synthetic-test-only
+          POSTGRES_DB: foundation
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U foundation -d foundation'
+          --health-interval 2s --health-timeout 2s --health-retries 30
+{% endif %}    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          ref: {% raw %}${{ github.event.pull_request.head.sha || github.sha }}{% endraw %}
+      - name: Keep native environments and cache outside source
+        run: |
+          printf 'UV_PROJECT_ENVIRONMENT=%s/native-env\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'UV_CACHE_DIR=%s/native-uv-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+        with:
+          version: '0.12.15'
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Prepare the locked native toolchain without source installation
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          uv python install 3.14.7
+          uv sync --locked --all-groups --no-install-project --no-editable --python 3.14.7
+{% if withKubernetes %}      - name: Install only the checksum-pinned Helm checker
+        run: |
+          set -euo pipefail
+          tool_dir="$RUNNER_TEMP/native-tools"
+          mkdir "$tool_dir"
+          curl --fail --silent --show-error --location https://get.helm.sh/helm-v4.3.1-linux-amd64.tar.gz --output "$tool_dir/helm.tar.gz"
+          printf '%s  %s\n' 0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b "$tool_dir/helm.tar.gz" | sha256sum --check
+          tar --extract --gzip --file "$tool_dir/helm.tar.gz" --directory "$tool_dir" linux-amd64/helm
+          mv "$tool_dir/linux-amd64/helm" "$tool_dir/helm"
+          chmod 700 "$tool_dir/helm"
+          echo "$tool_dir" >> "$GITHUB_PATH"
+{% endif %}      - name: Build native artifacts and preserve every Make check
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          uv build --offline --no-build-isolation --no-create-gitignore --python "$UV_PROJECT_ENVIRONMENT/bin/python" --wheel --sdist --out-dir "$RUNNER_TEMP/native-dist"
+          wheels=("$RUNNER_TEMP/native-dist/"*.whl)
+          test "{% raw %}${#wheels[@]}{% endraw %}" = 1
+          test -f "${wheels[0]}"
+          uv pip install --no-index --no-deps --python "$UV_PROJECT_ENVIRONMENT/bin/python" "${wheels[0]}"
+          PYTHONPATH="$GITHUB_WORKSPACE/src" make CONTAINERIZED=1 check
+          "$UV_PROJECT_ENVIRONMENT/bin/python" -I -B docker/native_acceptance.py source --source . --report coverage --python "$UV_PROJECT_ENVIRONMENT/bin/python"{% if withPersistence %} --persistence{% endif %}
+      - name: Accept the exact wheel in a second fresh locked environment
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/native-installed-env" uv sync --locked --all-groups --no-install-project --no-editable --python 3.14.7
+          wheels=("$RUNNER_TEMP/native-dist/"*.whl)
+          test "{% raw %}${#wheels[@]}{% endraw %}" = 1
+          test -f "${wheels[0]}"
+          uv pip install --no-index --no-deps --python "$RUNNER_TEMP/native-installed-env/bin/python" "${wheels[0]}"
+          "$UV_PROJECT_ENVIRONMENT/bin/python" -I -B docker/native_acceptance.py installed --source . --fixture "$RUNNER_TEMP/native-installed-fixture" --report "$RUNNER_TEMP/native-installed-reports" --python "$RUNNER_TEMP/native-installed-env/bin/python" --wheel "${wheels[0]}"{% if withPersistence %} --persistence{% endif %}
+      - name: Read canonical package and version target
+        id: native-target
+        run: |
+          "$UV_PROJECT_ENVIRONMENT/bin/python" -I -B -c '
+          import tomllib
+          from pathlib import Path
+          from packaging.utils import canonicalize_name
+          from packaging.version import Version
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          print("package-name=" + canonicalize_name(project["name"]))
+          print("version-target=" + Version(project["version"]).base_version)
+          ' >> "$GITHUB_OUTPUT"
 
   required:
+    outputs:
+      package-name: {% raw %}${{ needs.native.outputs.package-name }}{% endraw %}
+      version-target: {% raw %}${{ needs.native.outputs.version-target }}{% endraw %}
     if: always()
-    needs: [source]
+    needs: [source, native]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      - name: Require actual source checks
-        env:
+      - env:
           SOURCE: {% raw %}${{ needs.source.result }}{% endraw %}
-        run: test "$SOURCE" = success
+          NATIVE: {% raw %}${{ needs.native.result }}{% endraw %}
+        run: |
+          set -euo pipefail
+          test "$SOURCE" = success
+          test "$NATIVE" = success
+  release-allocation:
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main')
+    needs: required
+    permissions:
+      contents: write
+      actions: read
+    uses: pokerlost/.github/.github/workflows/python-allocate.yml@e5cac33af228224af9deaef308e39c1b9f788033
+    with:
+      provider-ref: e5cac33af228224af9deaef308e39c1b9f788033
+      schema-version: h02-python/v1
+      source-workflow: .github/workflows/ci.yml
+      preflight-gate: required
+      builder-job: release-builder
+      package-name: {% raw %}${{ needs.required.outputs.package-name }}{% endraw %}
+      version-target: {% raw %}${{ needs.required.outputs.version-target }}{% endraw %}
+      wheel-tags: '["py3-none-any"]'
+  release-builder:
+    name: release-builder
+    needs: [required, release-allocation]
+    if: needs.release-allocation.outputs.build-required == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: url.https://github.com/pokerlost/pypokerlost.git.insteadOf
+      GIT_CONFIG_VALUE_0: ssh://git@github.com/pokerlost/pypokerlost.git
+      GIT_TERMINAL_PROMPT: '0'
+      UV_NO_GITHUB_FAST_PATH: '1'
+{% if withPersistence %}      TEST_DATABASE_URL: postgresql+asyncpg://foundation:synthetic-test-only@127.0.0.1:5432/foundation
+    services:
+      postgres:
+        image: postgres:17.11-trixie@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3
+        env:
+          POSTGRES_USER: foundation
+          POSTGRES_PASSWORD: synthetic-test-only
+          POSTGRES_DB: foundation
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U foundation -d foundation'
+          --health-interval 2s --health-timeout 2s --health-retries 30
+{% endif %}
+    outputs:
+      artifact-id: {% raw %}${{ steps.upload.outputs.artifact-id }}{% endraw %}
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: {% raw %}${{ needs.release-allocation.outputs.source-sha }}{% endraw %}
+          persist-credentials: false
+          path: source
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: pokerlost/.github
+          ref: e5cac33af228224af9deaef308e39c1b9f788033
+          persist-credentials: false
+          path: provider
+      - name: Keep the native environment and dependency cache outside source
+        run: |
+          printf 'UV_PROJECT_ENVIRONMENT=%s/h02-native-env\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'UV_CACHE_DIR=%s/h02-uv-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+        with:
+          version: '0.12.15'
+          enable-cache: true
+          cache-dependency-glob: source/uv.lock
+      - name: Prepare the existing locked native toolchain without installing source
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          uv python install 3.14.7
+          uv sync --locked --all-groups --no-install-project --no-editable --python 3.14.7
+      - name: Build the allocated version from an isolated exact-source export
+        env:
+          ALLOCATION_JSON: {% raw %}${{ needs.release-allocation.outputs.allocation }}{% endraw %}
+          ALLOCATION_SHA256: {% raw %}${{ needs.release-allocation.outputs.allocation-sha256 }}{% endraw %}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          python3 - <<'PYTHON'
+          import os
+          from pathlib import Path
+          (Path(os.environ["RUNNER_TEMP"]) / "allocation.json").write_text(os.environ["ALLOCATION_JSON"])
+          (Path(os.environ["RUNNER_TEMP"]) / "source-pyproject.toml").write_bytes(Path("pyproject.toml").read_bytes())
+          PYTHON
+          "$UV_PROJECT_ENVIRONMENT/bin/python" docker/python_release.py build \
+            --allocation "$RUNNER_TEMP/allocation.json" --allocation-sha256 "$ALLOCATION_SHA256" \
+            --provider-ref e5cac33af228224af9deaef308e39c1b9f788033 \
+            --destination "$RUNNER_TEMP/h02-source" --output "$RUNNER_TEMP/h02-dist" \
+            --evidence "$RUNNER_TEMP/build-tool.json" --source-pyproject "$RUNNER_TEMP/source-pyproject.toml"
+      - name: Independently inspect native archive metadata
+        env:
+          VERSION_TARGET: {% raw %}${{ needs.required.outputs.version-target }}{% endraw %}
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          "$UV_PROJECT_ENVIRONMENT/bin/python" ../provider/scripts/python_artifacts.py verify \
+            --allocation "$RUNNER_TEMP/allocation.json" --directory "$RUNNER_TEMP/h02-dist" \
+            --source-pyproject "$RUNNER_TEMP/source-pyproject.toml" --version-target "$VERSION_TARGET" \
+            > "$RUNNER_TEMP/native-metadata.json"
+      - name: Accept the allocated wheel outside both source trees
+        run: |
+          set -euo pipefail
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/h02-installed" uv sync --locked --all-groups --no-install-project --no-editable --python 3.14.7
+          wheels=("$RUNNER_TEMP/h02-dist/"*.whl)
+          test "{% raw %}${#wheels[@]}{% endraw %}" = 1
+          test -f "${wheels[0]}"
+          uv pip install --no-deps --no-index --python "$RUNNER_TEMP/h02-installed/bin/python" "${wheels[0]}"
+          "$UV_PROJECT_ENVIRONMENT/bin/python" -I -B docker/native_acceptance.py installed --source "$RUNNER_TEMP/h02-source" --fixture "$RUNNER_TEMP/h02-smoke" --report "$RUNNER_TEMP/h02-installed-reports" --python "$RUNNER_TEMP/h02-installed/bin/python" --wheel "${wheels[0]}"{% if withPersistence %} --persistence{% endif %}
+      - name: Record measured tools, original allocation and actual builder job identity
+        env:
+          GH_TOKEN: {% raw %}${{ github.token }}{% endraw %}
+          ALLOCATION_SHA256: {% raw %}${{ needs.release-allocation.outputs.allocation-sha256 }}{% endraw %}
+        run: |
+          set -euo pipefail
+          job_id="$(gh api --hostname github.com --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100" \
+            --jq '.jobs[] | select(.name == "release-builder") | .id')"
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN
+          "$UV_PROJECT_ENVIRONMENT/bin/python" docker/python_release.py receipt \
+            --allocation "$RUNNER_TEMP/allocation.json" --allocation-sha256 "$ALLOCATION_SHA256" \
+            --metadata "$RUNNER_TEMP/native-metadata.json" --build-evidence "$RUNNER_TEMP/build-tool.json" \
+            --job-id "$job_id" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output "$RUNNER_TEMP/h02-dist/python-build-receipt.json"
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: {% raw %}${{ runner.temp }}{% endraw %}/h02-dist/*
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        id: upload
+        with:
+          name: h02-python-{% raw %}${{ github.run_id }}{% endraw %}-{% raw %}${{ github.run_attempt }}{% endraw %}
+          path: {% raw %}${{ runner.temp }}{% endraw %}/h02-dist/*
+          if-no-files-found: error
+          compression-level: 0
+  release-publication:
+    needs: [required, release-allocation, release-builder]
+    if: >-
+      always() && needs.required.result == 'success' && needs.release-allocation.result == 'success' &&
+      (needs.release-builder.result == 'success' ||
+      (needs.release-builder.result == 'skipped' && needs.release-allocation.outputs.build-required == 'false'))
+    permissions:
+      contents: write
+      actions: read
+      attestations: read
+    uses: pokerlost/.github/.github/workflows/python-publish.yml@e5cac33af228224af9deaef308e39c1b9f788033
+    with:
+      provider-ref: e5cac33af228224af9deaef308e39c1b9f788033
+      schema-version: h02-python/v1
+      source-workflow: .github/workflows/ci.yml
+      preflight-gate: required
+      builder-job: release-builder
+      package-name: {% raw %}${{ needs.required.outputs.package-name }}{% endraw %}
+      version-target: {% raw %}${{ needs.required.outputs.version-target }}{% endraw %}
+      wheel-tags: '["py3-none-any"]'
+      allocation: {% raw %}${{ needs.release-allocation.outputs.allocation }}{% endraw %}
+      artifact-id: {% raw %}${{ needs.release-allocation.outputs.artifact-id || needs.release-builder.outputs.artifact-id }}{% endraw %}

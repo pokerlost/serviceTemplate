@@ -393,14 +393,25 @@ def _assert_ci_event_policy(path: Path) -> None:
         in concurrency["group"]
     )
     assert workflow["permissions"] == {"contents": "read"}
-    for job in workflow["jobs"].values():
+    for name, job in workflow["jobs"].items():
         for step in job.get("steps", []):
             if step.get("uses", "").startswith("actions/checkout@"):
                 assert step["with"]["persist-credentials"] == "false"
-                assert (
-                    step["with"]["ref"]
-                    == "${{ github.event.pull_request.head.sha || github.sha }}"
-                )
+                if name == "release-builder":
+                    if step["with"].get("repository") == "pokerlost/.github":
+                        assert step["with"]["ref"] == (
+                            "e5cac33af228224af9deaef308e39c1b9f788033"
+                        )
+                        assert step["with"]["path"] == "provider"
+                    else:
+                        assert step["with"]["ref"] == (
+                            "${{ needs.release-allocation.outputs.source-sha }}"
+                        )
+                        assert step["with"]["path"] == "source"
+                else:
+                    assert step["with"]["ref"] == (
+                        "${{ github.event.pull_request.head.sha || github.sha }}"
+                    )
 
 
 def test_maintenance_ci_checks_every_permanent_branch_event() -> None:
