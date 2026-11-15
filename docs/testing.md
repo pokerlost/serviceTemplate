@@ -54,3 +54,32 @@ fails acceptance. Wheel, installed application, runtime readiness, native Alembi
 and disposable Kind scaling/rollback must all pass. Empty Alembic baselines are valid; console
 revision spelling is never parsed. Cache and evidence remain private per consumer, target and
 platform. No release, registry destination or remote deployment is implicit.
+
+## Native package CI
+
+The owned `foundationOverlay/.github/workflows/ci.yml.jinja` adds native package
+checks beside public source metadata checks. The generated native job runs
+`make CONTAINERIZED=1 check`, preserving service-owned Makefile.local additions
+and optional checksum-pinned Helm checks. Fresh locked environments and artifact
+outputs stay outside checkout. No application image or Kind cluster is required.
+
+`foundationOverlay/docker/native_acceptance.py` copies only technical test
+resources into an outside-source fixture and invokes existing pytest directly
+with the installed interpreter. Strict inherited package assertions bind the
+fixture's version to the exact local wheel, its hash and noneditable installed
+origin. The original lock supplies dependencies; VCS SDK requirements are not
+converted to an incompatible blanket require-hashes export.
+
+With persistence, source checks and installed checks compare explicit DB
+collection and JUnit to the service-owned `.github/native-integration.json`.
+The initial persistent seed lists two technical cases. Existing accounts/auth
+services extend it with their reviewed historical cases rather than dropping
+them. Copier preserves the manifest. Any empty, missing, extra or skipped DB
+case fails; ordinary pytest runs separately. Disposable PostgreSQL uses the
+same immutable image as the managed Compose tests. No host database is a fallback.
+
+The generated caller delegates allocation and publication to the pinned H02
+Python provider after native required checks. The tooling repository remains a
+source bundle without a fictitious package backend or its own package caller.
+See the generated release guide for the native package boundary. Neither CI
+configuration nor local native evidence establishes a published release or B1.

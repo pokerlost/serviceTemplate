@@ -5,6 +5,7 @@ _templates_suffix: .jinja
 _envops:
   undefined: jinja2.StrictUndefined
 _skip_if_exists:
+  - .github/native-integration.json
   - AGENTS.md
   - PROJECT.md
   - SERVICE.md

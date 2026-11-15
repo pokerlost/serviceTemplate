@@ -76,6 +76,7 @@ include = [
   "tests/foundation/test_migrations.py.jinja",
 ]
 allowOverride = [
+  "docs/releases.md.jinja",
   "AGENTS.md.jinja",
   "Makefile.jinja",
   "README.md.jinja",
