@@ -4,7 +4,7 @@ A local Pokerlost FastAPI foundation. It provides health, canonical root/OpenAPI
 
 ## 🚀 Run
 
-Python 3.14+ and access to the pinned private `pypokerlost` source are required to install. The installed wheel includes the SDK as a runtime dependency; it does not need an adjacent checkout. No database URL or outbound credential is needed for this default render.
+Python 3.14+ and access to the pinned `pypokerlost` source are required to install. The installed wheel includes the SDK as a runtime dependency; it does not need an adjacent checkout. {% if withPersistence %}Set `DATABASE_URL` to a `postgresql+asyncpg://` DSN before startup.{% else %}No database URL is needed for this render.{% endif %} No outbound service credential is configured.
 
 ```bash
 uv lock
@@ -17,7 +17,7 @@ make run
 ## 📦 Container and deployment candidate
 
 `make ci-local` runs applicable checks once; `make version` and
-`make release-check` read and validate artifact versions. Wheel, sdist and chart
+`make release-check` read and validate artifact versions. Wheel and sdist{% if withKubernetes %}, plus the chart,{% endif %}
 share `dist/<source-content-sha256>/`, preserving previous rollback artifacts.
 After a successful online run, `make ci-local OFFLINE=1` validates prepared
 SDK/build/database inputs and runs fresh acceptance without fetching dependencies.

@@ -166,9 +166,15 @@ PYTHON
     printf '%s\n' passed > "$report/kind-result.txt"
     ;;
   archive)
-    test -f "$report/runtime-result.txt" && test -f "$report/kind-result.txt"
+    test -f "$report/runtime-result.txt"
+    test -f "$report/kind-result.txt"
+    build_artifact=$(find "$runtime/dist" -type f ! -path "$runtime/dist/runtime-image.docker.tar.gz" -print -quit)
+    test -n "$build_artifact"
     docker save "$package:candidate" | gzip --no-name > "$runtime/dist/runtime-image.docker.tar.gz"
-    sha256sum "$runtime"/dist/* > "$report/distribution-sha256.txt"
+    (
+      cd "$runtime"
+      find dist -type f -print0 | sort -z | xargs -0 sha256sum --
+    ) > "$report/distribution-sha256.txt"
     cat "$runtime/coverage/summary.md" >> "$GITHUB_STEP_SUMMARY"
     if [ -f "$runtime/coverage/installed/summary.md" ]; then
       cat "$runtime/coverage/installed/summary.md" >> "$GITHUB_STEP_SUMMARY"

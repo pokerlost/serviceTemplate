@@ -6,18 +6,15 @@ The process lifecycle, settings, resources, health endpoints, and optional Postg
 
 The generated project owns `SERVICE.md`, `PROJECT.md`, concrete routes, scopes, adapters, and migrations. Review template updates against those owners. Historical migrations can create historical tables in a new database; changing this code foundation does not clean storage.
 
+## Runtime and execution settings
 
-## Runtime environment identity
+`ServiceSettings.environment` selects `main`, `dev`, `test`, or `local` (the default)
+through `{{ projectName | upper }}_RUNTIME_ENVIRONMENT` or an explicit constructor
+argument. The existing telemetry input `{{ projectName | upper }}_ENVIRONMENT`
+keeps `local`, `dev`, `ci`, and `remote` as independent execution contours.
 
-Settings accept `main`, `dev`, `test`, `local` through the process-prefixed
-`ENVIRONMENT` variable or an explicit constructor argument (highest priority).
-The default is `local`. This does not derive from Git, configure DNS, provision
-credentials or move existing data. Remote origins remain not configured until
-supplied by the caller. The SDK environment factory in its development source
-requires explicit HTTPS remote origins and keeps auth bound to environment/origin;
-adopting that SDK version is a separate exact-pin dependency update.
-
-Assign separate namespaces, database users/databases and secret paths before any
-remote deployment. Existing local volumes remain unchanged. `ci`/`remote` describe
-execution, not environment names. No automatic dependency upgrade, test or build
-runs during generation; template render/update acceptance remains manual.
+Constructor inputs retain priority over process variables, then an explicitly
+selected dotenv file or secret directory. Neither identity derives from Git or
+configures endpoints, credentials, databases, namespaces, routing, or authorization.
+Generated application settings remain project-owned during updates. The pinned
+generic FastAPI source owns these settings and their managed regression tests.

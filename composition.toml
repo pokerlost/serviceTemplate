@@ -3,6 +3,7 @@ snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
 output = "composedTemplate"
 include = [
+  "docker/python_release.py",
   "deploy/chart/LICENSE",
   "app_logging.json.jinja",
   "_meta/license-questions.yml",
@@ -57,6 +58,7 @@ include = [
   "tests/database_integration.py.jinja",
   "tests/foundation/test_package.py.jinja",
   "tests/foundation/test_observability.py.jinja",
+  "tests/foundation/test_settings.py.jinja",
   "tests/foundation/test_http.py.jinja",
   "tests/foundation/database_integration.py.jinja",
   "deploy/chart/.helmignore",
@@ -74,6 +76,7 @@ include = [
   "tests/foundation/test_migrations.py.jinja",
 ]
 allowOverride = [
+  "docs/releases.md.jinja",
   "AGENTS.md.jinja",
   "Makefile.jinja",
   "README.md.jinja",

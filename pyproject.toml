@@ -37,7 +37,7 @@ extend-exclude = ["_sources"]
 select = ["B", "E", "F", "I", "N", "RUF", "SIM", "UP", "TID252"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tools"]
+known-first-party = ["tools", "docker"]
 known-third-party = [
     "alembic",
     "fastapi",

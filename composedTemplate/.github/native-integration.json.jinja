@@ -1,0 +1,4 @@
+{% if withPersistence %}[
+  "tests/foundation/database_integration.py::test_real_readiness_and_transaction_ownership",
+  "tests/database_integration.py::test_real_database_readiness"
+]{% else %}[]{% endif %}
