@@ -3,6 +3,7 @@ snapshot = "_sources/fastApiTemplate"
 overlay = "foundationOverlay"
 output = "composedTemplate"
 include = [
+  "docker/python_release.py",
   "deploy/chart/LICENSE",
   "app_logging.json.jinja",
   "_meta/license-questions.yml",
