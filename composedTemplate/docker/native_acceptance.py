@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 import os
@@ -10,9 +9,25 @@ import shutil
 import subprocess
 import xml.etree.ElementTree as ET
 from collections import Counter
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated, cast
 
+import typer
+
+app = typer.Typer(
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
+    pretty_exceptions_show_locals=False,
+)
 MANIFEST = ".github/native-integration.json"
+
+
+class Mode(StrEnum):
+    """Select the existing source or installed pytest boundary."""
+
+    SOURCE = "source"
+    INSTALLED = "installed"
 
 
 def require(condition: object, message: str) -> None:
@@ -111,32 +126,30 @@ def copy_fixture(source: Path, target: Path, persistence: bool) -> None:
                 )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("source", "installed"))
-    for name in ("source", "python", "report"):
-        parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--fixture", type=Path)
-    parser.add_argument("--wheel", type=Path)
-    parser.add_argument("--persistence", action="store_true")
-    args = parser.parse_args()
-    source, report = args.source.resolve(), args.report.resolve()
-    nodes = integration_nodes(source, args.persistence)
+@app.command("native-acceptance")
+def main(
+    mode: Annotated[Mode, typer.Argument(help="Existing pytest acceptance mode.")],
+    source: Annotated[Path, typer.Option("--source")],
+    python: Annotated[Path, typer.Option("--python")],
+    report: Annotated[Path, typer.Option("--report")],
+    fixture: Annotated[Path | None, typer.Option("--fixture")] = None,
+    wheel: Annotated[Path | None, typer.Option("--wheel")] = None,
+    persistence: Annotated[bool, typer.Option("--persistence")] = False,
+) -> None:
+    source, report = source.resolve(), report.resolve()
+    nodes = integration_nodes(source, persistence)
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
-    if args.mode == "installed":
-        require(
-            args.fixture is not None and args.wheel is not None, "Missing wheel/fixture"
-        )
-        source_fixture = args.fixture.resolve()
+    if mode == "installed":
+        require(fixture is not None and wheel is not None, "Missing wheel/fixture")
+        fixture, wheel = cast(Path, fixture), cast(Path, wheel)
+        source_fixture = fixture.resolve()
         require(not report.exists(), "Installed reports must be new")
         require(not report.is_relative_to(source), "Reports must be outside source")
-        copy_fixture(source, source_fixture, args.persistence)
+        copy_fixture(source, source_fixture, persistence)
         report.mkdir(parents=True)
-        require(
-            args.wheel.is_file() and not args.wheel.is_symlink(), "Invalid wheel file"
-        )
-        wheel = args.wheel.resolve(strict=True)
+        require(wheel.is_file() and not wheel.is_symlink(), "Invalid wheel file")
+        wheel = wheel.resolve(strict=True)
         env.update(
             TEST_INSTALLED_WHEEL="1",
             TEST_EXACT_WHEEL="1",
@@ -144,9 +157,9 @@ def main() -> None:
             EXPECTED_WHEEL_SHA256=hashlib.sha256(wheel.read_bytes()).hexdigest(),
         )
         source = source_fixture
-    command = [str(args.python), "-I", "-B", "-m", "pytest"]
+    command = [str(python), "-I", "-B", "-m", "pytest"]
     command += ["-q", "-p", "no:cacheprovider"]
-    if args.persistence:
+    if persistence:
         files = sorted(
             {"tests/foundation/database_integration.py"}
             | {
@@ -174,7 +187,7 @@ def main() -> None:
             Counter(actual) == Counter(nodes),
             "Integration collection differs from reviewed IDs",
         )
-        if args.mode == "installed":
+        if mode == "installed":
             subprocess.run(
                 [*command, "--junitxml=" + str(report / "integration.xml"), *files],
                 cwd=source,
@@ -182,7 +195,7 @@ def main() -> None:
                 check=True,
             )
         junit(report / "integration.xml", nodes)
-    if args.mode == "installed":
+    if mode == "installed":
         subprocess.run(
             [*command, "--junitxml=" + str(report / "junit.xml")],
             cwd=source,
@@ -193,4 +206,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    app()
