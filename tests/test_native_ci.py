@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -14,9 +15,37 @@ from pathlib import Path
 
 import pytest
 import yaml
+from jinja2 import Environment, StrictUndefined
 
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "foundationOverlay/docker/native_acceptance.py"
+
+
+@pytest.mark.parametrize("job", ["native", "release-builder"])
+def test_hosted_postgres_health_command_is_one_process_argument(job: str) -> None:
+    template = ROOT / "foundationOverlay/.github/workflows/ci.yml.jinja"
+    rendered = (
+        Environment(undefined=StrictUndefined)
+        .from_string(template.read_text())
+        .render(packageName="healthfixture", withPersistence=True, withKubernetes=False)
+    )
+    options = yaml.safe_load(rendered)["jobs"][job]["services"]["postgres"]["options"]
+    # The runner passes process arguments, not shell input: only double quotes group
+    # this simple command; shell single quotes remain literal characters.
+    lexer = shlex.shlex(options, posix=True)
+    lexer.whitespace_split = True
+    lexer.quotes = '"'
+    lexer.commenters = ""
+    assert list(lexer) == [
+        "--health-cmd",
+        "pg_isready -U foundation -d foundation",
+        "--health-interval",
+        "2s",
+        "--health-timeout",
+        "2s",
+        "--health-retries",
+        "30",
+    ]
 
 
 @pytest.mark.parametrize("persistence", [False, True])
